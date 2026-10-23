@@ -1,0 +1,509 @@
+[
+  {
+    "prop": "sign",
+    "method": "start",
+    "frames": 1,
+    "opaque": 471,
+    "offPalettePct": 0,
+    "softAlphaPct": 0,
+    "colours": 7,
+    "files": [
+      "out/raw/sign-start.png"
+    ]
+  },
+  {
+    "prop": "sign",
+    "method": "rd8",
+    "frames": 3,
+    "delays": [
+      300,
+      450,
+      450
+    ],
+    "bytes": 3154,
+    "ms": 54968,
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 8.45
+    },
+    "files": [
+      "out/raw/sign-rd8.gif"
+    ],
+    "offPalettePct": 0,
+    "softAlphaPct": 0,
+    "coloursMax": 3,
+    "driftFromStart": 0.49,
+    "motionAvg": 0.02,
+    "seam": 0,
+    "firstFrameVsStart": 0.49
+  },
+  {
+    "prop": "sign",
+    "method": "pl4",
+    "frames": 5,
+    "delays": null,
+    "bytes": 4650,
+    "ms": 545250,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/sign-pl4-00.png",
+      "out/raw/sign-pl4-01.png",
+      "out/raw/sign-pl4-02.png",
+      "out/raw/sign-pl4-03.png",
+      "out/raw/sign-pl4-04.png"
+    ],
+    "offPalettePct": 13,
+    "softAlphaPct": 0,
+    "coloursMax": 28,
+    "driftFromStart": 16.02,
+    "motionAvg": 9.65,
+    "seam": 16.02,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "sign",
+    "method": "pl8",
+    "frames": 9,
+    "delays": null,
+    "bytes": 7911,
+    "ms": 424168,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/sign-pl8-00.png",
+      "out/raw/sign-pl8-01.png",
+      "out/raw/sign-pl8-02.png",
+      "out/raw/sign-pl8-03.png",
+      "out/raw/sign-pl8-04.png",
+      "out/raw/sign-pl8-05.png",
+      "out/raw/sign-pl8-06.png",
+      "out/raw/sign-pl8-07.png",
+      "out/raw/sign-pl8-08.png"
+    ],
+    "offPalettePct": 26.8,
+    "softAlphaPct": 0,
+    "coloursMax": 24,
+    "driftFromStart": 7.57,
+    "motionAvg": 7.29,
+    "seam": 7.57,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "sign",
+    "method": "edits",
+    "frames": 3,
+    "delays": null,
+    "bytes": 1890,
+    "ms": 222271,
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "files": [
+      "out/raw/sign-edits-00.png",
+      "out/raw/sign-edits-01.png"
+    ],
+    "offPalettePct": 66.7,
+    "softAlphaPct": 0,
+    "coloursMax": 37,
+    "driftFromStart": 11.5,
+    "motionAvg": 11.5,
+    "seam": 11.5,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "plant",
+    "method": "start",
+    "frames": 1,
+    "opaque": 824,
+    "offPalettePct": 0,
+    "softAlphaPct": 0,
+    "colours": 9,
+    "files": [
+      "out/raw/plant-start.png"
+    ]
+  },
+  {
+    "prop": "plant",
+    "method": "rd8",
+    "frames": 8,
+    "delays": [
+      150,
+      150,
+      150,
+      150,
+      150,
+      150,
+      150,
+      150
+    ],
+    "bytes": 9936,
+    "ms": 33763,
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 7.7
+    },
+    "files": [
+      "out/raw/plant-rd8.gif"
+    ],
+    "offPalettePct": 21.2,
+    "softAlphaPct": 0,
+    "coloursMax": 9,
+    "driftFromStart": 9.08,
+    "motionAvg": 3.92,
+    "seam": 4.25,
+    "firstFrameVsStart": 5.05
+  },
+  {
+    "prop": "plant",
+    "method": "pl4",
+    "frames": 5,
+    "delays": null,
+    "bytes": 6773,
+    "ms": 602797,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/plant-pl4-00.png",
+      "out/raw/plant-pl4-01.png",
+      "out/raw/plant-pl4-02.png",
+      "out/raw/plant-pl4-03.png",
+      "out/raw/plant-pl4-04.png"
+    ],
+    "offPalettePct": 4.9,
+    "softAlphaPct": 0,
+    "coloursMax": 28,
+    "driftFromStart": 13.79,
+    "motionAvg": 11.58,
+    "seam": 13.79,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "plant",
+    "method": "pl8",
+    "frames": 9,
+    "delays": null,
+    "bytes": 11941,
+    "ms": 575369,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/plant-pl8-00.png",
+      "out/raw/plant-pl8-01.png",
+      "out/raw/plant-pl8-02.png",
+      "out/raw/plant-pl8-03.png",
+      "out/raw/plant-pl8-04.png",
+      "out/raw/plant-pl8-05.png",
+      "out/raw/plant-pl8-06.png",
+      "out/raw/plant-pl8-07.png",
+      "out/raw/plant-pl8-08.png"
+    ],
+    "offPalettePct": 3.4,
+    "softAlphaPct": 0,
+    "coloursMax": 29,
+    "driftFromStart": 10.38,
+    "motionAvg": 9.92,
+    "seam": 10.38,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "plant",
+    "method": "edits",
+    "frames": 3,
+    "delays": null,
+    "bytes": 3457,
+    "ms": 208613,
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "files": [
+      "out/raw/plant-edits-00.png",
+      "out/raw/plant-edits-01.png"
+    ],
+    "offPalettePct": 66.7,
+    "softAlphaPct": 0,
+    "coloursMax": 22,
+    "driftFromStart": 24.88,
+    "motionAvg": 23.39,
+    "seam": 24.88,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "cat",
+    "method": "start",
+    "frames": 1,
+    "opaque": 1123,
+    "offPalettePct": 0,
+    "softAlphaPct": 0,
+    "colours": 10,
+    "files": [
+      "out/raw/cat-start.png"
+    ]
+  },
+  {
+    "prop": "cat",
+    "method": "rd8",
+    "frames": 8,
+    "delays": [
+      150,
+      150,
+      150,
+      150,
+      150,
+      150,
+      150,
+      150
+    ],
+    "bytes": 10156,
+    "ms": 201951,
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 8.2
+    },
+    "files": [
+      "out/raw/cat-rd8.gif"
+    ],
+    "offPalettePct": 75.8,
+    "softAlphaPct": 0,
+    "coloursMax": 8,
+    "driftFromStart": 21,
+    "motionAvg": 2.75,
+    "seam": 0.02,
+    "firstFrameVsStart": 20.97
+  },
+  {
+    "prop": "cat",
+    "method": "pl4",
+    "frames": 5,
+    "delays": null,
+    "bytes": 7609,
+    "ms": 577538,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/cat-pl4-00.png",
+      "out/raw/cat-pl4-01.png",
+      "out/raw/cat-pl4-02.png",
+      "out/raw/cat-pl4-03.png",
+      "out/raw/cat-pl4-04.png"
+    ],
+    "offPalettePct": 1,
+    "softAlphaPct": 0,
+    "coloursMax": 23,
+    "driftFromStart": 4.2,
+    "motionAvg": 3.98,
+    "seam": 4.2,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "cat",
+    "method": "pl8",
+    "frames": 9,
+    "delays": null,
+    "bytes": 13539,
+    "ms": 493864,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/cat-pl8-00.png",
+      "out/raw/cat-pl8-01.png",
+      "out/raw/cat-pl8-02.png",
+      "out/raw/cat-pl8-03.png",
+      "out/raw/cat-pl8-04.png",
+      "out/raw/cat-pl8-05.png",
+      "out/raw/cat-pl8-06.png",
+      "out/raw/cat-pl8-07.png",
+      "out/raw/cat-pl8-08.png"
+    ],
+    "offPalettePct": 1,
+    "softAlphaPct": 0,
+    "coloursMax": 27,
+    "driftFromStart": 0.63,
+    "motionAvg": 4.8,
+    "seam": 0.63,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "cat",
+    "method": "edits",
+    "frames": 3,
+    "delays": null,
+    "bytes": 2873,
+    "ms": 231348,
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "files": [
+      "out/raw/cat-edits-00.png",
+      "out/raw/cat-edits-01.png"
+    ],
+    "offPalettePct": 66.7,
+    "softAlphaPct": 0,
+    "coloursMax": 16,
+    "driftFromStart": 27.42,
+    "motionAvg": 27.42,
+    "seam": 27.42,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "mug",
+    "method": "start",
+    "frames": 1,
+    "opaque": 1062,
+    "offPalettePct": 0,
+    "softAlphaPct": 0,
+    "colours": 12,
+    "files": [
+      "out/raw/mug-start.png"
+    ]
+  },
+  {
+    "prop": "mug",
+    "method": "rd8",
+    "frames": 8,
+    "delays": [
+      150,
+      150,
+      150,
+      150,
+      150,
+      150,
+      150,
+      150
+    ],
+    "bytes": 10236,
+    "ms": 38305,
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 7.95
+    },
+    "files": [
+      "out/raw/mug-rd8.gif"
+    ],
+    "offPalettePct": 19.9,
+    "softAlphaPct": 0,
+    "coloursMax": 9,
+    "driftFromStart": 5.76,
+    "motionAvg": 4.32,
+    "seam": 2.44,
+    "firstFrameVsStart": 3.52
+  },
+  {
+    "prop": "mug",
+    "method": "pl4",
+    "frames": 5,
+    "delays": null,
+    "bytes": 5455,
+    "ms": 571187,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/mug-pl4-00.png",
+      "out/raw/mug-pl4-01.png",
+      "out/raw/mug-pl4-02.png",
+      "out/raw/mug-pl4-03.png",
+      "out/raw/mug-pl4-04.png"
+    ],
+    "offPalettePct": 0.5,
+    "softAlphaPct": 0,
+    "coloursMax": 15,
+    "driftFromStart": 2.95,
+    "motionAvg": 1.77,
+    "seam": 2.95,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "mug",
+    "method": "pl8",
+    "frames": 9,
+    "delays": null,
+    "bytes": 9995,
+    "ms": 511430,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "files": [
+      "out/raw/mug-pl8-00.png",
+      "out/raw/mug-pl8-01.png",
+      "out/raw/mug-pl8-02.png",
+      "out/raw/mug-pl8-03.png",
+      "out/raw/mug-pl8-04.png",
+      "out/raw/mug-pl8-05.png",
+      "out/raw/mug-pl8-06.png",
+      "out/raw/mug-pl8-07.png",
+      "out/raw/mug-pl8-08.png"
+    ],
+    "offPalettePct": 0.8,
+    "softAlphaPct": 0,
+    "coloursMax": 19,
+    "driftFromStart": 0.81,
+    "motionAvg": 1.3,
+    "seam": 0.81,
+    "firstFrameVsStart": 0
+  },
+  {
+    "prop": "mug",
+    "method": "edits",
+    "frames": 3,
+    "delays": null,
+    "bytes": 2814,
+    "ms": 242150,
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "files": [
+      "out/raw/mug-edits-00.png",
+      "out/raw/mug-edits-01.png"
+    ],
+    "offPalettePct": 66.7,
+    "softAlphaPct": 0,
+    "coloursMax": 21,
+    "driftFromStart": 28.27,
+    "motionAvg": 29.3,
+    "seam": 28.27,
+    "firstFrameVsStart": 0
+  }
+]

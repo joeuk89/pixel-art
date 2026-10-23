@@ -1,0 +1,17 @@
+{
+  "name": "prototype-looping-props",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #19: how should a simple looping prop get its frames?",
+  "scripts": {
+    "generate": "node generate.ts",
+    "process": "node process.ts",
+    "build": "node build.js",
+    "all": "node generate.ts && node process.ts && node build.js",
+    "start": "node build.js && open index.html"
+  },
+  "dependencies": {
+    "culori": "^4.0.2",
+    "sharp": "^0.35.5"
+  }
+}

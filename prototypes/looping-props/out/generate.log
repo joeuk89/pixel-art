@@ -1,0 +1,25 @@
+ok    sign statics 1 file(s) 77808ms {"type":"generations","generations":5} 
+ok    plant statics 1 file(s) 52654ms {"type":"generations","generations":5} 
+ok    mug statics 1 file(s) 137791ms {"type":"generations","generations":5} 
+done
+ok    sign rd8 1 file(s) 54968ms {"remaining_balance":8.45} 0.25
+FAIL  plant rd8: RD failed {"status_code":502,"code":"inference_failed","message":"Unable to run inference.","request_id":"0bc7c885-0b11-41af-8d2d-c032207dddae"}
+ok    cat rd8 1 file(s) 201951ms {"remaining_balance":8.2} 0.25
+ok    mug rd8 1 file(s) 38305ms {"remaining_balance":7.95} 0.25
+ok    sign pl4 5 file(s) 545250ms {"type":"generations","generations":1} 
+ok    mug pl4 5 file(s) 571187ms {"type":"generations","generations":1} 
+ok    cat pl4 5 file(s) 577538ms {"type":"generations","generations":1} 
+ok    plant pl4 5 file(s) 602797ms {"type":"generations","generations":1} 
+ok    sign pl8 9 file(s) 424168ms {"type":"generations","generations":1} 
+ok    cat pl8 9 file(s) 493864ms {"type":"generations","generations":1} 
+ok    mug pl8 9 file(s) 511430ms {"type":"generations","generations":1} 
+ok    plant pl8 9 file(s) 575369ms {"type":"generations","generations":1} 
+ok    sign edits 2 file(s) 222271ms [{"type":"generations","generations":10},{"type":"generations","generations":10}] 
+ok    cat edits 2 file(s) 231348ms [{"type":"generations","generations":10},{"type":"generations","generations":10}] 
+ok    mug edits 2 file(s) 242150ms [{"type":"generations","generations":10},{"type":"generations","generations":10}] 
+ok    plant edits 2 file(s) 208613ms [{"type":"generations","generations":10},{"type":"generations","generations":10}] 
+done
+FAIL  plant rd8: RD failed {"status_code":502,"code":"inference_failed","message":"Unable to run inference.","request_id":"0bc7c885-0b11-41af-8d2d-c032207dddae"}
+done
+ok    plant rd8 1 file(s) 33763ms {"remaining_balance":7.7} 0.25
+done

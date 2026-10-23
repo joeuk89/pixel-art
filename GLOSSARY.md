@@ -75,3 +75,11 @@ _Avoid_: Sample, sound file, clip
 **Sound library**:
 The collection of Ambient loops the Director shops from for a Soundtrack.
 _Avoid_: Sound bank, sample pack
+
+**Attempt**:
+One generation call for one Element or frame strip, judged by the Quality gate; an Element may take several Attempts.
+_Avoid_: Try, run, call, generation (for the judged unit)
+
+**Quality gate**:
+The checks every Attempt must pass before its Element enters the Element library: programmatic checks first, then the Director's visual check.
+_Avoid_: Validation, QA, review (for the whole gate)

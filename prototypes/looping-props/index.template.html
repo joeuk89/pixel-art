@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Looping props prototype</title>
+<style>
+  html, body { margin: 0; background: #0a0810; font: 13px/1.4 system-ui, sans-serif; color: #ddd; }
+  #bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 8px 12px; background: rgba(20,16,30,.96); border-bottom: 1px solid #333; z-index: 2; }
+  #bar select, #bar button { font: inherit; background: #2a2340; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 2px 6px; }
+  table { border-collapse: collapse; margin: 12px; }
+  th, td { vertical-align: top; padding: 8px; border: 1px solid #2a2340; }
+  th { text-align: left; font-weight: 600; color: #f7d35c; min-width: 256px; max-width: 290px; }
+  th small { display: block; font-weight: 400; color: #aaa; margin-top: 2px; }
+  td.prop { color: #f7d35c; font-weight: 600; white-space: nowrap; }
+  td.prop small { display: block; color: #aaa; font-weight: 400; white-space: normal; max-width: 180px; }
+  canvas { image-rendering: pixelated; display: block; background: var(--bg); }
+  .stat { font: 11px/1.4 ui-monospace, monospace; color: #bbb; white-space: pre; margin-top: 4px; }
+  .err { color: #e2883a; font-size: 11px; max-width: 256px; }
+  .note { margin: 0 12px 24px; max-width: 1100px; color: #bbb; }
+</style>
+<div id="bar">
+  <b>Looping props (wayfinder #19)</b>
+  <label>fps <select id="fps"><option>4</option><option>6</option><option>8</option><option selected>10</option><option>12</option></select></label>
+  <label>scale <select id="scale"><option>3</option><option selected>4</option><option>6</option></select></label>
+  <label>backdrop <select id="bg"><option value="#241c33" selected>night wall</option><option value="#5e2f22">desk wood</option><option value="#000">black</option><option value="#777">grey</option></select></label>
+  <label><input type="checkbox" id="snapped"> snap generated frames to the palette</label>
+  <label><input type="checkbox" id="seam"> loop seam only (last, first, last, first)</label>
+  <button id="pause">pause</button><button id="step">step</button>
+  <span id="info"></span>
+</div>
+<table id="grid"></table>
+<p class="note">Every cell is 64x64 at the house density. Columns are the candidate methods; rows are the four props from the ticket. Stats: <b>off-pal</b> share of opaque pixels not in the 19-colour prototype palette (the static Elements are 0%); <b>soft</b> share of pixels with partial alpha; <b>motion</b> average share of the canvas that changes between consecutive frames; <b>seam</b> share that changes from the last frame back to the first (compare with motion: a seam much larger than motion is a visible pop); <b>drift</b> share that differs between the start frame and the last frame.</p>
+<script>
+// PROTOTYPE, throwaway. Answers wayfinder #19: how should a simple looping prop get its frames?
+const DATA = {{DATA}};
+const SIZE = 64;
+const METHODS = [
+  ['start', 'Static Element', 'Pro Flash, 64x64, palette locked. The reference.'],
+  ['code', 'Code-driven in the Viewer', 'One static Element; motion is a primitive in the Scene plan: sign = palette blink, plant = row shear, cat = breath + tail nudge, mug = engine steam. $0 per prop.'],
+  ['rd8', 'Retro Diffusion subtle motion, 8 frames', 'rd_advanced_animation__subtle_motion from the start frame. $0.25 per prop. Scene plan needs a frame strip + frame count per Placement.'],
+  ['pl4', 'PixelLab animate v3, 4 frames', 'animate-with-text-v3 from the start frame. Subscription generations. Frame strip in the plan.'],
+  ['pl8', 'PixelLab animate v3, 8 frames', 'Same, 8 frames.'],
+  ['edits', 'PixelLab edit variants, ping-pong', 'Two hand-briefed edits of the start frame (edit-images-v2); played start, A, start, B. Frame strip in the plan plus a brief per variant.'],
+];
+let seed = 1337; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+const S = { fps: 10, scale: 4, bg: '#241c33', snapped: false, seam: false, paused: false };
+const cells = [];
+const loadImg = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = src; });
+const off = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingEnabled = false; return [c, x]; };
+const statOf = (prop, method) => DATA.stats.find((s) => s.prop === prop && s.method === method);
+
+function statText(s) {
+  if (!s) return 'not run';
+  if (s.error) return null;
+  if (s.method === 'start') return `1 frame  colours ${s.colours}`;
+  const cost = s.cost_usd != null ? `$${s.cost_usd}` : s.usage ? `${JSON.stringify(s.usage).match(/"usage":\s*([\d.]+)/)?.[1] ?? '?'} gens` : '';
+  return `${s.frames} frames  ${(s.bytes / 1024).toFixed(1)}KB  ${cost}  ${Math.round(s.ms / 1000)}s\noff-pal ${s.offPalettePct}%  soft ${s.softAlphaPct}%  colours ${s.coloursMax}\nmotion ${s.motionAvg}%  seam ${s.seam}%  drift ${s.driftFromStart}%${s.delays ? `\ngif delays ${[...new Set(s.delays)].join('/')}ms` : ''}`;
+}
+
+// ---- Code-driven motions, each from the start frame only ----
+function bbox(d) { let x0 = SIZE, y0 = SIZE, x1 = 0, y1 = 0; for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (d[(y * SIZE + x) * 4 + 3] >= 128) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } return { x0, y0, x1, y1 }; }
+const NEON = ['#ff6fb5', '#f7d35c', '#f6e8cc', '#b7dcef'].map((h) => parseInt(h.slice(1), 16));
+const DIM = { 0xff6fb5: '#7d5a4b', 0xf7d35c: '#7d5a4b', 0xf6e8cc: '#c8a384', 0xb7dcef: '#5d4e7f' };
+function makeCode(prop, img) {
+  const [src, sx] = off(SIZE, SIZE); sx.drawImage(img, 0, 0);
+  const d = sx.getImageData(0, 0, SIZE, SIZE).data; const b = bbox(d);
+  let tick = 0;
+  if (prop.code === 'blink') {
+    // Palette blink: neon pixels swap to a dim colour. Mostly on, brief random drops, one longer drop every few seconds.
+    const [dimC, dx] = off(SIZE, SIZE); dx.drawImage(img, 0, 0);
+    const id = dx.getImageData(0, 0, SIZE, SIZE); const dd = id.data;
+    for (let i = 0; i < dd.length; i += 4) { if (dd[i + 3] < 128) continue; const k = (dd[i] << 16) | (dd[i + 1] << 8) | dd[i + 2]; if (NEON.includes(k)) { const n = parseInt(DIM[k].slice(1), 16); dd[i] = n >> 16; dd[i + 1] = (n >> 8) & 255; dd[i + 2] = n & 255; } }
+    dx.putImageData(id, 0, 0);
+    let offFor = 0;
+    return (ctx) => { tick++; if (offFor > 0) offFor--; else if (rnd() < 0.05) offFor = rnd() < 0.3 ? 4 + Math.floor(rnd() * 6) : 1; ctx.drawImage(offFor > 0 ? dimC : src, 0, 0); };
+  }
+  if (prop.code === 'sway') {
+    // Row shear: rows above the pot slide sideways by up to 1 px, more at the top, on a slow sine.
+    const potTop = b.y1 - Math.round((b.y1 - b.y0) * 0.38);
+    return (ctx) => { tick++; const ph = Math.sin(tick / S.fps * 2 * Math.PI / 2.6); for (let y = 0; y < SIZE; y++) { const k = y < potTop ? (potTop - y) / (potTop - b.y0) : 0; const dx = Math.round(ph * 1.4 * k); ctx.drawImage(src, 0, y, SIZE, 1, dx, y, SIZE, 1); } };
+  }
+  if (prop.code === 'tail') {
+    // Breath: the upper body rises 1 px for part of a slow cycle. Tail: the lower-right region nudges 1 px right now and then.
+    const mid = Math.round((b.y0 + b.y1) / 2), tailY = b.y1 - Math.round((b.y1 - b.y0) * 0.28), tailX = b.x0 + Math.round((b.x1 - b.x0) * 0.45);
+    let twitch = 0;
+    return (ctx) => { tick++; const up = Math.sin(tick / S.fps * 2 * Math.PI / 3.2) > 0.35 ? 1 : 0; if (twitch > 0) twitch--; else if (rnd() < 0.03) twitch = 2;
+      ctx.drawImage(src, 0, mid, SIZE, SIZE - mid, 0, mid, SIZE, SIZE - mid); ctx.drawImage(src, 0, 0, SIZE, mid, 0, -up, SIZE, mid);
+      if (twitch) { ctx.clearRect(tailX, tailY, SIZE - tailX, SIZE - tailY); ctx.drawImage(src, 0, mid, SIZE, SIZE - mid, 0, mid, SIZE, SIZE - mid); ctx.drawImage(src, tailX, tailY, SIZE - tailX, SIZE - tailY, tailX + 1, tailY, SIZE - tailX, SIZE - tailY); } };
+  }
+  // Steam: the scene-engine primitive, spawning at the mug's rim.
+  const steam = []; for (let i = 0; i < 12; i++) steam.push({ life: -Math.floor(rnd() * 26) });
+  const cx = (b.x0 + b.x1) / 2, top = b.y0;
+  return (ctx) => { tick++; ctx.drawImage(src, 0, 0);
+    for (const p of steam) { p.life++; if (p.life === 0 || p.life > 22) { p.life = 0; p.x0 = cx - 6 + rnd() * 10; p.y = top + 1; p.ph = rnd() * 6.28; } p.y -= .7; p.x = p.x0 + Math.sin(p.life * .35 + p.ph) * (1 + p.life * .06); if (p.life <= 0) continue;
+      ctx.globalAlpha = p.life < 5 ? .4 : p.life < 15 ? .7 : .3; ctx.fillStyle = p.life < 10 ? '#f6e8cc' : '#d6d0cc'; const s = p.life > 12 ? 2 : 1; ctx.fillRect(Math.round(p.x), Math.round(p.y), s, s); }
+    ctx.globalAlpha = 1; };
+}
+
+async function build() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<tr><th></th>' + METHODS.map(([, t, d]) => `<th>${t}<small>${d}</small></th>`).join('') + '</tr>';
+  for (const prop of DATA.props) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="prop">${prop.id}<small>${prop.motion}</small><small style="margin-top:6px">edits: ${prop.edits.map((e, i) => `${'AB'[i]}: ${e}`).join(' / ')}</small></td>`;
+    const startImg = await loadImg(DATA.strips[`${prop.id}-start`]);
+    for (const [m] of METHODS) {
+      const td = document.createElement('td'); tr.appendChild(td);
+      const s = statOf(prop.id, m === 'code' ? 'start' : m);
+      if (m !== 'code' && (!s || s.error)) { td.innerHTML = `<div class="err">${s ? s.error : 'not run'}</div>`; continue; }
+      const c = document.createElement('canvas'); c.width = SIZE; c.height = SIZE; td.appendChild(c);
+      const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+      const st = document.createElement('div'); st.className = 'stat'; st.textContent = m === 'code' ? `1 Element + a primitive\n0 bytes extra, $0` : statText(s); td.appendChild(st);
+      const cell = { prop, method: m, c, ctx, frame: 0 };
+      if (m === 'code') cell.draw = makeCode(prop, startImg);
+      else { cell.raw = await loadImg(DATA.strips[`${prop.id}-${m}`]); cell.snapped = DATA.strips[`${prop.id}-${m}-snapped`] ? await loadImg(DATA.strips[`${prop.id}-${m}-snapped`]) : cell.raw; cell.n = s.frames;
+        cell.order = m === 'edits' && s.frames === 3 ? [0, 1, 0, 2] : [...Array(s.frames).keys()]; }
+      cells.push(cell);
+    }
+    grid.appendChild(tr);
+  }
+  applyScale();
+}
+function drawCell(cell, advance) {
+  const { ctx } = cell; ctx.clearRect(0, 0, SIZE, SIZE);
+  if (cell.draw) { if (advance) cell.draw(ctx); else cell.draw(ctx); return; }
+  if (advance) cell.frame++;
+  const order = S.seam ? [cell.order[cell.order.length - 1], cell.order[0]] : cell.order;
+  const f = order[cell.frame % order.length];
+  ctx.drawImage(S.snapped ? cell.snapped : cell.raw, 0, f * SIZE, SIZE, SIZE, 0, 0, SIZE, SIZE);
+}
+let acc = 0, last = 0, frames = 0;
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(t - last, 100); last = t; if (S.paused) return;
+  acc += dt; const step = 1000 / S.fps; if (acc < step) return; acc -= step; if (acc > step) acc = 0;
+  for (const c of cells) drawCell(c, true); frames++;
+}
+function applyScale() { for (const c of cells) { c.c.style.width = c.c.style.height = SIZE * S.scale + 'px'; } document.documentElement.style.setProperty('--bg', S.bg); }
+for (const id of ['fps', 'scale']) document.getElementById(id).onchange = (e) => { S[id] = +e.target.value; applyScale(); };
+document.getElementById('bg').onchange = (e) => { S.bg = e.target.value; applyScale(); };
+for (const id of ['snapped', 'seam']) document.getElementById(id).onchange = (e) => { S[id] = e.target.checked; for (const c of cells) drawCell(c, false); };
+document.getElementById('pause').onclick = (e) => { S.paused = !S.paused; e.target.textContent = S.paused ? 'play' : 'pause'; };
+document.getElementById('step').onclick = () => { S.paused = true; document.getElementById('pause').textContent = 'play'; for (const c of cells) drawCell(c, true); };
+build().then(() => requestAnimationFrame(loop));
+</script>
+</html>
