@@ -1,0 +1,17 @@
+{
+  "name": "prototype-music-loop",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #13: can a generated music track loop seamlessly and sit under a curated rain loop in the browser for twenty minutes?",
+  "scripts": {
+    "generate": "node --env-file=../../.env generate.ts",
+    "loop": "node loop.ts",
+    "rain": "node --env-file=../../.env rain.ts",
+    "start": "node serve.ts & sleep 0.5; open http://localhost:8765/; wait",
+    "inpaint": "node --env-file=../../.env inpaint.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.31.0",
+    "ffmpeg-static": "^5.3.0"
+  }
+}

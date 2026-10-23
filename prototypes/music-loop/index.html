@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music loop mixer (PROTOTYPE, wayfinder #13)</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 16px; font: 14px/1.4 system-ui, sans-serif; background: #15171c; color: #dfe3ea; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 8px 0; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  select, button, input[type=range] { font: inherit; }
+  button { padding: 8px 14px; border-radius: 6px; border: 1px solid #556; background: #2a2f3a; color: inherit; cursor: pointer; }
+  button.primary { background: #3b6; color: #000; border-color: #3b6; font-weight: 600; }
+  #seam { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #333; transition: background .15s; vertical-align: middle; }
+  #seam.flash { background: #fc3; }
+  pre { background: #0d0f13; padding: 10px; border-radius: 6px; max-height: 40vh; overflow: auto; font-size: 12px; margin: 0; }
+  .status { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-family: ui-monospace, monospace; font-size: 12px; margin: 10px 0; }
+  .status b { color: #9ab; font-weight: 500; }
+  small { color: #8892a0; }
+</style>
+</head>
+<body>
+<h1>Music loop + rain mixer <small>(PROTOTYPE, throwaway, wayfinder #13)</small></h1>
+
+<div class="row">
+  <button id="start" class="primary">Click to unmute and start</button>
+  <button id="stop" disabled>Stop</button>
+  <span>seam <span id="seam"></span> <span id="seamCount">0</span> wraps</span>
+  <span>elapsed <b id="elapsed">0:00</b> / 20:00</span>
+</div>
+
+<div class="row">
+  <label>music <select id="music"></select></label>
+  <label>format <select id="fmt"><option>mp3</option><option>opus</option><option>wav</option></select></label>
+  <label>music vol <input id="mvol" type="range" min="0" max="1" step="0.01" value="0.35"> <span id="mvolv">0.35</span></label>
+</div>
+<div class="row">
+  <label>rain <select id="rain"><option value="rain-indoors-242889.ogg">Rain from Indoors (48 s)</option><option value="rain-soft-595717.ogg">Soft Rain Loop (22.5 s)</option><option value="">none</option></select></label>
+  <label>rain vol <input id="rvol" type="range" min="0" max="1" step="0.01" value="0.5"> <span id="rvolv">0.50</span></label>
+  <label><input id="suspendHidden" type="checkbox"> suspend AudioContext while tab hidden</label>
+  <label><input id="useElement" type="checkbox"> play music with &lt;audio loop&gt; instead (hear the gap)</label>
+</div>
+
+<div class="status">
+  <b>context</b><span id="ctxState">–</span>
+  <b>music file</b><span id="musicInfo">–</span>
+  <b>decoded</b><span id="decoded">–</span>
+  <b>loop points</b><span id="loopPts">–</span>
+  <b>rain file</b><span id="rainInfo">–</span>
+</div>
+<pre id="log"></pre>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const log = (s) => { const t = new Date().toTimeString().slice(0, 8); $("log").textContent = `${t} ${s}\n` + $("log").textContent; console.log(s); };
+
+const manifest = await (await fetch("out/manifest.json")).json();
+for (const k of Object.keys(manifest)) { const o = document.createElement("option"); o.value = k; o.textContent = `${k} (method ${manifest[k].method}, ${manifest[k].loopSec}s)`; $("music").append(o); }
+
+let ctx, musicGain, rainGain, musicSrc, rainSrc, startedAt = 0, loopSec = 0, wraps = 0, lastWrap = 0, timer, el;
+
+function fmtTime(s) { s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+
+async function decode(url) {
+  const buf = await (await fetch(url)).arrayBuffer();
+  return ctx.decodeAudioData(buf);
+}
+
+async function startMusic() {
+  stopMusic();
+  const key = $("music").value, fmt = $("fmt").value, info = manifest[key], url = `out/${key}.${fmt}`;
+  $("musicInfo").textContent = url;
+  if ($("useElement").checked) {
+    el = new Audio(url); el.loop = true; el.volume = +$("mvol").value; await el.play();
+    loopSec = info.loopSec; startedAt = ctx.currentTime; wraps = 0; lastWrap = 0;
+    $("decoded").textContent = "(audio element, no decode)"; $("loopPts").textContent = "(element loop)";
+    log(`music via <audio loop>: ${url}`); return;
+  }
+  const buf = await decode(url);
+  const expected = info.loopSamples * (buf.sampleRate / info.rate);
+  $("decoded").textContent = `${buf.length} samples @ ${buf.sampleRate} Hz = ${buf.duration.toFixed(3)} s; expected ${Math.round(expected)} (${buf.length - Math.round(expected) >= 0 ? "+" : ""}${buf.length - Math.round(expected)} samples)`;
+  musicSrc = ctx.createBufferSource(); musicSrc.buffer = buf; musicSrc.loop = true;
+  // Loop points from the manifest, not the file: guards against MP3 encoder padding.
+  musicSrc.loopStart = 0; musicSrc.loopEnd = Math.min(buf.duration, info.loopSamples / info.rate);
+  $("loopPts").textContent = `0 → ${musicSrc.loopEnd.toFixed(4)} s (manifest ${info.loopSec}s, seamJump ${info.seamJump ?? "?"})`;
+  musicSrc.connect(musicGain); musicSrc.start(); startedAt = ctx.currentTime; loopSec = musicSrc.loopEnd; wraps = 0; lastWrap = 0;
+  log(`music started: ${url}, loopEnd ${loopSec.toFixed(3)} s`);
+}
+function stopMusic() { try { musicSrc?.stop(); } catch {} musicSrc = null; if (el) { el.pause(); el = null; } }
+
+async function startRain() {
+  try { rainSrc?.stop(); } catch {} rainSrc = null;
+  const f = $("rain").value; $("rainInfo").textContent = f || "none"; if (!f) return;
+  const buf = await decode(`out/${f}`);
+  rainSrc = ctx.createBufferSource(); rainSrc.buffer = buf; rainSrc.loop = true; rainSrc.connect(rainGain); rainSrc.start();
+  log(`rain started: ${f}, ${buf.duration.toFixed(2)} s`);
+}
+
+$("start").onclick = async () => {
+  if (!ctx) {
+    ctx = new AudioContext(); musicGain = ctx.createGain(); rainGain = ctx.createGain();
+    musicGain.connect(ctx.destination); rainGain.connect(ctx.destination);
+    musicGain.gain.value = +$("mvol").value; rainGain.gain.value = +$("rvol").value;
+    ctx.onstatechange = () => { $("ctxState").textContent = ctx.state; log(`context state: ${ctx.state}`); };
+    log(`AudioContext created: ${ctx.sampleRate} Hz, state ${ctx.state}, latency ${ctx.baseLatency?.toFixed(4)}`);
+  }
+  await ctx.resume(); $("ctxState").textContent = ctx.state;
+  await startMusic(); await startRain();
+  $("stop").disabled = false; $("start").textContent = "Restart";
+  clearInterval(timer); timer = setInterval(tick, 100);
+};
+$("stop").onclick = () => { stopMusic(); try { rainSrc?.stop(); } catch {} clearInterval(timer); log("stopped"); };
+
+function tick() {
+  if (!ctx) return;
+  const t = ctx.currentTime - startedAt; $("elapsed").textContent = fmtTime(t);
+  const w = loopSec ? Math.floor(t / loopSec) : 0;
+  if (w !== wraps) { wraps = w; $("seamCount").textContent = w; $("seam").classList.add("flash"); setTimeout(() => $("seam").classList.remove("flash"), 400); log(`seam passed (wrap ${w}) at ${fmtTime(t)}, context ${ctx.state}`); }
+  if (t >= 1200 && !tick.done) { tick.done = true; log("20 minutes reached"); }
+}
+
+$("mvol").oninput = (e) => { $("mvolv").textContent = (+e.target.value).toFixed(2); if (musicGain) musicGain.gain.value = +e.target.value; if (el) el.volume = +e.target.value; };
+$("rvol").oninput = (e) => { $("rvolv").textContent = (+e.target.value).toFixed(2); if (rainGain) rainGain.gain.value = +e.target.value; };
+$("music").onchange = $("fmt").onchange = $("useElement").onchange = () => { if (ctx) startMusic(); };
+$("rain").onchange = () => { if (ctx) startRain(); };
+
+document.addEventListener("visibilitychange", async () => {
+  log(`visibility: ${document.visibilityState}${ctx ? `, context ${ctx.state}` : ""}`);
+  if (!ctx || !$("suspendHidden").checked) return;
+  if (document.hidden) { await ctx.suspend(); log("suspended (hidden)"); } else { await ctx.resume(); log("resumed (visible)"); }
+});
+log("ready; click the green button (autoplay gate)");
+</script>
+</body>
+</html>
