@@ -77,8 +77,12 @@ The collection of Ambient loops the Director shops from for a Soundtrack.
 _Avoid_: Sound bank, sample pack
 
 **Attempt**:
-One generation call for one Element or frame strip, judged by the Quality gate; an Element may take several Attempts.
+One generation call for one Element or Frame strip, judged by the Quality gate; an Element may take several Attempts.
 _Avoid_: Try, run, call, generation (for the judged unit)
+
+**Frame strip**:
+The row of frames that animates one Element, kept beside its still in the Element library; frame 0 is the still itself.
+_Avoid_: Sprite sheet, animation, GIF, strip (alone)
 
 **Quality gate**:
 The checks every Attempt must pass before its Element enters the Element library: programmatic checks first, then the Director's visual check.
