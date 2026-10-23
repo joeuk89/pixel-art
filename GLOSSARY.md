@@ -99,3 +99,7 @@ _Avoid_: Layer (for sound), tier, bus, plane
 **One-shot**:
 A single ambient sound event, such as thunder or an owl, that a Scene fires now and then instead of looping.
 _Avoid_: Trigger, event, sample, stinger
+
+**Scale**:
+The pixels-per-metre of one Scene, set once per Scene, that fixes how large every prop is drawn.
+_Avoid_: Zoom, resolution, pixel density (that is the house tier), size (for the Scene-wide value)
