@@ -1,0 +1,22 @@
+{
+  "name": "pixel-art",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18 <23"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "dev": "esbuild viewer/main.ts --bundle --outfile=viewer.js --watch --servedir=."
+  },
+  "dependencies": {
+    "@google/genai": "^2.31.0",
+    "esbuild": "^0.28.2",
+    "ffmpeg-static": "^5.3.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  }
+}
