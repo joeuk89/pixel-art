@@ -43,3 +43,11 @@ _Avoid_: Generator, orchestrator, agent
 **Scene plan**:
 The structured description of a Scene the Director writes before any Element or Soundtrack is generated.
 _Avoid_: Manifest, config, spec, scene file
+
+**Attempt**:
+One generation call for one Element or frame strip, judged by the Quality gate; an Element may take several Attempts.
+_Avoid_: Try, run, call, generation (for the judged unit)
+
+**Quality gate**:
+The checks every Attempt must pass before its Element enters the Element library: programmatic checks first, then the Director's visual check.
+_Avoid_: Validation, QA, review (for the whole gate)
