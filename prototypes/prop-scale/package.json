@@ -1,0 +1,15 @@
+{
+  "name": "prototype-prop-scale",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #28: do mixed prop sizes (16 to 128 px) hold the house style under a 64 px Style anchor, are custom sizes clean, and do the gate thresholds survive per size?",
+  "scripts": {
+    "generate": "node generate.ts",
+    "process": "node process.ts",
+    "all": "node generate.ts && node process.ts",
+    "start": "node process.ts && open out/index.html"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
+}

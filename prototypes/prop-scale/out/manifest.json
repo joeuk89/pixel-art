@@ -1,0 +1,2724 @@
+[
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "armchair-48",
+    "file": "out/raw/style-armchair-48.png",
+    "ms": 1151,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "clock-24",
+    "file": "out/raw/style-clock-24.png",
+    "ms": 234,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "plant-36",
+    "file": "out/raw/style-plant-36.png",
+    "ms": 1137,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "mug-20",
+    "file": "out/raw/style-mug-20.png",
+    "ms": 550,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "desk-96x64",
+    "file": "out/raw/plain-desk-96x64.png",
+    "request": {
+      "description": "a long wooden writing desk with two drawers, empty top, seen from the front",
+      "image_size": {
+        "width": 96,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 57459
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "sofa-128",
+    "file": "out/raw/style-sofa-128.png",
+    "request": {
+      "description": "a long three-seat sofa in worn green fabric with a knitted blanket over one arm and two cushions, seen from the side",
+      "image_size": {
+        "width": 128,
+        "height": 128
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 63542
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "lamp-32",
+    "file": "out/raw/style-lamp-32.png",
+    "ms": 1055,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "radio-24",
+    "file": "out/raw/style-radio-24.png",
+    "ms": 1283,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "lamp-28",
+    "file": "out/raw/style-lamp-28.png",
+    "ms": 2067,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "desk-88x32",
+    "file": "out/raw/style-desk-88x32.png",
+    "ms": 1331,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "desk-96x64",
+    "file": "out/raw/style-desk-96x64.png",
+    "request": {
+      "description": "a long wooden writing desk with two drawers, empty top, seen from the front",
+      "image_size": {
+        "width": 96,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 74883
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "cat-32x24",
+    "file": "out/raw/style-cat-32x24.png",
+    "ms": 1621,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "armchair-40",
+    "file": "out/raw/style-armchair-40.png",
+    "ms": 2463,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "clock-20",
+    "file": "out/raw/style-clock-20.png",
+    "ms": 1308,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "bookshelf-96",
+    "file": "out/raw/style-bookshelf-96.png",
+    "request": {
+      "description": "a tall wooden bookshelf filled with books of different heights and colours, seen straight on",
+      "image_size": {
+        "width": 96,
+        "height": 96
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 137810
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "plant-32",
+    "file": "out/raw/style-plant-32.png",
+    "ms": 2629,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "armchair-48",
+    "file": "out/raw/plain-armchair-48.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 48,
+        "height": 48
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 71968
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "mug-16",
+    "file": "out/raw/style-mug-16.png",
+    "ms": 3509,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style",
+    "element": "cat-24",
+    "file": "out/raw/style-cat-24.png",
+    "ms": 2133,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "bookshelf-96",
+    "file": "out/raw/plain-bookshelf-96.png",
+    "request": {
+      "description": "a tall wooden bookshelf filled with books of different heights and colours, seen straight on",
+      "image_size": {
+        "width": 96,
+        "height": 96
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 83128
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "clock-24",
+    "file": "out/raw/plain-clock-24.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 75878
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "plant-32",
+    "file": "out/raw/plain-plant-32.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 55026
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "cat-32x24",
+    "file": "out/raw/plain-cat-32x24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 178987
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "sofa-128",
+    "file": "out/raw/plain-sofa-128.png",
+    "request": {
+      "description": "a long three-seat sofa in worn green fabric with a knitted blanket over one arm and two cushions, seen from the side",
+      "image_size": {
+        "width": 128,
+        "height": 128
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 161741
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "plant-36",
+    "file": "out/raw/plain-plant-36.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 36,
+        "height": 36
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 92578
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "armchair-40",
+    "file": "out/raw/plain-armchair-40.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 40,
+        "height": 40
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 92421
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "mug-16",
+    "file": "out/raw/plain-mug-16.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 16,
+        "height": 16
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 148173
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "lamp-32",
+    "file": "out/raw/plain-lamp-32.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 89397
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "mug-20",
+    "file": "out/raw/plain-mug-20.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 20,
+        "height": 20
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 163097
+  },
+  {
+    "kind": "image",
+    "condition": "style2",
+    "element": "cat-32x24",
+    "file": "out/raw/style2-cat-32x24.png",
+    "ms": 2187,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "clock-20",
+    "file": "out/raw/plain-clock-20.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 20,
+        "height": 20
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 206571
+  },
+  {
+    "kind": "image",
+    "condition": "style2",
+    "element": "plant-32",
+    "file": "out/raw/style2-plant-32.png",
+    "ms": 8553,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style2",
+    "element": "mug-16",
+    "file": "out/raw/style2-mug-16.png",
+    "ms": 231,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "radio-24",
+    "file": "out/raw/plain-radio-24.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 231670
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "cat-24",
+    "file": "out/raw/plain-cat-24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 270095
+  },
+  {
+    "kind": "image",
+    "condition": "style2",
+    "element": "lamp-32",
+    "file": "out/raw/style2-lamp-32.png",
+    "ms": 10958,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "style2",
+    "element": "radio-24",
+    "file": "out/raw/style2-radio-24.png",
+    "ms": 10420,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "lamp-28",
+    "file": "out/raw/plain-lamp-28.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 28,
+        "height": 28
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 221642
+  },
+  {
+    "kind": "image",
+    "condition": "plain",
+    "element": "desk-88x32",
+    "file": "out/raw/plain-desk-88x32.png",
+    "request": {
+      "description": "a long wooden writing desk with two drawers, empty top, seen from the front",
+      "image_size": {
+        "width": 88,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 93894
+  },
+  {
+    "kind": "image",
+    "condition": "style2",
+    "element": "clock-24",
+    "file": "out/raw/style2-clock-24.png",
+    "ms": 225,
+    "error": "PL create-image-pro-flash 422 {\"detail\":\"1 validation error for RequestGenerateImageProFlash\\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\\n    For further inform"
+  },
+  {
+    "kind": "strip",
+    "condition": "plain",
+    "element": "cat-32x24",
+    "file": "out/raw/strip-plain-cat-32x24.png",
+    "request": {
+      "first_frame": "out/raw/plain-cat-32x24.png",
+      "action": "the sleeping cat breathes slowly and the tip of its tail twitches now and then",
+      "frame_count": 4,
+      "seed": 1123,
+      "no_background": true
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 843859,
+    "frames": 5
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "cat-32x24",
+    "file": "out/raw/crop-cat-32x24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 96144
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "plant-32",
+    "file": "out/raw/crop-plant-32.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 103634
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "armchair-48",
+    "file": "out/raw/crop-armchair-48.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 48,
+        "height": 48
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 148845
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "lamp-32",
+    "file": "out/raw/crop-lamp-32.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 177098
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "radio-24",
+    "file": "out/raw/crop-radio-24.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 101756
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "armchair-40",
+    "file": "out/raw/crop-armchair-40.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 40,
+        "height": 40
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 217784
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "clock-24",
+    "file": "out/raw/crop-clock-24.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 169088
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "mug-16",
+    "file": "out/raw/crop-mug-16.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 16,
+        "height": 16
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 277440
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "plant-36",
+    "file": "out/raw/crop-plant-36.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 36,
+        "height": 36
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 93066
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "lamp-28",
+    "file": "out/raw/crop-lamp-28.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 28,
+        "height": 28
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 148034
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "cat-24",
+    "file": "out/raw/crop-cat-24.png",
+    "ms": 98621,
+    "error": "PL create-image-pro-flash failed {\"usage\":{\"type\":\"usd\",\"usd\":0},\"id\":\"5b0e1734-2a2e-4b50-bfd5-63be376e0f45\",\"status\":\"failed\",\"created_at\":\"2026-10-23T19:21:03.067141+00:00\",\"last_response\":{\"code\":5000,\"type\":\"message_progress\",\"error\":\"Generation failed: [502] Inference stream ended without producing a result. Please try again.\",\"model\":\"pro_flash\",\"width\":24,\"action\":\"Generating image\",\"height\":24,\"prompt\":\"a sleeping ginger "
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "clock-20",
+    "file": "out/raw/crop-clock-20.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 20,
+        "height": 20
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 199102
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "mug-20",
+    "file": "out/raw/crop-mug-20.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 20,
+        "height": 20
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 132608
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "armchair-48",
+    "file": "out/raw/shrink-armchair-48.png",
+    "ms": 72305,
+    "error": "Unexpected token 'I', \"Internal S\"... is not valid JSON"
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "clock-24",
+    "file": "out/raw/shrink-clock-24.png",
+    "ms": 56,
+    "error": "Unexpected token '<', \"<html>\r\n<h\"... is not valid JSON"
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "lamp-32",
+    "file": "out/raw/shrink-lamp-32.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 183251
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "plant-36",
+    "file": "out/raw/shrink-plant-36.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 36,
+        "height": 36
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 146569
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "plant-32",
+    "file": "out/raw/shrink-plant-32.png",
+    "ms": 158703,
+    "error": "PL create-image-pro-flash failed {\"usage\":{\"type\":\"usd\",\"usd\":0},\"id\":\"99535371-d847-42c1-a3d2-9a129198ef4c\",\"status\":\"failed\",\"created_at\":\"2026-10-23T19:24:06.078847+00:00\",\"last_response\":{\"code\":5000,\"type\":\"message_progress\",\"error\":\"Generation failed due to heavy load. Please try again in a moment.\",\"model\":\"pro_flash\",\"width\":32,\"action\":\"Generating image\",\"height\":32,\"prompt\":\"a leafy potted plant in a terracotta pot, see"
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "desk-88x32",
+    "file": "out/raw/crop-desk-88x32.png",
+    "request": {
+      "description": "a long wooden writing desk with two drawers, empty top, seen from the front",
+      "image_size": {
+        "width": 88,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "usd",
+      "usd": 0
+    },
+    "ms": 278700
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "radio-24",
+    "file": "out/raw/shrink-radio-24.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 77482
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "mug-20",
+    "file": "out/raw/shrink-mug-20.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 20,
+        "height": 20
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 85276
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "mug-16",
+    "file": "out/raw/shrink-mug-16.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 16,
+        "height": 16
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 82014
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "cat-32x24",
+    "file": "out/raw/shrink-cat-32x24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 90739
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "lamp-28",
+    "file": "out/raw/shrink-lamp-28.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 28,
+        "height": 28
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 47778
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "cat-24",
+    "file": "out/raw/shrink-cat-24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 64403
+  },
+  {
+    "kind": "image",
+    "condition": "crop2",
+    "element": "plant-32",
+    "file": "out/raw/crop2-plant-32.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 65214
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "armchair-40",
+    "file": "out/raw/shrink-armchair-40.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 40,
+        "height": 40
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 74301
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "desk-88x32",
+    "file": "out/raw/shrink-desk-88x32.png",
+    "request": {
+      "description": "a long wooden writing desk with two drawers, empty top, seen from the front",
+      "image_size": {
+        "width": 88,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 73392
+  },
+  {
+    "kind": "image",
+    "condition": "crop2",
+    "element": "clock-24",
+    "file": "out/raw/crop2-clock-24.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 48621
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "clock-20",
+    "file": "out/raw/shrink-clock-20.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 20,
+        "height": 20
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 37426
+  },
+  {
+    "kind": "image",
+    "condition": "crop2",
+    "element": "cat-32x24",
+    "file": "out/raw/crop2-cat-32x24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 24
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 45328
+  },
+  {
+    "kind": "image",
+    "condition": "crop2",
+    "element": "mug-16",
+    "file": "out/raw/crop2-mug-16.png",
+    "request": {
+      "description": "a ceramic mug of coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 16,
+        "height": 16
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 117384
+  },
+  {
+    "kind": "image",
+    "condition": "crop2",
+    "element": "lamp-32",
+    "file": "out/raw/crop2-lamp-32.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 72975
+  },
+  {
+    "kind": "image",
+    "condition": "crop2",
+    "element": "radio-24",
+    "file": "out/raw/crop2-radio-24.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 86172
+  },
+  {
+    "kind": "strip",
+    "condition": "crop",
+    "element": "cat-32x24",
+    "file": "out/raw/strip-crop-cat-32x24.png",
+    "request": {
+      "first_frame": "out/raw/crop-cat-32x24.png",
+      "action": "the sleeping cat breathes slowly and the tip of its tail twitches now and then",
+      "frame_count": 4,
+      "seed": 1123,
+      "no_background": true
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 893799,
+    "frames": 5
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "plant-32",
+    "file": "out/raw/shrink-plant-32.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 62198
+  },
+  {
+    "kind": "image",
+    "condition": "crop",
+    "element": "cat-24",
+    "file": "out/raw/crop-cat-24.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:crop"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 75440
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "armchair-48",
+    "file": "out/raw/shrink-armchair-48.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 48,
+        "height": 48
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 83317
+  },
+  {
+    "kind": "image",
+    "condition": "shrink",
+    "element": "clock-24",
+    "file": "out/raw/shrink-clock-24.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 24,
+        "height": 24
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "anchor-window:shrink"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 74220
+  },
+  {
+    "kind": "strip",
+    "condition": "crop",
+    "element": "cat-24",
+    "file": "out/raw/strip-crop-cat-24.png",
+    "request": {
+      "first_frame": "out/raw/crop-cat-24.png",
+      "action": "the sleeping cat breathes slowly and the tip of its tail twitches now and then",
+      "frame_count": 4,
+      "seed": 1123,
+      "no_background": true
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 1003826,
+    "frames": 5
+  }
+]
