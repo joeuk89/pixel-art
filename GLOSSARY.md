@@ -43,3 +43,7 @@ _Avoid_: Generator, orchestrator, agent
 **Scene plan**:
 The structured description of a Scene the Director writes before any Element or Soundtrack is generated.
 _Avoid_: Manifest, config, spec, scene file
+
+**Style anchor**:
+The first Element generated for a Scene, passed as the style image to every later Attempt in that Scene so they read as one hand.
+_Avoid_: Reference image, style image (for the Element itself), seed image
