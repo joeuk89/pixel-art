@@ -47,3 +47,11 @@ _Avoid_: Manifest, config, spec, scene file
 **Style anchor**:
 The first Element generated for a Scene, passed as the style image to every later Attempt in that Scene so they read as one hand.
 _Avoid_: Reference image, style image (for the Element itself), seed image
+
+**Distance**:
+How close an ambient sound sits to the viewer: near, mid or far. Sets how loud and how muffled it plays.
+_Avoid_: Layer (for sound), tier, bus, plane
+
+**One-shot**:
+A single ambient sound event, such as thunder or an owl, that a Scene fires now and then instead of looping.
+_Avoid_: Trigger, event, sample, stinger
