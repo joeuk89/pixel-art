@@ -43,3 +43,19 @@ _Avoid_: Generator, orchestrator, agent
 **Scene plan**:
 The structured description of a Scene the Director writes before any Element or Soundtrack is generated.
 _Avoid_: Manifest, config, spec, scene file
+
+**Layer**:
+One draw-ordered slice of a Scene; a Scene is drawn layer by layer, first to last.
+_Avoid_: Depth, plane, z-index
+
+**Placement**:
+One Element put at a position in a Layer.
+_Avoid_: Instance, sprite, object
+
+**Primitive**:
+One code-driven animation effect the Viewer runs on a Scene, such as rain, lamp glow, steam or twinkle.
+_Avoid_: Effect, animation, shader
+
+**Poster**:
+The still image that stands in for a Scene in the Gallery and in Share link previews.
+_Avoid_: Thumbnail, screenshot, cover
