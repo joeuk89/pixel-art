@@ -83,3 +83,15 @@ _Avoid_: Try, run, call, generation (for the judged unit)
 **Quality gate**:
 The checks every Attempt must pass before its Element enters the Element library: programmatic checks first, then the Director's visual check.
 _Avoid_: Validation, QA, review (for the whole gate)
+
+**Style anchor**:
+The first Element generated for a Scene, passed as the style image to every later Attempt in that Scene so they read as one hand.
+_Avoid_: Reference image, style image (for the Element itself), seed image
+
+**Distance**:
+How close an ambient sound sits to the viewer: near, mid or far. Sets how loud and how muffled it plays.
+_Avoid_: Layer (for sound), tier, bus, plane
+
+**One-shot**:
+A single ambient sound event, such as thunder or an owl, that a Scene fires now and then instead of looping.
+_Avoid_: Trigger, event, sample, stinger
