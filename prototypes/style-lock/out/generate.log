@@ -1,0 +1,56 @@
+ok    out/raw/base-s1-window.png 62612ms {"type":"generations","generations":5}
+FAIL  out/raw/base-s2-window.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/style-s2-window.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/base-s2-cat.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/style-s2-cat.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/base-s2-bookshelf.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/style-s2-bookshelf.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/style-s2-plant.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/base-s2-plant.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/style-s2-clock.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+FAIL  out/raw/base-s2-clock.png: PL pro-flash 429 {"detail":"Maximum 8 concurrent background jobs allowed (Tier 1). You have 8 active jobs."}
+ok    out/raw/style-s2-lamp.png 69438ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-cat.png 79508ms {"type":"generations","generations":5}
+ok    out/raw/repeat-s1-cat.png 85603ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-lamp.png 89102ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-lamp.png 89481ms {"type":"generations","generations":5}
+ok    out/raw/repeat-s1-window.png 91378ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-window.png 113057ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-lamp.png 123759ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-bookshelf.png 58751ms {"type":"generations","generations":5}
+ok    out/raw/repeat-s1-skyline.png 60949ms {"type":"generations","generations":6}
+ok    out/raw/base-s1-mug.png 68154ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-mug.png 98864ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-mug.png 78970ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-cat.png 60109ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-armchair.png 84066ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-plant.png 103586ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-mug.png 118613ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-armchair.png 89807ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-armchair.png 98194ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-bookshelf.png 115368ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-armchair.png 81027ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-radio.png 99290ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-radio.png 86242ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-clock.png 116830ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-radio.png 122322ms {"type":"generations","generations":5}
+ok    out/raw/base-s1-skyline.png 40711ms {"type":"generations","generations":6}
+ok    out/raw/style-s1-plant.png 105680ms {"type":"generations","generations":5}
+ok    out/raw/style-s1-radio.png 93158ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-skyline.png 87711ms {"type":"generations","generations":6}
+ok    out/raw/style-s2-skyline.png 66407ms {"type":"generations","generations":6}
+ok    out/raw/style-s1-skyline.png 51802ms {"type":"generations","generations":6}
+ok    out/raw/style-s1-clock.png 94056ms {"type":"generations","generations":5}
+done
+ok    out/raw/base-s2-window.png 69235ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-cat.png 44864ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-bookshelf.png 65253ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-plant.png 54066ms {"type":"generations","generations":5}
+ok    out/raw/base-s2-clock.png 51365ms {"type":"generations","generations":5}
+done
+ok    out/raw/style-s2-window.png 60656ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-cat.png 79868ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-bookshelf.png 39487ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-plant.png 79347ms {"type":"generations","generations":5}
+ok    out/raw/style-s2-clock.png 83199ms {"type":"generations","generations":5}
+done

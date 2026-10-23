@@ -1,0 +1,1862 @@
+[
+  {
+    "condition": "base-s1",
+    "element": "window",
+    "file": "out/raw/base-s1-window.png",
+    "request": {
+      "description": "a large wooden-framed window, closed, four panes, the glass fully transparent so the scene behind shows through, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 62612
+  },
+  {
+    "condition": "style-s2",
+    "element": "lamp",
+    "file": "out/raw/style-s2-lamp.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 69438
+  },
+  {
+    "condition": "base-s1",
+    "element": "cat",
+    "file": "out/raw/base-s1-cat.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up in a ball, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 79508
+  },
+  {
+    "condition": "repeat-s1",
+    "element": "cat",
+    "file": "out/raw/repeat-s1-cat.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up in a ball, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 85603
+  },
+  {
+    "condition": "base-s1",
+    "element": "lamp",
+    "file": "out/raw/base-s1-lamp.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 89102
+  },
+  {
+    "condition": "base-s2",
+    "element": "lamp",
+    "file": "out/raw/base-s2-lamp.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 89481
+  },
+  {
+    "condition": "repeat-s1",
+    "element": "window",
+    "file": "out/raw/repeat-s1-window.png",
+    "request": {
+      "description": "a large wooden-framed window, closed, four panes, the glass fully transparent so the scene behind shows through, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 91378
+  },
+  {
+    "condition": "style-s1",
+    "element": "window",
+    "file": "out/raw/style-s1-window.png",
+    "request": {
+      "description": "a large wooden-framed window, closed, four panes, the glass fully transparent so the scene behind shows through, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 113057
+  },
+  {
+    "condition": "style-s1",
+    "element": "lamp",
+    "file": "out/raw/style-s1-lamp.png",
+    "request": {
+      "description": "a small desk lamp with a warm yellow conical shade on a brass stem, switched on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 123759
+  },
+  {
+    "condition": "base-s1",
+    "element": "bookshelf",
+    "file": "out/raw/base-s1-bookshelf.png",
+    "request": {
+      "description": "a tall wooden bookshelf filled with books of different heights and colours, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 58751
+  },
+  {
+    "condition": "repeat-s1",
+    "element": "skyline",
+    "file": "out/raw/repeat-s1-skyline.png",
+    "request": {
+      "description": "a distant city skyline at night under a deep purple sky, silhouetted rooftops and towers with a scattering of small lit windows, wide view",
+      "image_size": {
+        "width": 128,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": false,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 60949
+  },
+  {
+    "condition": "base-s1",
+    "element": "mug",
+    "file": "out/raw/base-s1-mug.png",
+    "request": {
+      "description": "a ceramic mug of hot coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 68154
+  },
+  {
+    "condition": "style-s2",
+    "element": "mug",
+    "file": "out/raw/style-s2-mug.png",
+    "request": {
+      "description": "a ceramic mug of hot coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 98864
+  },
+  {
+    "condition": "base-s2",
+    "element": "mug",
+    "file": "out/raw/base-s2-mug.png",
+    "request": {
+      "description": "a ceramic mug of hot coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 78970
+  },
+  {
+    "condition": "style-s1",
+    "element": "cat",
+    "file": "out/raw/style-s1-cat.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up in a ball, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 60109
+  },
+  {
+    "condition": "base-s1",
+    "element": "armchair",
+    "file": "out/raw/base-s1-armchair.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 84066
+  },
+  {
+    "condition": "base-s1",
+    "element": "plant",
+    "file": "out/raw/base-s1-plant.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 103586
+  },
+  {
+    "condition": "style-s1",
+    "element": "mug",
+    "file": "out/raw/style-s1-mug.png",
+    "request": {
+      "description": "a ceramic mug of hot coffee with a patterned band, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 118613
+  },
+  {
+    "condition": "style-s2",
+    "element": "armchair",
+    "file": "out/raw/style-s2-armchair.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 89807
+  },
+  {
+    "condition": "base-s2",
+    "element": "armchair",
+    "file": "out/raw/base-s2-armchair.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 98194
+  },
+  {
+    "condition": "style-s1",
+    "element": "bookshelf",
+    "file": "out/raw/style-s1-bookshelf.png",
+    "request": {
+      "description": "a tall wooden bookshelf filled with books of different heights and colours, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 115368
+  },
+  {
+    "condition": "style-s1",
+    "element": "armchair",
+    "file": "out/raw/style-s1-armchair.png",
+    "request": {
+      "description": "a worn green armchair with a knitted blanket draped over one arm, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 81027
+  },
+  {
+    "condition": "base-s1",
+    "element": "radio",
+    "file": "out/raw/base-s1-radio.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 99290
+  },
+  {
+    "condition": "base-s2",
+    "element": "radio",
+    "file": "out/raw/base-s2-radio.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 86242
+  },
+  {
+    "condition": "base-s1",
+    "element": "clock",
+    "file": "out/raw/base-s1-clock.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 116830
+  },
+  {
+    "condition": "style-s2",
+    "element": "radio",
+    "file": "out/raw/style-s2-radio.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 122322
+  },
+  {
+    "condition": "base-s1",
+    "element": "skyline",
+    "file": "out/raw/base-s1-skyline.png",
+    "request": {
+      "description": "a distant city skyline at night under a deep purple sky, silhouetted rooftops and towers with a scattering of small lit windows, wide view",
+      "image_size": {
+        "width": 128,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": false,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 40711
+  },
+  {
+    "condition": "style-s1",
+    "element": "plant",
+    "file": "out/raw/style-s1-plant.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 105680
+  },
+  {
+    "condition": "style-s1",
+    "element": "radio",
+    "file": "out/raw/style-s1-radio.png",
+    "request": {
+      "description": "a vintage wooden tabletop radio with a round dial and fabric speaker grille, seen from the front",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 93158
+  },
+  {
+    "condition": "base-s2",
+    "element": "skyline",
+    "file": "out/raw/base-s2-skyline.png",
+    "request": {
+      "description": "a distant city skyline at night under a deep purple sky, silhouetted rooftops and towers with a scattering of small lit windows, wide view",
+      "image_size": {
+        "width": 128,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": false,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 87711
+  },
+  {
+    "condition": "style-s2",
+    "element": "skyline",
+    "file": "out/raw/style-s2-skyline.png",
+    "request": {
+      "description": "a distant city skyline at night under a deep purple sky, silhouetted rooftops and towers with a scattering of small lit windows, wide view",
+      "image_size": {
+        "width": 128,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": false,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 66407
+  },
+  {
+    "condition": "style-s1",
+    "element": "skyline",
+    "file": "out/raw/style-s1-skyline.png",
+    "request": {
+      "description": "a distant city skyline at night under a deep purple sky, silhouetted rooftops and towers with a scattering of small lit windows, wide view",
+      "image_size": {
+        "width": 128,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": false,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 51802
+  },
+  {
+    "condition": "style-s1",
+    "element": "clock",
+    "file": "out/raw/style-s1-clock.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 1123,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 94056
+  },
+  {
+    "condition": "base-s2",
+    "element": "window",
+    "file": "out/raw/base-s2-window.png",
+    "request": {
+      "description": "a large wooden-framed window, closed, four panes, the glass fully transparent so the scene behind shows through, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 69235
+  },
+  {
+    "condition": "base-s2",
+    "element": "cat",
+    "file": "out/raw/base-s2-cat.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up in a ball, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 44864
+  },
+  {
+    "condition": "base-s2",
+    "element": "bookshelf",
+    "file": "out/raw/base-s2-bookshelf.png",
+    "request": {
+      "description": "a tall wooden bookshelf filled with books of different heights and colours, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 65253
+  },
+  {
+    "condition": "base-s2",
+    "element": "plant",
+    "file": "out/raw/base-s2-plant.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 54066
+  },
+  {
+    "condition": "base-s2",
+    "element": "clock",
+    "file": "out/raw/base-s2-clock.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      }
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 51365
+  },
+  {
+    "condition": "style-s2",
+    "element": "window",
+    "file": "out/raw/style-s2-window.png",
+    "request": {
+      "description": "a large wooden-framed window, closed, four panes, the glass fully transparent so the scene behind shows through, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 60656
+  },
+  {
+    "condition": "style-s2",
+    "element": "cat",
+    "file": "out/raw/style-s2-cat.png",
+    "request": {
+      "description": "a sleeping ginger cat curled up in a ball, eyes closed, tail tucked around its body, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 79868
+  },
+  {
+    "condition": "style-s2",
+    "element": "bookshelf",
+    "file": "out/raw/style-s2-bookshelf.png",
+    "request": {
+      "description": "a tall wooden bookshelf filled with books of different heights and colours, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 39487
+  },
+  {
+    "condition": "style-s2",
+    "element": "plant",
+    "file": "out/raw/style-s2-plant.png",
+    "request": {
+      "description": "a leafy potted plant in a terracotta pot, seen from the side",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 79347
+  },
+  {
+    "condition": "style-s2",
+    "element": "clock",
+    "file": "out/raw/style-s2-clock.png",
+    "request": {
+      "description": "a round wall clock with a wooden frame and cream face, seen straight on",
+      "image_size": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 2024,
+      "no_background": true,
+      "target_palette": {
+        "colors": [
+          "#120e1a",
+          "#241c33",
+          "#3b2f52",
+          "#5d4e7f",
+          "#1c2d4a",
+          "#2f5578",
+          "#5e95bf",
+          "#b7dcef",
+          "#f7d35c",
+          "#e2883a",
+          "#a9552d",
+          "#5e2f22",
+          "#f6e8cc",
+          "#c8a384",
+          "#7d5a4b",
+          "#d6d0cc"
+        ],
+        "name": "Cosy Night 16"
+      },
+      "style_options": {
+        "color_palette": true,
+        "outline": true,
+        "detail": true,
+        "shading": true
+      },
+      "style_image": "base-s1/window"
+    },
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 83199
+  }
+]

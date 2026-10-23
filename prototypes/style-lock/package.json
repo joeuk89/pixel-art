@@ -1,0 +1,15 @@
+{
+  "name": "prototype-style-lock",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #22: does Pro Flash hold one style across ten Elements and seeds, and does style_image tighten it?",
+  "scripts": {
+    "generate": "node generate.ts",
+    "process": "node process.ts",
+    "all": "node generate.ts && node process.ts",
+    "start": "node process.ts && open out/index.html"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
+}
