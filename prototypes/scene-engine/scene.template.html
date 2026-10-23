@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene engine prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0810; overflow: hidden; font: 12px/1.4 system-ui, sans-serif; color: #ddd; }
+  #stage { position: absolute; inset: 0; display: grid; place-items: center; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; background: #0a0810; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 12px; background: rgba(20,16,30,.92); border-top: 1px solid #333; }
+  #bar label { white-space: nowrap; cursor: pointer; }
+  #bar select, #bar button { font: inherit; background: #2a2340; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 2px 6px; }
+  #stats { position: fixed; top: 8px; left: 8px; background: rgba(0,0,0,.7); padding: 6px 8px; white-space: pre; font: 11px/1.4 ui-monospace, monospace; border-radius: 3px; pointer-events: none; }
+  #log { position: fixed; top: 8px; right: 8px; width: 360px; height: 160px; background: rgba(0,0,0,.7); color: #bbb; border: 1px solid #333; font: 10px/1.3 ui-monospace, monospace; display: none; }
+  .hidden { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { #reduced { display: inline; } }
+  #reduced { display: none; color: #f7d35c; }
+</style>
+<div id="stage"><canvas id="c" width="192" height="120"></canvas></div>
+<div id="stats"></div>
+<textarea id="log" readonly></textarea>
+<div id="bar">
+  <label><input type="checkbox" data-k="rain" checked> rain</label>
+  <label><input type="checkbox" data-k="glow" checked> lamp glow</label>
+  <label><input type="checkbox" data-k="steam" checked> steam</label>
+  <label><input type="checkbox" data-k="twinkle" checked> window twinkle</label>
+  <label><input type="checkbox" data-k="drift" checked> parallax drift</label>
+  <label><input type="checkbox" data-k="pointer"> pointer parallax</label>
+  <label><input type="checkbox" data-k="keyed" checked> see-through glass</label>
+  <label>weather fps <select data-k="wfps"><option>12</option><option selected>24</option><option>30</option><option value="0">uncapped</option></select></label>
+  <label>props fps <select data-k="pfps"><option>6</option><option selected>10</option><option>12</option></select></label>
+  <label>loop <select data-k="loop"><option value="raf" selected>rAF 60Hz</option><option value="timer">timer + rAF</option></select></label>
+  <label>scale <select data-k="scale"><option value="int" selected>integer</option><option value="fit">fit (non-integer)</option></select></label>
+  <label><input type="checkbox" data-k="stats" checked> stats</label>
+  <label><input type="checkbox" data-k="log"> soak log</label>
+  <button id="fs">fullscreen (click also = unmute)</button>
+  <span>H hides this bar</span>
+  <span id="reduced">prefers-reduced-motion: on, weather frozen</span>
+</div>
+<script>
+// PROTOTYPE, throwaway. Answers wayfinder #12: does a Canvas 2D compositor with rain, flicker,
+// parallax and steam feel right, and stay cheap enough to leave open all day?
+const W = 192, H = 120, DESK_Y = 84;
+const PAL = { sky0: '#120e1a', sky1: '#241c33', haze: '#5d4e7f', glassD: '#1c2d4a', glass: '#2f5578', rain: '#5e95bf', rainHi: '#b7dcef', lamp: '#f7d35c', orange: '#e2883a', wood: '#a9552d', woodD: '#5e2f22', cream: '#f6e8cc', steam: '#d6d0cc' };
+const ASSETS = { lamp: '{{lamp}}', window: '{{window}}', skyline: '{{skyline}}', cat: '{{cat}}', mug: '{{mug}}' };
+
+const S = { rain: true, glow: true, steam: true, twinkle: true, drift: true, pointer: false, keyed: true, wfps: 24, pfps: 10, scale: 'int', stats: true, log: false, idle: false, loop: 'raf' }; // idle=1: rAF loop runs but never draws (cost baseline)
+(function readHash() { const p = new URLSearchParams(location.hash.slice(1)); for (const k in S) if (p.has(k)) S[k] = typeof S[k] === 'boolean' ? p.get(k) === '1' : typeof S[k] === 'number' ? +p.get(k) : p.get(k); })();
+function writeHash() { const p = new URLSearchParams(); for (const k in S) p.set(k, typeof S[k] === 'boolean' ? (S[k] ? 1 : 0) : S[k]); history.replaceState(null, '', '#' + p); }
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false });
+ctx.imageSmoothingEnabled = false;
+const off = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; return [c, x]; };
+const loadImg = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = src; });
+
+// Deterministic PRNG so the Scene replays identically.
+let seed = 1337; const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+let layers = {}, rects = {}, twinklePx = [], skyColour = PAL.sky1;
+const rain = [], steam = [];
+let glowA = 1, glowTarget = 1, twinkleOverlay, driftT = 0, pointerX = 0, pointerY = 0;
+
+async function build() {
+  const img = {}; for (const k in ASSETS) img[k] = await loadImg(ASSETS[k]);
+  const win = { x: Math.round(W / 2 - img.window.width / 2), y: 6, w: img.window.width, h: img.window.height };
+  rects.hole = { x: win.x + 6, y: win.y + 6, w: win.w - 12, h: win.h - 12 }; // pane area, tuned by eye
+  rects.lamp = { x: 8, y: DESK_Y + 6 - img.lamp.height, w: img.lamp.width, h: img.lamp.height };
+  rects.cat = { x: Math.round(W / 2 - img.cat.width / 2 + 10), y: DESK_Y + 10 - img.cat.height, w: img.cat.width, h: img.cat.height };
+  rects.mug = { x: W - img.mug.width - 10, y: DESK_Y + 8 - img.mug.height, w: img.mug.width, h: img.mug.height };
+  rects.win = win;
+
+  // Sky: band above the skyline with stars and a moon; wider than W so it can drift.
+  const skyW = W + 40, skyH = DESK_Y;
+  { const [c, x] = off(skyW, skyH); layers.sky = c;
+    x.fillStyle = PAL.sky0; x.fillRect(0, 0, skyW, skyH);
+    x.fillStyle = PAL.sky1; x.fillRect(0, 12, skyW, skyH);
+    for (let i = 0; i < 70; i++) { x.fillStyle = rnd() < .3 ? PAL.steam : PAL.haze; x.fillRect(Math.floor(rnd() * skyW), Math.floor(rnd() * 40), 1, 1); }
+    x.fillStyle = PAL.cream; x.beginPath(); x.arc(170, 14, 6, 0, 7); x.fill();
+    x.fillStyle = PAL.sky1; x.beginPath(); x.arc(167, 12, 5.5, 0, 7); x.fill(); }
+
+  // Skyline: tiled three times so it can drift, drawn at y=20 (bottom meets the desk).
+  const tile = img.skyline, skW = tile.width * 3;
+  { const [c, x] = off(skW, tile.height); layers.skyline = c; for (let i = 0; i < 3; i++) x.drawImage(tile, i * tile.width, 0);
+    const d = x.getImageData(0, 0, skW, tile.height).data; skyColour = `rgb(${d[0]},${d[1]},${d[2]})`;
+    for (let i = 0; i < d.length; i += 4) { if (d[i] > 200 && d[i + 1] > 120 && d[i + 2] < 120) twinklePx.push([(i / 4) % skW, Math.floor(i / 4 / skW), `rgb(${d[i]},${d[i + 1]},${d[i + 2]})`]); } }
+  rects.skyline = { y: DESK_Y - tile.height, w: skW, h: tile.height };
+  [twinkleOverlay] = off(skW, tile.height);
+
+  // Near layer: wall with the pane hole cut out, the window (glass keyed or not), desk and props. Two variants cached.
+  for (const keyed of [true, false]) {
+    const [c, x] = off(W + 8, H); // 4px margin each side for parallax
+    x.fillStyle = PAL.sky1; x.fillRect(0, 0, W + 8, H);
+    x.fillStyle = PAL.woodD; x.fillRect(0, DESK_Y, W + 8, H - DESK_Y); x.fillStyle = PAL.wood; x.fillRect(0, DESK_Y, W + 8, 2);
+    x.clearRect(rects.hole.x + 4, rects.hole.y, rects.hole.w, rects.hole.h);
+    if (keyed) { const [wc, wx] = off(win.w, win.h); wx.drawImage(img.window, 0, 0); const id = wx.getImageData(0, 0, win.w, win.h); const d = id.data;
+      const glass = [[0x1c, 0x2d, 0x4a], [0x2f, 0x55, 0x78]];
+      for (let i = 0; i < d.length; i += 4) { const px = (i / 4) % win.w, py = Math.floor(i / 4 / win.w); if (px < 6 || py < 6 || px >= win.w - 6 || py >= win.h - 6) continue; if (glass.some(g => g[0] === d[i] && g[1] === d[i + 1] && g[2] === d[i + 2])) d[i + 3] = 0; }
+      wx.putImageData(id, 0, 0); x.drawImage(wc, win.x + 4, win.y); } else x.drawImage(img.window, win.x + 4, win.y);
+    x.drawImage(img.lamp, rects.lamp.x + 4, rects.lamp.y); x.drawImage(img.cat, rects.cat.x + 4, rects.cat.y); x.drawImage(img.mug, rects.mug.x + 4, rects.mug.y);
+    layers[keyed ? 'nearKeyed' : 'near'] = c;
+  }
+
+  // Lamp glow sprite: a radial falloff quantised to four alpha steps so it keeps a pixel feel.
+  { const [c, x] = off(56, 56); layers.glow = c; const steps = [[24, .05], [17, .07], [11, .10], [6, .14]];
+    for (const [r, a] of steps) { x.fillStyle = PAL.lamp; x.globalAlpha = a; x.beginPath(); x.arc(28, 28, r, 0, 7); x.fill(); } }
+  { const [c, x] = off(70, 14); layers.pool = c; x.fillStyle = PAL.orange; for (const [rx, ry, a] of [[34, 6, .07], [24, 4, .09], [14, 2, .12]]) { x.globalAlpha = a; x.beginPath(); x.ellipse(35, 7, rx, ry, 0, 0, 7); x.fill(); } }
+  rects.bulb = { x: rects.lamp.x + 30, y: rects.lamp.y + 20 };
+
+  for (let i = 0; i < 34; i++) rain.push(spawnDrop(true));
+  for (let i = 0; i < 14; i++) steam.push({ life: -Math.floor(rnd() * 30) });
+}
+function spawnDrop(anywhere) { const h = rects.hole; return { x: h.x + rnd() * (h.w + 8) - 4, y: anywhere ? h.y + rnd() * h.h : h.y - 3, len: 1 + Math.floor(rnd() * 2), v: 1.6 + rnd() * 1.2, hi: rnd() < .3 }; }
+
+// ---- Ticks: each primitive updates at its own rate; a tick marks the frame dirty. ----
+function tickWeather() {
+  if (S.rain) { const h = rects.hole; for (const d of rain) { d.y += d.v; d.x += .25; if (d.y > h.y + h.h) Object.assign(d, spawnDrop(false)); } }
+  if (S.drift) driftT += 1 / 24;
+}
+function tickProps() {
+  if (S.glow) { if (rnd() < .08) glowTarget = rnd() < .15 ? .55 + rnd() * .2 : .85 + rnd() * .15; glowA += (glowTarget - glowA) * .5; }
+  if (S.steam) for (const p of steam) { p.life++; if (p.life === 0 || p.life > 22) { p.life = 0; p.x0 = rects.mug.x + rects.mug.w / 2 - 8 + rnd() * 10; p.y = rects.mug.y + 2; p.ph = rnd() * 6.28; } p.y -= .7; p.x = p.x0 + Math.sin(p.life * .35 + p.ph) * (1 + p.life * .06); }
+}
+let twAcc = 0;
+function tickTwinkle() { if (!S.twinkle || !twinklePx.length) return; const x = twinkleOverlay.getContext('2d'); x.clearRect(0, 0, twinkleOverlay.width, twinkleOverlay.height); x.fillStyle = skyColour; for (let i = 0; i < 6; i++) { const p = twinklePx[Math.floor(rnd() * twinklePx.length)]; x.fillRect(p[0], p[1], 1, 1); } }
+
+function parallax() { let dx = 0, dy = 0; if (S.drift) dx += Math.sin(driftT * .12) * 3; if (S.pointer) { dx += pointerX * 3; dy += pointerY * 1.5; } return [dx, dy]; }
+
+function draw() {
+  const [px, py] = parallax();
+  ctx.fillStyle = PAL.sky0; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(layers.sky, Math.round(-20 + px * .15), Math.round(py * .1));
+  const sk = rects.skyline; ctx.drawImage(layers.skyline, Math.round(-128 + px * .4), Math.round(sk.y + py * .3)); if (S.twinkle) ctx.drawImage(twinkleOverlay, Math.round(-128 + px * .4), Math.round(sk.y + py * .3));
+  if (S.rain) { const h = rects.hole; ctx.save(); ctx.beginPath(); ctx.rect(h.x + Math.round(px), h.y + Math.round(py), h.w, h.h); ctx.clip(); for (const d of rain) { const x = Math.round(d.x + px * .6), y = Math.round(d.y); ctx.fillStyle = d.hi ? PAL.rainHi : PAL.rain; ctx.fillRect(x, y, 1, d.len); } ctx.restore(); }
+  ctx.drawImage(S.keyed ? layers.nearKeyed : layers.near, Math.round(-4 + px), Math.round(py));
+  if (S.steam) for (const p of steam) { if (p.life <= 0) continue; const a = p.life < 5 ? .4 : p.life < 15 ? .7 : .3; ctx.globalAlpha = a; ctx.fillStyle = p.life < 10 ? PAL.cream : PAL.steam; const s = p.life > 12 ? 2 : 1; ctx.fillRect(Math.round(p.x + px), Math.round(p.y + py), s, s); } ctx.globalAlpha = 1;
+  if (S.glow) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = glowA; ctx.drawImage(layers.glow, Math.round(rects.bulb.x - 28 + px), Math.round(rects.bulb.y - 28 + py)); ctx.drawImage(layers.pool, Math.round(rects.bulb.x - 25 + px), Math.round(DESK_Y - 2 + py)); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
+}
+
+// ---- Loop: one rAF, accumulators per rate, draw only when something ticked. ----
+let raf = 0, last = 0, accW = 0, accP = 0, accT = 0;
+const M = { frames: 0, drawMs: 0, maxMs: 0, hiddenFrames: 0, secFrames: 0, secMs: 0, start: performance.now(), lastSec: performance.now(), lastMin: performance.now(), minFrames: 0, minMs: 0 };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+let timer = 0;
+// 'timer' loop sleeps until the next due tick, then draws inside one rAF: fewer wake-ups than a 60 Hz rAF loop.
+function schedule() { if (S.loop === 'timer') { const wStep = S.wfps ? 1000 / S.wfps : 0, pStep = 1000 / S.pfps; const wait = Math.max(4, Math.min(wStep ? wStep - accW : 4, pStep - accP)); timer = setTimeout(() => { raf = requestAnimationFrame(frame); }, wait); } else raf = requestAnimationFrame(frame); }
+function frame(t) {
+  schedule();
+  if (document.hidden) { M.hiddenFrames++; return; }
+  if (S.idle) return;
+  let dt = Math.min(t - last, 100); last = t; if (reduced.matches) dt = 0;
+  let dirty = false;
+  const wStep = S.wfps ? 1000 / S.wfps : 0, pStep = 1000 / S.pfps;
+  if (wStep) { accW += dt; if (accW >= wStep) { accW -= wStep; if (accW > wStep) accW = 0; tickWeather(); dirty = true; } } else { tickWeather(); dirty = true; }
+  accP += dt; if (accP >= pStep) { accP -= pStep; if (accP > pStep) accP = 0; tickProps(); dirty = true; }
+  accT += dt; if (accT >= 500) { accT = 0; tickTwinkle(); dirty = true; }
+  if (M.frames === 0) dirty = true;
+  if (dirty) { const t0 = performance.now(); draw(); const ms = performance.now() - t0; M.frames++; M.secFrames++; M.secMs += ms; M.minFrames++; M.minMs += ms; if (ms > M.maxMs) M.maxMs = ms; }
+  if (t - M.lastSec >= 1000) { stats(t); M.lastSec = t; M.secFrames = 0; M.secMs = 0; }
+  if (t - M.lastMin >= 60000) { log(`${((t - M.start) / 60000).toFixed(0)}m frames/s ${(M.minFrames / 60).toFixed(1)} busy ${(M.minMs / 600).toFixed(2)}% heap ${heap()} hiddenFrames ${M.hiddenFrames} vis ${document.visibilityState}`); M.lastMin = t; M.minFrames = 0; M.minMs = 0; }
+}
+const heap = () => performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(1) + 'MB' : 'n/a';
+function stats(t) { if (!S.stats) return; document.getElementById('stats').textContent =
+  `drawn frames/s ${M.secFrames}  busy ${(M.secMs / 10).toFixed(2)}% of main thread\navg draw ${(M.secMs / Math.max(1, M.secFrames)).toFixed(2)}ms  max ever ${M.maxMs.toFixed(2)}ms\nheap ${heap()}  uptime ${((t - M.start) / 60000).toFixed(1)}m  frames while hidden ${M.hiddenFrames}\nscale x${scale} dpr ${devicePixelRatio} ${scaleMode}  ${innerWidth}x${innerHeight}  fullscreen ${!!document.fullscreenElement}`; }
+function log(s) { const el = document.getElementById('log'); el.value += s + '\n'; el.scrollTop = 1e9; console.log('[soak]', s); }
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(raf); clearTimeout(timer); raf = 0; log('hidden at ' + ((performance.now() - M.start) / 60000).toFixed(1) + 'm'); } else if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); log('visible again'); } });
+if (document.wasDiscarded) log('document was discarded by the browser and reloaded');
+
+// ---- Scaling and fullscreen ----
+let scale = 1, scaleMode = '';
+function rescale() {
+  const dpr = devicePixelRatio, vw = innerWidth, vh = innerHeight - (document.getElementById('bar').classList.contains('hidden') || document.fullscreenElement ? 0 : 60);
+  if (S.scale === 'int') { scale = Math.max(1, Math.floor(Math.min(vw * dpr / W, vh * dpr / H))); canvas.style.width = (scale * W / dpr) + 'px'; canvas.style.height = (scale * H / dpr) + 'px'; scaleMode = 'integer'; }
+  else { const s = Math.min(vw / W, vh / H); scale = +(s * dpr).toFixed(2); canvas.style.width = (s * W) + 'px'; canvas.style.height = (s * H) + 'px'; scaleMode = 'fit'; }
+}
+addEventListener('resize', rescale); document.addEventListener('fullscreenchange', rescale);
+matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener('change', rescale);
+document.getElementById('fs').onclick = () => { (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()); };
+addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { document.getElementById('bar').classList.toggle('hidden'); rescale(); } });
+addEventListener('pointermove', (e) => { pointerX = e.clientX / innerWidth * 2 - 1; pointerY = e.clientY / innerHeight * 2 - 1; });
+
+// ---- Controls ----
+for (const el of document.querySelectorAll('[data-k]')) { const k = el.dataset.k; if (el.type === 'checkbox') el.checked = S[k]; else el.value = String(S[k]);
+  el.onchange = () => { S[k] = el.type === 'checkbox' ? el.checked : isNaN(+el.value) ? el.value : +el.value; writeHash(); apply(); }; }
+function apply() { document.getElementById('stats').classList.toggle('hidden', !S.stats); document.getElementById('log').style.display = S.log ? 'block' : 'none'; rescale(); M.frames = 0; }
+
+addEventListener('hashchange', () => location.reload()); // settings are read once at load
+build().then(() => { apply(); writeHash(); log(`start ${new Date().toLocaleTimeString()} ${navigator.userAgent.split(') ')[0]})`); raf = requestAnimationFrame(frame); });
+</script>
+</html>

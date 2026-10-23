@@ -1,0 +1,68 @@
+{
+  "stable.x4": {
+    "method": "A",
+    "source": "out/stable.raw.wav",
+    "rate": 44100,
+    "fadeSec": 4,
+    "regionStartSec": 11.9,
+    "regionEndSec": 121.15,
+    "loopSamples": 4817925,
+    "loopSec": 109.25,
+    "pickCost": 0.03755,
+    "seamJump": 0.0043,
+    "maxInnerJump": 0.1356
+  },
+  "lyria.x4": {
+    "method": "A",
+    "source": "out/lyria.raw.wav",
+    "rate": 48000,
+    "fadeSec": 4,
+    "regionStartSec": 9.5,
+    "regionEndSec": 117.55,
+    "loopSamples": 5186400,
+    "loopSec": 108.05,
+    "pickCost": 0.07213,
+    "seamJump": 0.0013,
+    "maxInnerJump": 0.1233
+  },
+  "stable.x2": {
+    "method": "A",
+    "source": "out/stable.raw.wav",
+    "rate": 44100,
+    "fadeSec": 2,
+    "regionStartSec": 10.25,
+    "regionEndSec": 120.85,
+    "loopSamples": 4877460,
+    "loopSec": 110.6,
+    "pickCost": 0.02476,
+    "seamJump": 0.002,
+    "maxInnerJump": 0.1356
+  },
+  "stable.x8": {
+    "method": "A",
+    "source": "out/stable.raw.wav",
+    "rate": 44100,
+    "fadeSec": 8,
+    "regionStartSec": 10.1,
+    "regionEndSec": 117.55,
+    "loopSamples": 4738545,
+    "loopSec": 107.45,
+    "pickCost": 0.07479,
+    "seamJump": 0.0001,
+    "maxInnerJump": 0.1356
+  },
+  "stable.inpaint": {
+    "method": "B",
+    "source": "out/stable.raw.wav",
+    "rate": 44100,
+    "fadeSec": 0,
+    "regionStartSec": 11.9,
+    "regionEndSec": 121.15,
+    "loopSamples": 4817925,
+    "loopSec": 109.25,
+    "maskSec": 12,
+    "seamJump": 0.0026,
+    "maxInnerJump": 0.1629,
+    "note": "seam recomposed by Stable Audio 3.0 inpaint; API returned 190 s (default duration), trimmed to the loop length"
+  }
+}

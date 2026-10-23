@@ -1,0 +1,10 @@
+{
+  "name": "prototype-scene-engine",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #12: does a Canvas 2D scene engine with rain, flicker, parallax and steam feel right and stay cheap all day?",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js && open index.html"
+  }
+}

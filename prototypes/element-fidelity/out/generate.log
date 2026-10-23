@@ -1,0 +1,26 @@
+ok    out/raw/rd_plus__low_res-window-32.png 32x32 13217ms {"remaining_balance":10.08} 0.06
+ok    out/raw/gpt-image-1-window-64.png 1024x1024 17149ms {"input_tokens":67,"input_tokens_details":{"image_tokens":0,"text_tokens":67},"output_tokens":272,"output_tokens_details":{"image_tokens":272,"text_tokens":0},"total_tokens":339} 
+ok    out/raw/rd_plus__default-window-64.png 64x64 19448ms {"remaining_balance":10.02} 0.06
+ok    out/raw/pixflux-window-64.png 64x64 33485ms {"type":"generations","generations":1} 
+ok    out/raw/rd_plus__default-window-128.png 128x128 13100ms {"remaining_balance":9.96} 0.06
+ok    out/raw/pro-flash-window-64.png 64x64 29467ms {"type":"generations","generations":5} 
+ok    out/raw/rd_pro__default-window-64.png 64x64 34513ms {"remaining_balance":9.78} 0.18
+ok    out/raw/pixflux-skyline-64.png 128x64 17781ms {"type":"generations","generations":1} 
+ok    out/raw/rd_plus__low_res-skyline-32.png 64x32 8905ms {"remaining_balance":9.72} 0.06
+ok    out/raw/rd_plus__default-skyline-64.png 128x64 8884ms {"remaining_balance":9.66} 0.06
+ok    out/raw/pro-flash-skyline-64.png 128x64 23380ms {"type":"generations","generations":6} 
+ok    out/raw/rd_plus__default-skyline-128.png 256x128 11009ms {"remaining_balance":9.6} 0.06
+ok    out/raw/pixflux-cat-64.png 64x64 25165ms {"type":"generations","generations":1} 
+ok    out/raw/pro-flash-cat-64.png 64x64 21492ms {"type":"generations","generations":5} 
+ok    out/raw/rd_pro__default-skyline-64.png 128x64 60149ms {"remaining_balance":9.42} 0.18
+ok    out/raw/rd_plus__low_res-cat-32.png 32x32 15118ms {"remaining_balance":9.36} 0.06
+ok    out/raw/pixflux-mug-64.png 64x64 37854ms {"type":"generations","generations":1} 
+ok    out/raw/rd_plus__default-cat-64.png 64x64 15289ms {"remaining_balance":9.3} 0.06
+ok    out/raw/pro-flash-mug-64.png 64x64 26385ms {"type":"generations","generations":5} 
+ok    out/raw/rd_plus__default-cat-128.png 128x128 17500ms {"remaining_balance":9.24} 0.06
+ok    out/raw/rd_pro__default-cat-64.png 64x64 36714ms {"remaining_balance":9.06} 0.18
+ok    out/raw/rd_plus__low_res-mug-32.png 32x32 21703ms {"remaining_balance":9} 0.06
+ok    out/raw/rd_plus__default-mug-64.png 64x64 12986ms {"remaining_balance":8.94} 0.06
+ok    out/raw/rd_plus__default-mug-128.png 128x128 19396ms {"remaining_balance":8.88} 0.06
+ok    out/raw/rd_pro__default-mug-64.png 64x64 162560ms {"remaining_balance":8.7} 0.18
+done

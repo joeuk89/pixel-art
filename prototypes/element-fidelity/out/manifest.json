@@ -1,0 +1,476 @@
+[
+  {
+    "service": "rd",
+    "model": "rd_plus__low_res",
+    "element": "lamp",
+    "tier": 32,
+    "width": 32,
+    "height": 32,
+    "file": "out/raw/rd_plus__low_res-lamp-32.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 10.44
+    },
+    "ms": 13184
+  },
+  {
+    "service": "pixellab",
+    "model": "pixflux",
+    "element": "lamp",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pixflux-lamp-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 23682
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "lamp",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_plus__default-lamp-64.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 10.38
+    },
+    "ms": 11202
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "lamp",
+    "tier": 128,
+    "width": 128,
+    "height": 128,
+    "file": "out/raw/rd_plus__default-lamp-128.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 10.32
+    },
+    "ms": 21735
+  },
+  {
+    "service": "pixellab",
+    "model": "pro-flash",
+    "element": "lamp",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pro-flash-lamp-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 48514
+  },
+  {
+    "service": "rd",
+    "model": "rd_pro__default",
+    "element": "lamp",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_pro__default-lamp-64.png",
+    "seed": 1123,
+    "cost_usd": 0.18,
+    "usage": {
+      "remaining_balance": 10.14
+    },
+    "ms": 124256
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__low_res",
+    "element": "window",
+    "tier": 32,
+    "width": 32,
+    "height": 32,
+    "file": "out/raw/rd_plus__low_res-window-32.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 10.08
+    },
+    "ms": 13217
+  },
+  {
+    "service": "openai",
+    "model": "gpt-image-1",
+    "element": "window",
+    "tier": 64,
+    "width": 1024,
+    "height": 1024,
+    "file": "out/raw/gpt-image-1-window-64.png",
+    "seed": 1123,
+    "usage": {
+      "input_tokens": 67,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 67
+      },
+      "output_tokens": 272,
+      "output_tokens_details": {
+        "image_tokens": 272,
+        "text_tokens": 0
+      },
+      "total_tokens": 339
+    },
+    "ms": 17149
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "window",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_plus__default-window-64.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 10.02
+    },
+    "ms": 19448
+  },
+  {
+    "service": "pixellab",
+    "model": "pixflux",
+    "element": "window",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pixflux-window-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 33485
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "window",
+    "tier": 128,
+    "width": 128,
+    "height": 128,
+    "file": "out/raw/rd_plus__default-window-128.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.96
+    },
+    "ms": 13100
+  },
+  {
+    "service": "pixellab",
+    "model": "pro-flash",
+    "element": "window",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pro-flash-window-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 29467
+  },
+  {
+    "service": "rd",
+    "model": "rd_pro__default",
+    "element": "window",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_pro__default-window-64.png",
+    "seed": 1123,
+    "cost_usd": 0.18,
+    "usage": {
+      "remaining_balance": 9.78
+    },
+    "ms": 34513
+  },
+  {
+    "service": "pixellab",
+    "model": "pixflux",
+    "element": "skyline",
+    "tier": 64,
+    "width": 128,
+    "height": 64,
+    "file": "out/raw/pixflux-skyline-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 17781
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__low_res",
+    "element": "skyline",
+    "tier": 32,
+    "width": 64,
+    "height": 32,
+    "file": "out/raw/rd_plus__low_res-skyline-32.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.72
+    },
+    "ms": 8905
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "skyline",
+    "tier": 64,
+    "width": 128,
+    "height": 64,
+    "file": "out/raw/rd_plus__default-skyline-64.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.66
+    },
+    "ms": 8884
+  },
+  {
+    "service": "pixellab",
+    "model": "pro-flash",
+    "element": "skyline",
+    "tier": 64,
+    "width": 128,
+    "height": 64,
+    "file": "out/raw/pro-flash-skyline-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 6
+    },
+    "ms": 23380
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "skyline",
+    "tier": 128,
+    "width": 256,
+    "height": 128,
+    "file": "out/raw/rd_plus__default-skyline-128.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.6
+    },
+    "ms": 11009
+  },
+  {
+    "service": "pixellab",
+    "model": "pixflux",
+    "element": "cat",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pixflux-cat-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 25165
+  },
+  {
+    "service": "pixellab",
+    "model": "pro-flash",
+    "element": "cat",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pro-flash-cat-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 21492
+  },
+  {
+    "service": "rd",
+    "model": "rd_pro__default",
+    "element": "skyline",
+    "tier": 64,
+    "width": 128,
+    "height": 64,
+    "file": "out/raw/rd_pro__default-skyline-64.png",
+    "seed": 1123,
+    "cost_usd": 0.18,
+    "usage": {
+      "remaining_balance": 9.42
+    },
+    "ms": 60149
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__low_res",
+    "element": "cat",
+    "tier": 32,
+    "width": 32,
+    "height": 32,
+    "file": "out/raw/rd_plus__low_res-cat-32.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.36
+    },
+    "ms": 15118
+  },
+  {
+    "service": "pixellab",
+    "model": "pixflux",
+    "element": "mug",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pixflux-mug-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 37854
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "cat",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_plus__default-cat-64.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.3
+    },
+    "ms": 15289
+  },
+  {
+    "service": "pixellab",
+    "model": "pro-flash",
+    "element": "mug",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/pro-flash-mug-64.png",
+    "seed": 1123,
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 26385
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "cat",
+    "tier": 128,
+    "width": 128,
+    "height": 128,
+    "file": "out/raw/rd_plus__default-cat-128.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9.24
+    },
+    "ms": 17500
+  },
+  {
+    "service": "rd",
+    "model": "rd_pro__default",
+    "element": "cat",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_pro__default-cat-64.png",
+    "seed": 1123,
+    "cost_usd": 0.18,
+    "usage": {
+      "remaining_balance": 9.06
+    },
+    "ms": 36714
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__low_res",
+    "element": "mug",
+    "tier": 32,
+    "width": 32,
+    "height": 32,
+    "file": "out/raw/rd_plus__low_res-mug-32.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 9
+    },
+    "ms": 21703
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "mug",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_plus__default-mug-64.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 8.94
+    },
+    "ms": 12986
+  },
+  {
+    "service": "rd",
+    "model": "rd_plus__default",
+    "element": "mug",
+    "tier": 128,
+    "width": 128,
+    "height": 128,
+    "file": "out/raw/rd_plus__default-mug-128.png",
+    "seed": 1123,
+    "cost_usd": 0.06,
+    "usage": {
+      "remaining_balance": 8.88
+    },
+    "ms": 19396
+  },
+  {
+    "service": "rd",
+    "model": "rd_pro__default",
+    "element": "mug",
+    "tier": 64,
+    "width": 64,
+    "height": 64,
+    "file": "out/raw/rd_pro__default-mug-64.png",
+    "seed": 1123,
+    "cost_usd": 0.18,
+    "usage": {
+      "remaining_balance": 8.7
+    },
+    "ms": 162560
+  }
+]

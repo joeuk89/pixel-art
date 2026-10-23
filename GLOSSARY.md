@@ -43,3 +43,35 @@ _Avoid_: Generator, orchestrator, agent
 **Scene plan**:
 The structured description of a Scene the Director writes before any Element or Soundtrack is generated.
 _Avoid_: Manifest, config, spec, scene file
+
+**Layer**:
+One draw-ordered slice of a Scene; a Scene is drawn layer by layer, first to last.
+_Avoid_: Depth, plane, z-index
+
+**Placement**:
+One Element put at a position in a Layer.
+_Avoid_: Instance, sprite, object
+
+**Primitive**:
+One code-driven animation effect the Viewer runs on a Scene, such as rain, lamp glow, steam or twinkle.
+_Avoid_: Effect, animation, shader
+
+**Poster**:
+The still image that stands in for a Scene in the Gallery and in Share link previews.
+_Avoid_: Thumbnail, screenshot, cover
+
+**Palette**:
+The named, ordered set of colours a Scene and its Elements are locked to.
+_Avoid_: Colour scheme, theme, swatch
+
+**Element record**:
+The metadata kept beside an Element: what it is, how it was made and which Palette it is locked to.
+_Avoid_: Sidecar, metadata file, manifest
+
+**Ambient loop**:
+One seamless looping ambient sound in the Sound library, with its licence recorded.
+_Avoid_: Sample, sound file, clip
+
+**Sound library**:
+The collection of Ambient loops the Director shops from for a Soundtrack.
+_Avoid_: Sound bank, sample pack

@@ -1,0 +1,16 @@
+{
+  "name": "prototype-element-fidelity",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #11: can the shortlisted services produce hand-crafted-looking Elements?",
+  "scripts": {
+    "generate": "node generate.ts",
+    "process": "node process.ts",
+    "sheet": "node sheet.ts",
+    "all": "node generate.ts && node process.ts && node sheet.ts"
+  },
+  "dependencies": {
+    "culori": "^4.0.2",
+    "sharp": "^0.35.5"
+  }
+}
