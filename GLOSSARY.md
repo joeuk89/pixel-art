@@ -103,3 +103,11 @@ _Avoid_: Trigger, event, sample, stinger
 **Scale**:
 The pixels-per-metre of one Scene, set once per Scene, that fixes how large every prop is drawn.
 _Avoid_: Zoom, resolution, pixel density (that is the house tier), size (for the Scene-wide value)
+
+**Concept**:
+The Director's short statement of a Scene before it decomposes or shops: setting, time, weather, light source, focal point and the specific details the Prompt asked for.
+_Avoid_: Brief (that is the per-Element text sent to the image service), idea, vision, summary
+
+**Plan gate**:
+The one point where the Director stops for the owner's yes before any Element or Soundtrack is generated, showing the Scene plan and its estimated cost.
+_Avoid_: Approval, checkpoint, review, confirmation

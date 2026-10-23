@@ -1,0 +1,85 @@
+FAIL  out/raw/style-armchair-48.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-clock-24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-plant-36.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-mug-20.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+ok    out/raw/plain-desk-96x64.png 57459ms {"type":"generations","generations":5}
+ok    out/raw/style-sofa-128.png 63542ms {"type":"generations","generations":6}
+FAIL  out/raw/style-lamp-32.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-radio-24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-lamp-28.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-desk-88x32.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+ok    out/raw/style-desk-96x64.png 74883ms {"type":"generations","generations":5}
+FAIL  out/raw/style-cat-32x24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-armchair-40.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-clock-20.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+ok    out/raw/style-bookshelf-96.png 137810ms {"type":"generations","generations":5}
+FAIL  out/raw/style-plant-32.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+ok    out/raw/plain-armchair-48.png 71968ms {"type":"generations","generations":5}
+FAIL  out/raw/style-mug-16.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+FAIL  out/raw/style-cat-24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 1123}, input_type=dict]\n    For further inform
+ok    out/raw/plain-bookshelf-96.png 83128ms {"type":"generations","generations":5}
+ok    out/raw/plain-clock-24.png 75878ms {"type":"generations","generations":5}
+ok    out/raw/plain-plant-32.png 55026ms {"type":"generations","generations":5}
+ok    out/raw/plain-cat-32x24.png 178987ms {"type":"generations","generations":5}
+ok    out/raw/plain-sofa-128.png 161741ms {"type":"generations","generations":6}
+ok    out/raw/plain-plant-36.png 92578ms {"type":"generations","generations":5}
+ok    out/raw/plain-armchair-40.png 92421ms {"type":"generations","generations":5}
+ok    out/raw/plain-mug-16.png 148173ms {"type":"generations","generations":5}
+ok    out/raw/plain-lamp-32.png 89397ms {"type":"generations","generations":5}
+ok    out/raw/plain-mug-20.png 163097ms {"type":"generations","generations":5}
+FAIL  out/raw/style2-cat-32x24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\n    For further inform
+ok    out/raw/plain-clock-20.png 206571ms {"type":"generations","generations":5}
+FAIL  out/raw/style2-plant-32.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\n    For further inform
+FAIL  out/raw/style2-mug-16.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\n    For further inform
+ok    out/raw/plain-radio-24.png 231670ms {"type":"generations","generations":5}
+ok    out/raw/plain-cat-24.png 270095ms {"type":"generations","generations":5}
+FAIL  out/raw/style2-lamp-32.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\n    For further inform
+FAIL  out/raw/style2-radio-24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\n    For further inform
+ok    out/raw/plain-lamp-28.png 221642ms {"type":"generations","generations":5}
+ok    out/raw/plain-desk-88x32.png 93894ms {"type":"generations","generations":5}
+FAIL  out/raw/style2-clock-24.png: PL create-image-pro-flash 422 {"detail":"1 validation error for RequestGenerateImageProFlash\n  Value error, Style image must fit the native canvas. Crop the reference or choose a larger supported canvas. [type=value_error, input_value={'version': 'v2.0.0+api',...': False}, 'seed': 2024}, input_type=dict]\n    For further inform
+ok    out/raw/strip-plain-cat-32x24.png 5 frames 843859ms {"type":"generations","generations":1}
+done
+ok    out/raw/crop-cat-32x24.png 96144ms {"type":"generations","generations":5}
+ok    out/raw/crop-plant-32.png 103634ms {"type":"generations","generations":5}
+ok    out/raw/crop-armchair-48.png 148845ms {"type":"generations","generations":5}
+ok    out/raw/crop-lamp-32.png 177098ms {"type":"generations","generations":5}
+ok    out/raw/crop-radio-24.png 101756ms {"type":"generations","generations":5}
+ok    out/raw/crop-armchair-40.png 217784ms {"type":"generations","generations":5}
+ok    out/raw/crop-clock-24.png 169088ms {"type":"generations","generations":5}
+ok    out/raw/crop-mug-16.png 277440ms {"type":"generations","generations":5}
+ok    out/raw/crop-plant-36.png 93066ms {"type":"generations","generations":5}
+ok    out/raw/crop-lamp-28.png 148034ms {"type":"generations","generations":5}
+FAIL  out/raw/crop-cat-24.png: PL create-image-pro-flash failed {"usage":{"type":"usd","usd":0},"id":"5b0e1734-2a2e-4b50-bfd5-63be376e0f45","status":"failed","created_at":"2026-10-23T19:21:03.067141+00:00","last_response":{"code":5000,"type":"message_progress","error":"Generation failed: [502] Inference stream ended without producing a result. Please try again.","model":"pro_flash","width":24,"action":"Generating image","height":24,"prompt":"a sleeping ginger 
+ok    out/raw/crop-clock-20.png 199102ms {"type":"generations","generations":5}
+ok    out/raw/crop-mug-20.png 132608ms {"type":"generations","generations":5}
+FAIL  out/raw/shrink-armchair-48.png: Unexpected token 'I', "Internal S"... is not valid JSON
+FAIL  out/raw/shrink-clock-24.png: Unexpected token '<', "<html>
+<h"... is not valid JSON
+ok    out/raw/shrink-lamp-32.png 183251ms {"type":"generations","generations":5}
+ok    out/raw/shrink-plant-36.png 146569ms {"type":"generations","generations":5}
+FAIL  out/raw/shrink-plant-32.png: PL create-image-pro-flash failed {"usage":{"type":"usd","usd":0},"id":"99535371-d847-42c1-a3d2-9a129198ef4c","status":"failed","created_at":"2026-10-23T19:24:06.078847+00:00","last_response":{"code":5000,"type":"message_progress","error":"Generation failed due to heavy load. Please try again in a moment.","model":"pro_flash","width":32,"action":"Generating image","height":32,"prompt":"a leafy potted plant in a terracotta pot, see
+ok    out/raw/crop-desk-88x32.png 278700ms {"type":"usd","usd":0}
+ok    out/raw/shrink-radio-24.png 77482ms {"type":"generations","generations":5}
+ok    out/raw/shrink-mug-20.png 85276ms {"type":"generations","generations":5}
+ok    out/raw/shrink-mug-16.png 82014ms {"type":"generations","generations":5}
+ok    out/raw/shrink-cat-32x24.png 90739ms {"type":"generations","generations":5}
+ok    out/raw/shrink-lamp-28.png 47778ms {"type":"generations","generations":5}
+ok    out/raw/shrink-cat-24.png 64403ms {"type":"generations","generations":5}
+ok    out/raw/crop2-plant-32.png 65214ms {"type":"generations","generations":5}
+ok    out/raw/shrink-armchair-40.png 74301ms {"type":"generations","generations":5}
+ok    out/raw/shrink-desk-88x32.png 73392ms {"type":"generations","generations":5}
+ok    out/raw/crop2-clock-24.png 48621ms {"type":"generations","generations":5}
+ok    out/raw/shrink-clock-20.png 37426ms {"type":"generations","generations":5}
+ok    out/raw/crop2-cat-32x24.png 45328ms {"type":"generations","generations":5}
+ok    out/raw/crop2-mug-16.png 117384ms {"type":"generations","generations":5}
+ok    out/raw/crop2-lamp-32.png 72975ms {"type":"generations","generations":5}
+ok    out/raw/crop2-radio-24.png 86172ms {"type":"generations","generations":5}
+ok    out/raw/strip-crop-cat-32x24.png 5 frames 893799ms {"type":"generations","generations":1}
+done
+ok    out/raw/shrink-plant-32.png 62198ms {"type":"generations","generations":5}
+ok    out/raw/crop-cat-24.png 75440ms {"type":"generations","generations":5}
+ok    out/raw/shrink-armchair-48.png 83317ms {"type":"generations","generations":5}
+ok    out/raw/shrink-clock-24.png 74220ms {"type":"generations","generations":5}
+ok    out/raw/strip-crop-cat-24.png 5 frames 1003826ms {"type":"generations","generations":1}
+done
