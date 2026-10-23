@@ -59,3 +59,19 @@ _Avoid_: Effect, animation, shader
 **Poster**:
 The still image that stands in for a Scene in the Gallery and in Share link previews.
 _Avoid_: Thumbnail, screenshot, cover
+
+**Palette**:
+The named, ordered set of colours a Scene and its Elements are locked to.
+_Avoid_: Colour scheme, theme, swatch
+
+**Element record**:
+The metadata kept beside an Element: what it is, how it was made and which Palette it is locked to.
+_Avoid_: Sidecar, metadata file, manifest
+
+**Ambient loop**:
+One seamless looping ambient sound in the Sound library, with its licence recorded.
+_Avoid_: Sample, sound file, clip
+
+**Sound library**:
+The collection of Ambient loops the Director shops from for a Soundtrack.
+_Avoid_: Sound bank, sample pack
