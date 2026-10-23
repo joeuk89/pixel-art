@@ -1,0 +1,320 @@
+[
+  {
+    "prop": "sign",
+    "method": "statics",
+    "files": [
+      "out/raw/sign-static.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 77808
+  },
+  {
+    "prop": "plant",
+    "method": "statics",
+    "files": [
+      "out/raw/plant-static.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 52654
+  },
+  {
+    "prop": "mug",
+    "method": "statics",
+    "files": [
+      "out/raw/mug-static.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 5
+    },
+    "ms": 137791
+  },
+  {
+    "prop": "sign",
+    "method": "rd8",
+    "files": [
+      "out/raw/sign-rd8.gif"
+    ],
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 8.45
+    },
+    "ms": 54968
+  },
+  {
+    "prop": "plant",
+    "method": "rd8",
+    "files": [],
+    "ms": 247395,
+    "error": "RD failed {\"status_code\":502,\"code\":\"inference_failed\",\"message\":\"Unable to run inference.\",\"request_id\":\"0bc7c885-0b11-41af-8d2d-c032207dddae\"}"
+  },
+  {
+    "prop": "cat",
+    "method": "rd8",
+    "files": [
+      "out/raw/cat-rd8.gif"
+    ],
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 8.2
+    },
+    "ms": 201951
+  },
+  {
+    "prop": "mug",
+    "method": "rd8",
+    "files": [
+      "out/raw/mug-rd8.gif"
+    ],
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 7.95
+    },
+    "ms": 38305
+  },
+  {
+    "prop": "sign",
+    "method": "pl4",
+    "files": [
+      "out/raw/sign-pl4-00.png",
+      "out/raw/sign-pl4-01.png",
+      "out/raw/sign-pl4-02.png",
+      "out/raw/sign-pl4-03.png",
+      "out/raw/sign-pl4-04.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 545250
+  },
+  {
+    "prop": "mug",
+    "method": "pl4",
+    "files": [
+      "out/raw/mug-pl4-00.png",
+      "out/raw/mug-pl4-01.png",
+      "out/raw/mug-pl4-02.png",
+      "out/raw/mug-pl4-03.png",
+      "out/raw/mug-pl4-04.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 571187
+  },
+  {
+    "prop": "cat",
+    "method": "pl4",
+    "files": [
+      "out/raw/cat-pl4-00.png",
+      "out/raw/cat-pl4-01.png",
+      "out/raw/cat-pl4-02.png",
+      "out/raw/cat-pl4-03.png",
+      "out/raw/cat-pl4-04.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 577538
+  },
+  {
+    "prop": "plant",
+    "method": "pl4",
+    "files": [
+      "out/raw/plant-pl4-00.png",
+      "out/raw/plant-pl4-01.png",
+      "out/raw/plant-pl4-02.png",
+      "out/raw/plant-pl4-03.png",
+      "out/raw/plant-pl4-04.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 602797
+  },
+  {
+    "prop": "sign",
+    "method": "pl8",
+    "files": [
+      "out/raw/sign-pl8-00.png",
+      "out/raw/sign-pl8-01.png",
+      "out/raw/sign-pl8-02.png",
+      "out/raw/sign-pl8-03.png",
+      "out/raw/sign-pl8-04.png",
+      "out/raw/sign-pl8-05.png",
+      "out/raw/sign-pl8-06.png",
+      "out/raw/sign-pl8-07.png",
+      "out/raw/sign-pl8-08.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 424168
+  },
+  {
+    "prop": "cat",
+    "method": "pl8",
+    "files": [
+      "out/raw/cat-pl8-00.png",
+      "out/raw/cat-pl8-01.png",
+      "out/raw/cat-pl8-02.png",
+      "out/raw/cat-pl8-03.png",
+      "out/raw/cat-pl8-04.png",
+      "out/raw/cat-pl8-05.png",
+      "out/raw/cat-pl8-06.png",
+      "out/raw/cat-pl8-07.png",
+      "out/raw/cat-pl8-08.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 493864
+  },
+  {
+    "prop": "mug",
+    "method": "pl8",
+    "files": [
+      "out/raw/mug-pl8-00.png",
+      "out/raw/mug-pl8-01.png",
+      "out/raw/mug-pl8-02.png",
+      "out/raw/mug-pl8-03.png",
+      "out/raw/mug-pl8-04.png",
+      "out/raw/mug-pl8-05.png",
+      "out/raw/mug-pl8-06.png",
+      "out/raw/mug-pl8-07.png",
+      "out/raw/mug-pl8-08.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 511430
+  },
+  {
+    "prop": "plant",
+    "method": "pl8",
+    "files": [
+      "out/raw/plant-pl8-00.png",
+      "out/raw/plant-pl8-01.png",
+      "out/raw/plant-pl8-02.png",
+      "out/raw/plant-pl8-03.png",
+      "out/raw/plant-pl8-04.png",
+      "out/raw/plant-pl8-05.png",
+      "out/raw/plant-pl8-06.png",
+      "out/raw/plant-pl8-07.png",
+      "out/raw/plant-pl8-08.png"
+    ],
+    "usage": {
+      "type": "generations",
+      "generations": 1
+    },
+    "ms": 575369
+  },
+  {
+    "prop": "sign",
+    "method": "edits",
+    "files": [
+      "out/raw/sign-edits-00.png",
+      "out/raw/sign-edits-01.png"
+    ],
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "ms": 222271
+  },
+  {
+    "prop": "cat",
+    "method": "edits",
+    "files": [
+      "out/raw/cat-edits-00.png",
+      "out/raw/cat-edits-01.png"
+    ],
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "ms": 231348
+  },
+  {
+    "prop": "mug",
+    "method": "edits",
+    "files": [
+      "out/raw/mug-edits-00.png",
+      "out/raw/mug-edits-01.png"
+    ],
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "ms": 242150
+  },
+  {
+    "prop": "plant",
+    "method": "edits",
+    "files": [
+      "out/raw/plant-edits-00.png",
+      "out/raw/plant-edits-01.png"
+    ],
+    "usage": [
+      {
+        "type": "generations",
+        "generations": 10
+      },
+      {
+        "type": "generations",
+        "generations": 10
+      }
+    ],
+    "ms": 208613
+  },
+  {
+    "prop": "plant",
+    "method": "rd8",
+    "files": [],
+    "ms": 4467,
+    "error": "RD failed {\"status_code\":502,\"code\":\"inference_failed\",\"message\":\"Unable to run inference.\",\"request_id\":\"0bc7c885-0b11-41af-8d2d-c032207dddae\"}"
+  },
+  {
+    "prop": "plant",
+    "method": "rd8",
+    "files": [
+      "out/raw/plant-rd8.gif"
+    ],
+    "cost_usd": 0.25,
+    "usage": {
+      "remaining_balance": 7.7
+    },
+    "ms": 33763
+  }
+]
