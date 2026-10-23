@@ -29,6 +29,7 @@
   <label><input type="checkbox" data-k="keyed" checked> see-through glass</label>
   <label>weather fps <select data-k="wfps"><option>12</option><option selected>24</option><option>30</option><option value="0">uncapped</option></select></label>
   <label>props fps <select data-k="pfps"><option>6</option><option selected>10</option><option>12</option></select></label>
+  <label>loop <select data-k="loop"><option value="raf" selected>rAF 60Hz</option><option value="timer">timer + rAF</option></select></label>
   <label>scale <select data-k="scale"><option value="int" selected>integer</option><option value="fit">fit (non-integer)</option></select></label>
   <label><input type="checkbox" data-k="stats" checked> stats</label>
   <label><input type="checkbox" data-k="log"> soak log</label>
@@ -43,7 +44,7 @@ const W = 192, H = 120, DESK_Y = 84;
 const PAL = { sky0: '#120e1a', sky1: '#241c33', haze: '#5d4e7f', glassD: '#1c2d4a', glass: '#2f5578', rain: '#5e95bf', rainHi: '#b7dcef', lamp: '#f7d35c', orange: '#e2883a', wood: '#a9552d', woodD: '#5e2f22', cream: '#f6e8cc', steam: '#d6d0cc' };
 const ASSETS = { lamp: '{{lamp}}', window: '{{window}}', skyline: '{{skyline}}', cat: '{{cat}}', mug: '{{mug}}' };
 
-const S = { rain: true, glow: true, steam: true, twinkle: true, drift: true, pointer: false, keyed: true, wfps: 24, pfps: 10, scale: 'int', stats: true, log: false };
+const S = { rain: true, glow: true, steam: true, twinkle: true, drift: true, pointer: false, keyed: true, wfps: 24, pfps: 10, scale: 'int', stats: true, log: false, idle: false, loop: 'raf' }; // idle=1: rAF loop runs but never draws (cost baseline)
 (function readHash() { const p = new URLSearchParams(location.hash.slice(1)); for (const k in S) if (p.has(k)) S[k] = typeof S[k] === 'boolean' ? p.get(k) === '1' : typeof S[k] === 'number' ? +p.get(k) : p.get(k); })();
 function writeHash() { const p = new URLSearchParams(); for (const k in S) p.set(k, typeof S[k] === 'boolean' ? (S[k] ? 1 : 0) : S[k]); history.replaceState(null, '', '#' + p); }
 
@@ -140,9 +141,13 @@ function draw() {
 let raf = 0, last = 0, accW = 0, accP = 0, accT = 0;
 const M = { frames: 0, drawMs: 0, maxMs: 0, hiddenFrames: 0, secFrames: 0, secMs: 0, start: performance.now(), lastSec: performance.now(), lastMin: performance.now(), minFrames: 0, minMs: 0 };
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+let timer = 0;
+// 'timer' loop sleeps until the next due tick, then draws inside one rAF: fewer wake-ups than a 60 Hz rAF loop.
+function schedule() { if (S.loop === 'timer') { const wStep = S.wfps ? 1000 / S.wfps : 0, pStep = 1000 / S.pfps; const wait = Math.max(4, Math.min(wStep ? wStep - accW : 4, pStep - accP)); timer = setTimeout(() => { raf = requestAnimationFrame(frame); }, wait); } else raf = requestAnimationFrame(frame); }
 function frame(t) {
-  raf = requestAnimationFrame(frame);
+  schedule();
   if (document.hidden) { M.hiddenFrames++; return; }
+  if (S.idle) return;
   let dt = Math.min(t - last, 100); last = t; if (reduced.matches) dt = 0;
   let dirty = false;
   const wStep = S.wfps ? 1000 / S.wfps : 0, pStep = 1000 / S.pfps;
@@ -159,7 +164,7 @@ function stats(t) { if (!S.stats) return; document.getElementById('stats').textC
   `drawn frames/s ${M.secFrames}  busy ${(M.secMs / 10).toFixed(2)}% of main thread\navg draw ${(M.secMs / Math.max(1, M.secFrames)).toFixed(2)}ms  max ever ${M.maxMs.toFixed(2)}ms\nheap ${heap()}  uptime ${((t - M.start) / 60000).toFixed(1)}m  frames while hidden ${M.hiddenFrames}\nscale x${scale} dpr ${devicePixelRatio} ${scaleMode}  ${innerWidth}x${innerHeight}  fullscreen ${!!document.fullscreenElement}`; }
 function log(s) { const el = document.getElementById('log'); el.value += s + '\n'; el.scrollTop = 1e9; console.log('[soak]', s); }
 
-document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; log('hidden at ' + ((performance.now() - M.start) / 60000).toFixed(1) + 'm'); } else if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); log('visible again'); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelAnimationFrame(raf); clearTimeout(timer); raf = 0; log('hidden at ' + ((performance.now() - M.start) / 60000).toFixed(1) + 'm'); } else if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); log('visible again'); } });
 if (document.wasDiscarded) log('document was discarded by the browser and reloaded');
 
 // ---- Scaling and fullscreen ----
@@ -180,6 +185,7 @@ for (const el of document.querySelectorAll('[data-k]')) { const k = el.dataset.k
   el.onchange = () => { S[k] = el.type === 'checkbox' ? el.checked : isNaN(+el.value) ? el.value : +el.value; writeHash(); apply(); }; }
 function apply() { document.getElementById('stats').classList.toggle('hidden', !S.stats); document.getElementById('log').style.display = S.log ? 'block' : 'none'; rescale(); M.frames = 0; }
 
+addEventListener('hashchange', () => location.reload()); // settings are read once at load
 build().then(() => { apply(); writeHash(); log(`start ${new Date().toLocaleTimeString()} ${navigator.userAgent.split(') ')[0]})`); raf = requestAnimationFrame(frame); });
 </script>
 </html>
