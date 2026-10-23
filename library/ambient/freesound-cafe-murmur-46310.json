@@ -1,0 +1,45 @@
+{
+  "id": "freesound-cafe-murmur-46310",
+  "kind": "loop",
+  "distance": [
+    "mid"
+  ],
+  "subject": "cafe murmur",
+  "tags": [
+    "cafe",
+    "coffeehouse",
+    "crowd",
+    "murmur",
+    "walla",
+    "voices",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 46310,
+  "sourceUrl": "https://freesound.org/people/moxobna/sounds/46310/",
+  "sourceName": "0105coffeehouse.wav",
+  "author": "moxobna",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"0105coffeehouse.wav\" by moxobna on Freesound, CC0",
+  "file": "freesound-cafe-murmur-46310.ogg",
+  "durationSec": 58,
+  "sampleRate": 48000,
+  "channels": 1,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 380.6,
+    "sourceType": "wav",
+    "method": "crossfade",
+    "regionStartSec": 169.5,
+    "regionEndSec": 227.5,
+    "fadeSec": 4,
+    "pickCost": 0.4938,
+    "seamJump": 0.0002,
+    "maxInnerJump": 0.1452,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 13.7
+  },
+  "fetchedAt": "2026-10-23",
+  "note": "Mono 2008 recording; listen for intelligible words at the seam before first use."
+}

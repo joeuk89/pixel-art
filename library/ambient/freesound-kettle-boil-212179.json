@@ -1,0 +1,45 @@
+{
+  "id": "freesound-kettle-boil-212179",
+  "kind": "loop",
+  "distance": [
+    "near",
+    "mid"
+  ],
+  "subject": "kettle hum",
+  "tags": [
+    "kettle",
+    "boil",
+    "hum",
+    "kitchen",
+    "steam",
+    "feature"
+  ],
+  "source": "freesound",
+  "sourceId": 212179,
+  "sourceUrl": "https://freesound.org/people/OwlStorm/sounds/212179/",
+  "sourceName": "Kettle Boil",
+  "author": "OwlStorm",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Kettle Boil\" by OwlStorm on Freesound, CC0",
+  "file": "freesound-kettle-boil-212179.ogg",
+  "durationSec": 14.5,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 115.5,
+    "sourceType": "wav",
+    "method": "crossfade",
+    "regionStartSec": 16.5,
+    "regionEndSec": 31,
+    "fadeSec": 1.5,
+    "pickCost": 0.1652,
+    "seamJump": 0.0017,
+    "maxInnerJump": 0.0625,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 3.9
+  },
+  "fetchedAt": "2026-10-23",
+  "note": "Steadiest 15 s of a full boil cycle; if it still ramps, generate a kettle hum with ElevenLabs instead."
+}

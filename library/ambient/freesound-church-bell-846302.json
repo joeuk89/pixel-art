@@ -1,0 +1,38 @@
+{
+  "id": "freesound-church-bell-846302",
+  "kind": "oneshot",
+  "distance": [
+    "far"
+  ],
+  "subject": "church bell",
+  "tags": [
+    "church bell",
+    "bell",
+    "toll",
+    "village",
+    "distant"
+  ],
+  "source": "freesound",
+  "sourceId": 846302,
+  "sourceUrl": "https://freesound.org/people/TSP-Talk/sounds/846302/",
+  "sourceName": "Altenthann – Isolated Bavarian Church Bell at Distance (300 m, Open Window, Post‑Rain Ambience) - 260224_002",
+  "author": "TSP-Talk",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Altenthann – Isolated Bavarian Church Bell at Distance (300 m, Open Window, Post‑Rain Ambience) - 260224_002\" by TSP-Talk on Freesound, CC0",
+  "file": "freesound-church-bell-846302.ogg",
+  "durationSec": 12,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 25.5,
+    "sourceType": "wav",
+    "method": "cut",
+    "maxSec": 12,
+    "fadeOutSec": 3,
+    "normalisedTo": "-6 dBFS peak",
+    "gainDb": 7.6
+  },
+  "fetchedAt": "2026-10-23"
+}

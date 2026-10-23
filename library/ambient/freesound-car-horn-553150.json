@@ -1,0 +1,39 @@
+{
+  "id": "freesound-car-horn-553150",
+  "kind": "oneshot",
+  "distance": [
+    "far"
+  ],
+  "subject": "car horn",
+  "tags": [
+    "car horn",
+    "honk",
+    "traffic",
+    "city",
+    "street",
+    "distant"
+  ],
+  "source": "freesound",
+  "sourceId": 553150,
+  "sourceUrl": "https://freesound.org/people/Brett+Butter/sounds/553150/",
+  "sourceName": "Car Horn Honk 01- Single, Distant - EXT Day Brooklyn Street corner ambience.wav",
+  "author": "Brett+Butter",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Car Horn Honk 01- Single, Distant - EXT Day Brooklyn Street corner ambience.wav\" by Brett+Butter on Freesound, CC0",
+  "file": "freesound-car-horn-553150.ogg",
+  "durationSec": 4.4,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 4.4,
+    "sourceType": "wav",
+    "method": "cut",
+    "maxSec": null,
+    "fadeOutSec": 0.5,
+    "normalisedTo": "-6 dBFS peak",
+    "gainDb": 13.9
+  },
+  "fetchedAt": "2026-10-23"
+}

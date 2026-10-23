@@ -1,0 +1,42 @@
+{
+  "id": "freesound-room-tone-641306",
+  "kind": "loop",
+  "distance": [
+    "mid"
+  ],
+  "subject": "room tone",
+  "tags": [
+    "room tone",
+    "house",
+    "interior",
+    "quiet",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 641306,
+  "sourceUrl": "https://freesound.org/people/aleclubin/sounds/641306/",
+  "sourceName": "House Room Tone",
+  "author": "aleclubin",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"House Room Tone\" by aleclubin on Freesound, CC0",
+  "file": "freesound-room-tone-641306.ogg",
+  "durationSec": 45,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 123.8,
+    "sourceType": "wav",
+    "method": "crossfade",
+    "regionStartSec": 56.5,
+    "regionEndSec": 101.5,
+    "fadeSec": 3,
+    "pickCost": 0.2674,
+    "seamJump": 0.0001,
+    "maxInnerJump": 0.0021,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 30
+  },
+  "fetchedAt": "2026-10-23"
+}

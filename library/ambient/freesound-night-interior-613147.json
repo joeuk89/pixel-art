@@ -1,0 +1,43 @@
+{
+  "id": "freesound-night-interior-613147",
+  "kind": "loop",
+  "distance": [
+    "mid"
+  ],
+  "subject": "night interior",
+  "tags": [
+    "night",
+    "room",
+    "interior",
+    "quiet",
+    "bedroom",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 613147,
+  "sourceUrl": "https://freesound.org/people/waweee/sounds/613147/",
+  "sourceName": "Room night ambience quiet",
+  "author": "waweee",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Room night ambience quiet\" by waweee on Freesound, CC0",
+  "file": "freesound-night-interior-613147.ogg",
+  "durationSec": 45,
+  "sampleRate": 48000,
+  "channels": 1,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 145,
+    "sourceType": "wav",
+    "method": "crossfade",
+    "regionStartSec": 73,
+    "regionEndSec": 118,
+    "fadeSec": 3,
+    "pickCost": 0.2999,
+    "seamJump": 0.0001,
+    "maxInnerJump": 0.001,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 30
+  },
+  "fetchedAt": "2026-10-23"
+}

@@ -1,0 +1,40 @@
+{
+  "id": "freesound-clock-tick-212181",
+  "kind": "loop",
+  "distance": [
+    "near",
+    "mid"
+  ],
+  "subject": "ticking clock",
+  "tags": [
+    "clock",
+    "tick",
+    "tick-tock",
+    "wall clock",
+    "interior",
+    "feature"
+  ],
+  "source": "freesound",
+  "sourceId": 212181,
+  "sourceUrl": "https://freesound.org/people/OwlStorm/sounds/212181/",
+  "sourceName": "Loopable Ticking Clock",
+  "author": "OwlStorm",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Loopable Ticking Clock\" by OwlStorm on Freesound, CC0",
+  "file": "freesound-clock-tick-212181.ogg",
+  "durationSec": 3.987,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 4,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.0001,
+    "maxInnerJump": 0.0663,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 13.9
+  },
+  "fetchedAt": "2026-10-23"
+}

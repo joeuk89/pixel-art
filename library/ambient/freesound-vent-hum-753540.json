@@ -1,0 +1,40 @@
+{
+  "id": "freesound-vent-hum-753540",
+  "kind": "loop",
+  "distance": [
+    "mid"
+  ],
+  "subject": "vent hum",
+  "tags": [
+    "vent",
+    "heating",
+    "air",
+    "hum",
+    "interior",
+    "cosy",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 753540,
+  "sourceUrl": "https://freesound.org/people/HECKFRICKER/sounds/753540/",
+  "sourceName": "House Vent Loop 01",
+  "author": "HECKFRICKER",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"House Vent Loop 01\" by HECKFRICKER on Freesound, CC0",
+  "file": "freesound-vent-hum-753540.ogg",
+  "durationSec": 43.142,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 43.1,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.017,
+    "maxInnerJump": 0.0538,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": -3.7
+  },
+  "fetchedAt": "2026-10-23"
+}

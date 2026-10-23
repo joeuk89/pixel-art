@@ -1,0 +1,38 @@
+{
+  "id": "freesound-owl-tawny-454842",
+  "kind": "oneshot",
+  "distance": [
+    "far"
+  ],
+  "subject": "owl",
+  "tags": [
+    "owl",
+    "tawny owl",
+    "hoot",
+    "night",
+    "countryside"
+  ],
+  "source": "freesound",
+  "sourceId": 454842,
+  "sourceUrl": "https://freesound.org/people/thegoosington/sounds/454842/",
+  "sourceName": "HOOT.wav",
+  "author": "thegoosington",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"HOOT.wav\" by thegoosington on Freesound, CC0",
+  "file": "freesound-owl-tawny-454842.ogg",
+  "durationSec": 8.4,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 11.4,
+    "sourceType": "wav",
+    "method": "cut",
+    "maxSec": null,
+    "fadeOutSec": 0.5,
+    "normalisedTo": "-6 dBFS peak",
+    "gainDb": -6
+  },
+  "fetchedAt": "2026-10-23"
+}

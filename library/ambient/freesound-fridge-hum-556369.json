@@ -1,0 +1,40 @@
+{
+  "id": "freesound-fridge-hum-556369",
+  "kind": "loop",
+  "distance": [
+    "near",
+    "mid"
+  ],
+  "subject": "fridge hum",
+  "tags": [
+    "fridge",
+    "refrigerator",
+    "hum",
+    "motor",
+    "kitchen",
+    "feature"
+  ],
+  "source": "freesound",
+  "sourceId": 556369,
+  "sourceUrl": "https://freesound.org/people/Nox_Sound/sounds/556369/",
+  "sourceName": "Foley_Object_Fridge_Motor_Humming_Loop_Mono_NTG4.wav",
+  "author": "Nox_Sound",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Foley_Object_Fridge_Motor_Humming_Loop_Mono_NTG4.wav\" by Nox_Sound on Freesound, CC0",
+  "file": "freesound-fridge-hum-556369.ogg",
+  "durationSec": 11.913,
+  "sampleRate": 48000,
+  "channels": 1,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 11.9,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.0056,
+    "maxInnerJump": 0.0072,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 10
+  },
+  "fetchedAt": "2026-10-23"
+}

@@ -1,0 +1,39 @@
+{
+  "id": "freesound-thunder-distant-581124",
+  "kind": "oneshot",
+  "distance": [
+    "far"
+  ],
+  "subject": "distant thunder",
+  "tags": [
+    "thunder",
+    "storm",
+    "boom",
+    "distant",
+    "short",
+    "weather"
+  ],
+  "source": "freesound",
+  "sourceId": 581124,
+  "sourceUrl": "https://freesound.org/people/Fission9/sounds/581124/",
+  "sourceName": "Distant Thunder 3",
+  "author": "Fission9",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Distant Thunder 3\" by Fission9 on Freesound, CC0",
+  "file": "freesound-thunder-distant-581124.ogg",
+  "durationSec": 7.3,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 8.2,
+    "sourceType": "wav",
+    "method": "cut",
+    "maxSec": null,
+    "fadeOutSec": 0.5,
+    "normalisedTo": "-6 dBFS peak",
+    "gainDb": 3.7
+  },
+  "fetchedAt": "2026-10-23"
+}
