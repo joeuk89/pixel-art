@@ -28,9 +28,9 @@ async function budget(root: string) {
   return result.json;
 }
 
-test("a fresh plan's cap is 3x the first-Attempt estimate: 6 per backdrop, 5 per prop, 1 per PixelLab strip", async () => {
+test("a fresh plan's cap is 3x the first-Attempt estimate: each still's Pro Flash tier plus 1 per PixelLab strip", async () => {
   const report = await budget(tree());
-  assert.deepEqual(report.pixellabGenerations, { charged: 0, pending: 0, used: 0, estimate: 12, cap: 36 });
+  assert.deepEqual(report.pixellabGenerations, { charged: 0, pending: 0, used: 0, estimate: 15, cap: 45 });
   assert.deepEqual(report.meteredUsd, { used: 0, cap: 1 });
   assert.deepEqual(report.stills, [
     { placement: "skyline", element: "skyline-night-warm-windows-01", attempts: 0, cap: 4 },
@@ -39,17 +39,29 @@ test("a fresh plan's cap is 3x the first-Attempt estimate: 6 per backdrop, 5 per
   assert.deepEqual(report.capsHit, []);
 });
 
+test("a Backdrop over 256 px is estimated at Pro's 25 generations and a prop in a far Layer by its Layer's scale", async () => {
+  const root = tree();
+  editJson(root, PLAN, (plan) => {
+    plan.layers[2].placements[0].generate.size = { w: 384, h: 148 };
+    plan.layers[2].scale = 64;
+    plan.layers[2].placements.push({ id: "tower", element: "tower-glass-tall-01", x: 0, y: 0,
+      generate: { kind: "prop", brief: "glass tower", realSize: { w: 1, h: 4 }, tags: ["tower"] } });
+  });
+  const report = await budget(root);
+  assert.equal(report.pixellabGenerations.estimate, 25 + 9 + 5 + 1);
+});
+
 test("uncharged Attempts count as used, and an accepted Element stays in the estimate", async () => {
   const root = tree();
   await generate(root, "cat");
   const second = await generate(root, "cat");
   let report = await budget(root);
-  assert.deepEqual(report.pixellabGenerations, { charged: 0, pending: 10, used: 10, estimate: 12, cap: 36 });
+  assert.deepEqual(report.pixellabGenerations, { charged: 0, pending: 10, used: 10, estimate: 15, cap: 45 });
   assert.equal(report.stills.find((s: any) => s.placement === "cat").attempts, 2);
 
   await generate(root, "cat", "--accept", second.json.scratch.png);
   report = await budget(root);
-  assert.deepEqual(report.pixellabGenerations, { charged: 10, pending: 0, used: 10, estimate: 12, cap: 36 });
+  assert.deepEqual(report.pixellabGenerations, { charged: 10, pending: 0, used: 10, estimate: 15, cap: 45 });
   assert.deepEqual(report.stills.map((s: any) => s.placement), ["skyline"]);
 });
 
@@ -60,18 +72,18 @@ test("an approved overage raises the caps and metered spend is read from the pla
     plan.cost.approvedOverage = { reason: "five Retro Diffusion strips", pixellabGenerations: 10, meteredUsd: 0.5 };
   });
   const report = await budget(root);
-  assert.deepEqual(report.pixellabGenerations, { charged: 0, pending: 0, used: 0, estimate: 12, cap: 46 });
+  assert.deepEqual(report.pixellabGenerations, { charged: 0, pending: 0, used: 0, estimate: 15, cap: 55 });
   assert.deepEqual(report.meteredUsd, { used: 0.124, cap: 1.5 });
 });
 
 test("four Attempts on one still and a spent generation budget are reported as caps hit", async () => {
   const root = tree();
   for (let k = 0; k < 4; k++) await generate(root, "cat");
-  editJson(root, PLAN, (plan) => { plan.cost.pixellabGenerations = 20; });
+  editJson(root, PLAN, (plan) => { plan.cost.pixellabGenerations = 25; });
   const report = await budget(root);
   assert.deepEqual(report.capsHit, [
     "cat (cat-tabby-asleep-01) has had 4 of 4 Attempts",
-    "PixelLab generations: 40 used of 36",
+    "PixelLab generations: 45 used of 45",
   ]);
 });
 
@@ -86,9 +98,9 @@ test("generate-element refuses a fifth Attempt on one still without calling Pixe
 
 test("generate-element refuses any Attempt once the Scene's generation budget is spent", async () => {
   const root = tree();
-  editJson(root, PLAN, (plan) => { plan.cost.pixellabGenerations = 36; });
+  editJson(root, PLAN, (plan) => { plan.cost.pixellabGenerations = 45; });
   const result = await generate(root, "skyline");
   assert.equal(result.code, 1);
-  assert.match(result.json.error, /Scene budget reached: PixelLab generations: 36 used of 36/);
+  assert.match(result.json.error, /Scene budget reached: PixelLab generations: 45 used of 45/);
   assert.equal(pixellabState.created, 0);
 });
