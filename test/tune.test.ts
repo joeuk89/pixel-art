@@ -1,8 +1,9 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { readFileSync, statSync, utimesSync } from "node:fs";
-import { join } from "node:path";
+import { cpSync, existsSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { build } from "esbuild";
 import { createInterface } from "node:readline";
 import { fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
 
@@ -219,4 +220,29 @@ test("adding and removing a Light round-trips through Save", async () => {
   tuning.variants[0].lights = tuning.variants[0].lights.slice(0, 2);
   assert.equal((await save(url, tuning)).status, 200);
   assert.deepEqual(readJson(root, fixtureScene).variants[0].lights.map((l: any) => l.id), ["lamp", "moonbeam"]);
+});
+
+test("the Viewer bundle takes nothing from the Tuner", async () => {
+  const bundled = await build({ entryPoints: [join(repo, "viewer/main.ts")], bundle: true, write: false, metafile: true, absWorkingDir: repo, logLevel: "silent" });
+  const inputs = Object.keys(bundled.metafile.inputs);
+  assert.ok(inputs.some((path) => path.startsWith("viewer/")), "the metafile lists no Viewer module");
+  assert.deepEqual(inputs.filter((path) => path.startsWith("pipeline/")), []);
+});
+
+test("the assembled dist/ holds no Tuner file after the Tuner has run", async () => {
+  const root = tunerTree();
+  await startTuner(root);
+  assert.ok(existsSync(join(root, "scratch/tuner/tuner.js")), "the Tuner did not bundle its page into scratch");
+  cpSync(join(repo, "index.html"), join(root, "index.html"));
+  writeFileSync(join(root, "viewer.js"), "console.log('viewer');\n");
+  writeFileSync(join(root, "NOTICE.md"), "# Notice\n");
+  const assembled = runScript(root, "assemble");
+  assert.equal(assembled.code, 0, assembled.stderr);
+
+  const dist = join(root, "dist");
+  const published = readdirSync(dist, { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => relative(dist, join(e.parentPath, e.name)));
+  assert.ok(published.includes(`scenes/${id}/scene.json`));
+  assert.deepEqual(published.filter((path) => /tune|scratch/i.test(path)), []);
+  const tuner = readFileSync(join(root, "scratch/tuner/tuner.js"), "utf8");
+  for (const path of published.filter((p) => p.endsWith(".js"))) assert.notEqual(readFileSync(join(dist, path), "utf8"), tuner, path);
 });
