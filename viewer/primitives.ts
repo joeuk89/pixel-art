@@ -227,6 +227,7 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
         poolRy,
       )
     : undefined;
+  const ringAlphas = Float64Array.from(new Set([...disc.alpha, ...(poolRings?.alpha ?? [])]));
   const n = c.r.length;
   const lut = new Int16Array(n * n * (GLOW_LEVELS + 1)).fill(-1);
 
@@ -267,7 +268,12 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
   return {
     after: layer,
     fps: PROP_FPS,
-    state: (timeMs) => level(step(timeMs, PROP_FPS)),
+    state(timeMs) {
+      const strength = level(step(timeMs, PROP_FPS)) / GLOW_LEVELS;
+      let signature = 0;
+      for (const a of ringAlphas) signature = signature * (GLOW_LEVELS + 1) + Math.round(a * strength * GLOW_LEVELS);
+      return signature;
+    },
     draw(out, timeMs) {
       const strength = level(step(timeMs, PROP_FPS)) / GLOW_LEVELS;
       add(out, disc, cx, cy, colour, strength);

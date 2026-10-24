@@ -79,3 +79,71 @@ for (const type of TYPES) {
     assert.ok(TIMES.some((t) => !a(t).equals(b(t))), `${type} ignores the seed`);
   });
 }
+
+function stillScene(primitives: Primitive[]): Compositor {
+  const layers = catalogue.layers.map((layer) => ({
+    ...layer,
+    placements: layer.placements?.map((p) => (p.id === "cat" ? { ...p, animation: { enabled: false } } : p)),
+  }));
+  const plan = { ...catalogue, layers, primitives };
+  return createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
+}
+
+test("the Viewer frame caps are 24 fps for weather and 10 fps for prop Primitives", () => {
+  assert.equal(WEATHER_FPS, 24);
+  assert.equal(PROP_FPS, 10);
+});
+
+for (const type of ["rain", "snow"]) {
+  test(`${type} makes a redraw due every 1/24 s and not in between`, () => {
+    const c = stillScene(only(type));
+    assert.equal(c.tick(0), true);
+    c.render(0);
+    assert.equal(c.nextTick(0), 1000 / 24);
+    assert.equal(c.tick(20), false);
+    assert.equal(c.tick(41.6), false);
+    assert.equal(c.tick(1000 / 24), true);
+    c.render(50);
+    assert.equal(c.nextTick(50), 2000 / 24);
+    assert.equal(c.tick(80), false);
+  });
+}
+
+for (const type of ["steam", "twinkle"]) {
+  test(`${type} makes a redraw due every 1/10 s and not in between`, () => {
+    const c = stillScene(only(type));
+    c.render(0);
+    assert.equal(c.nextTick(0), 100);
+    assert.equal(c.tick(99), false);
+    assert.equal(c.tick(100), true);
+  });
+}
+
+for (const [type, exact] of [["glow", false], ["blink", true]] as const) {
+  test(`${type} makes a redraw due at a 1/10 s step whenever its pixels change${exact ? ", and only then" : ""}, and stays idle while they hold`, () => {
+    const c = stillScene(only(type));
+    let due = 0;
+    let idle = 0;
+    c.render(0);
+    for (let k = 1; k <= 400; k++) {
+      assert.equal(c.nextTick((k - 1) * 100), k * 100);
+      const before = Buffer.from(c.render((k - 1) * 100));
+      const tick = c.tick(k * 100);
+      const changed = !before.equals(Buffer.from(c.render(k * 100)));
+      if (changed || exact) assert.equal(tick, changed, `step ${k}: tick ${tick}, pixels changed ${changed}`);
+      if (tick) due++;
+      else idle++;
+    }
+    assert.ok(due > 0 && idle > 0, `due ${due}, idle ${idle}`);
+  });
+}
+
+test("a Scene with Primitives of both kinds wakes for whichever clock is next", () => {
+  const c = stillScene([...only("rain"), ...only("steam")]);
+  c.render(0);
+  assert.equal(c.nextTick(0), 1000 / 24);
+  c.render(90);
+  assert.equal(c.nextTick(90), 100);
+  assert.equal(c.tick(99), false);
+  assert.equal(c.tick(100), true);
+});

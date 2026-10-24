@@ -9,6 +9,8 @@ export type PrimitiveDraw = {
   after: number;
   fps: number;
   draw(out: Uint8ClampedArray, timeMs: number): void;
+  // Equal states at two times promise identical pixels, so tick can skip a step that changes nothing.
+  state?(timeMs: number): number;
 };
 
 export type CompositorInput = {
@@ -151,8 +153,14 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   });
   if (drawn) ops.push({ overlay: current });
 
-  const clocks = ops.flatMap((op) => ("animated" in op ? [op.animated.fps] : "primitive" in op ? [op.primitive.fps] : []));
-  const lastSteps = clocks.map(() => -1);
+  type Clock = { fps: number; state(timeMs: number): number };
+  const clocks: Clock[] = ops.flatMap((op): Clock[] => {
+    if ("animated" in op) return [{ fps: op.animated.fps, state: (t) => step(t, op.animated.fps) }];
+    if (!("primitive" in op)) return [];
+    const { fps, state } = op.primitive;
+    return [{ fps, state: state ? (t) => state(t) : (t) => step(t, fps) }];
+  });
+  const lastStates = clocks.map(() => -1);
   let rendered = false;
   const out = new Uint8ClampedArray(SIZE);
 
@@ -167,15 +175,15 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
           draw(out, a.frames[frame], a.placement);
         }
       }
-      clocks.forEach((fps, i) => (lastSteps[i] = step(timeMs, fps)));
+      clocks.forEach((clock, i) => (lastStates[i] = clock.state(timeMs)));
       rendered = true;
       return out;
     },
     tick(timeMs) {
-      return !rendered || clocks.some((fps, i) => step(timeMs, fps) !== lastSteps[i]);
+      return !rendered || clocks.some((clock, i) => clock.state(timeMs) !== lastStates[i]);
     },
     nextTick(timeMs) {
-      return clocks.reduce((next, fps) => Math.min(next, ((step(timeMs, fps) + 1) * 1000) / fps), Infinity);
+      return clocks.reduce((next, { fps }) => Math.min(next, ((step(timeMs, fps) + 1) * 1000) / fps), Infinity);
     },
   };
 }
