@@ -398,4 +398,6 @@ export function placementsOf(layer: Layer): Placement[] {
   return layer.kind === "placements" ? layer.placements : [];
 }
 
-export const allPlacements = (plan: Pick<ScenePlan, "layers">): Placement[] => plan.layers.flatMap(placementsOf);
+export function allPlacements(plan: Pick<ScenePlan, "layers">): Placement[] {
+  return plan.layers.flatMap(placementsOf);
+}

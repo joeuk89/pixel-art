@@ -2,8 +2,6 @@ import { POSTER_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry } from "../sc
 import { AI_NOTICE } from "./credits.ts";
 import { sceneUrl } from "./site.ts";
 
-const POSTER_SCALE = 1;
-
 async function readGallery(root: URL): Promise<GalleryEntry[]> {
   const response = await fetch(new URL("gallery.json", root));
   if (response.status === 404) return [];
@@ -15,7 +13,7 @@ export async function renderGallery(host: HTMLElement, root: URL, signal: AbortS
   const entries = await readGallery(root);
   if (signal.aborted) return;
   const dpr = devicePixelRatio || 1;
-  const scale = Math.max(1, Math.round(POSTER_SCALE * dpr));
+  const scale = Math.max(1, Math.round(dpr));
 
   const main = document.createElement("main");
   main.className = "gallery";

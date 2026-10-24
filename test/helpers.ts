@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 export const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const fixtures = join(repo, "test/fixtures");
 export const fixtureScene = "scenes/fixture-rainy-desk-a1b2/scene.json";
-export const ambientRecordCount = readdirSync(join(repo, "library/ambient")).filter((name) => name.endsWith(".json")).length;
 const jsonCount = (dir: string) => readdirSync(dir).filter((name) => name.endsWith(".json")).length;
+export const ambientRecordCount = jsonCount(join(repo, "library/ambient"));
 export const paletteCount = jsonCount(join(repo, "library/palettes")) + jsonCount(join(fixtures, "library/palettes"));
 export const fixturePalette = "fixture-night-v2";
 
