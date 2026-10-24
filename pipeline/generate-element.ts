@@ -201,11 +201,6 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
   delete target.generate;
   target.element = id;
-  let animationRemoved: unknown = null;
-  if (target.animation) {
-    animationRemoved = target.animation;
-    delete target.animation;
-  }
   const generationsAdded = attemptGenerations(dirname(attemptPath), placement.id);
   raw.cost.pixellabGenerations += generationsAdded;
   scenePlanSchema.parse(raw);
@@ -225,7 +220,6 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     plan: file,
     generationsAdded,
     ...(generate.kind === "prop" && generate.strip ? { stripRequested: generate.strip } : {}),
-    animationRemoved,
   };
 }
 

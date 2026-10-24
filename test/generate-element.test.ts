@@ -82,7 +82,8 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   assert.equal(cat.generate, undefined);
   assert.equal(cat.x, 140);
   assert.equal(plan.cost.pixellabGenerations, 5);
-  assert.deepEqual(accepted.json.animationRemoved, { fps: 4, order: "cycle" });
+  assert.deepEqual(cat.animation, { fps: 4, order: "cycle" });
+  assert.equal("animationRemoved" in accepted.json, false);
   assert.deepEqual(accepted.json.stripRequested, { service: "pixellab", frames: 4 });
 
   const check = validate(root);

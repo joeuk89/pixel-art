@@ -157,10 +157,22 @@ test("an Element PNG whose size does not match the record fails", () => {
   failsWith(validate(root), WINDOW, "", /Element PNG .* is 48x48, record says 64x48/);
 });
 
-test("an animation override on a Placement whose Element has no Frame strip fails", () => {
+test("an animation override on a Placement whose Element has no Frame strip fails a resolved Scene", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[0].animation = { fps: 4 }; });
-  failsWith(validate(root), fixtureScene, "layers[2].placements[0].animation", /has no Frame strip/);
+  failsWith(validate(root), fixtureScene, "layers[2].placements[0].animation", /declared resolved but .*has no Frame strip/);
+});
+
+test("an animation override waiting on a Frame strip keeps a draft Scene pending", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.status = "draft";
+    plan.layers[2].placements[0].animation = { fps: 4 };
+  });
+  const { code, report } = validate(root);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  assert.equal(report.scenes[0].status, "draft");
+  assert.match(report.scenes[0].pending.find((p: any) => p.path === "layers[2].placements[0].animation")?.message ?? "", /has no Frame strip/);
 });
 
 test("an explicit frame order past the end of the Frame strip fails", () => {
