@@ -1,0 +1,425 @@
+<!doctype html>
+<!-- PROTOTYPE, throwaway (wayfinder ticket #78). The penthouse room box at 192x120, its shell built from tiled surface
+     textures with feature Elements on top. Variants are ways to put a flat tile on an oblique surface; ?variant= picks one. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Room shell prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font: 13px/1.4 system-ui, sans-serif; }
+  canvas { position: absolute; image-rendering: pixelated; }
+  #bar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; align-items: center;
+    background: #fff; color: #111; border-radius: 999px; padding: 6px 12px; box-shadow: 0 4px 16px #0008; z-index: 2; white-space: nowrap; }
+  #bar button { border: 0; background: #eee; border-radius: 999px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  #bar button.on { background: #111; color: #fff; }
+  #label { min-width: 240px; text-align: center; font-weight: 600; }
+  #notes { position: fixed; top: 12px; right: 12px; width: 380px; max-height: 75vh; overflow: auto; background: #fffe; color: #111;
+    border-radius: 8px; padding: 10px 14px; box-shadow: 0 4px 16px #0008; z-index: 2; }
+  #notes h3 { margin: 4px 0; font-size: 14px; } #notes ul { margin: 4px 0; padding-left: 18px; } #notes p { margin: 6px 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="192" height="120"></canvas>
+<div id="notes"></div>
+<div id="bar">
+  <button id="prev">‹</button><span id="label"></span><button id="next">›</button>
+  <button id="src" title="S">Source</button><button id="feat" title="F">Features</button>
+  <button id="atmos" title="A">Atmos</button><button id="depth" title="- / =">Depth</button><button id="notesBtn" title="N">Notes</button>
+</div>
+<script>
+const ASSETS = /*ASSETS*/{};
+const PAL = /*PALETTE*/[];
+const W = 192, H = 120;
+const img = {};
+const PAL_RGB = PAL.map((h) => [1, 3, 5].map((o) => parseInt(h.slice(o, o + 2), 16)));
+const palIndex = new Map(PAL.map((h, i) => [parseInt(h.slice(1), 16), i]));
+const RAMPS = [[0, 1, 2, 3], [4, 5, 6, 7], [11, 10, 9, 8], [14, 13, 15, 12]];
+const EMISSIVE = new Set([8, 12]);
+const rampOf = new Map(); RAMPS.forEach((r) => r.forEach((c, p) => rampOf.set(c, [r, p])));
+function remapIndex(i, mode) {
+  const [ramp, p] = rampOf.get(i);
+  if (mode === "far") return EMISSIVE.has(i) ? i : ramp[p > (ramp.length - 1) / 2 ? p - 1 : p];
+  if (mode === "near") return ramp[Math.max(0, p - 1)];
+  return i;
+}
+
+// A texture is RGBA pixels; get() returns the byte offset of an opaque pixel or -1.
+const tex = (w, h, d = new Uint8ClampedArray(w * h * 4)) => ({ w, h, d });
+function fromIdx(w, h, fn) {
+  const t = tex(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = fn(x, y); if (i < 0) continue;
+    const o = (y * w + x) * 4; [t.d[o], t.d[o + 1], t.d[o + 2]] = PAL_RGB[i]; t.d[o + 3] = 255;
+  }
+  return t;
+}
+function fromImg(im, trim) {
+  const c = Object.assign(document.createElement("canvas"), { width: im.width, height: im.height }), x = c.getContext("2d");
+  x.drawImage(im, 0, 0);
+  let t = tex(im.width, im.height, x.getImageData(0, 0, im.width, im.height).data);
+  if (!trim) return t;
+  let x0 = t.w, y0 = t.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < t.h; y++) for (let xx = 0; xx < t.w; xx++) if (t.d[(y * t.w + xx) * 4 + 3] > 127) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return crop(t, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+}
+function crop(t, x0, y0, w, h) {
+  const r = tex(w, h);
+  for (let y = 0; y < h; y++) r.d.set(t.d.subarray(((y + y0) * t.w + x0) * 4, ((y + y0) * t.w + x0 + w) * 4), y * w * 4);
+  return r;
+}
+const sized = new Map();
+function resize(t, w, h) {
+  w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+  if (t.w === w && t.h === h) return t;
+  const key = t; let m = sized.get(key); if (!m) sized.set(key, (m = new Map()));
+  if (m.has(w + "x" + h)) return m.get(w + "x" + h);
+  const r = tex(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const so = (Math.floor(((y + 0.5) * t.h) / h) * t.w + Math.floor(((x + 0.5) * t.w) / w)) * 4;
+    r.d.set(t.d.subarray(so, so + 4), (y * w + x) * 4);
+  }
+  m.set(w + "x" + h, r); return r;
+}
+function get(t, x, y, wrap) {
+  x = Math.floor(x); y = Math.floor(y);
+  if (wrap) { x = ((x % t.w) + t.w) % t.w; y = ((y % t.h) + t.h) % t.h; }
+  else if (x < 0 || y < 0 || x >= t.w || y >= t.h) return -1;
+  const o = (y * t.w + x) * 4;
+  return t.d[o + 3] > 127 ? o : -1;
+}
+const hash = (x, y, s = 0) => { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+
+// Local engine stand-ins: Seamless textures and features drawn in code on cosy-night.
+const LOCAL = {
+  floor: () => fromIdx(64, 30, (x, y) => {
+    const k = Math.floor(y / 6), r = y % 6, joint = (k * 23 + 7) % 64;
+    if (r === 0 || x === joint) return 0;
+    if (x === (joint + 1) % 64) return 14;
+    if (r === 1) return 14;
+    if (r > 1 && hash(Math.floor((x + k * 5) / 5), y, 1) < 0.18) return 10;
+    return 11;
+  }),
+  wall: () => fromIdx(32, 32, (x, y) => {
+    const g = x % 16;
+    if (g === 0) return 1;
+    if (g === 1) return 3;
+    const n = hash(x, y, 2);
+    return n < 0.05 ? 1 : n > 0.97 ? 3 : 2;
+  }),
+  ceiling: () => fromIdx(32, 32, (x, y) => (x % 16 === 0 || y % 16 === 0 ? 0 : x % 16 === 1 || y % 16 === 1 ? 2 : 1)),
+  painting: () => fromIdx(28, 20, (x, y) => {
+    if (x === 0 || y === 0 || x === 27 || y === 19) return 0;
+    if (x === 1 || y === 1 || x === 26 || y === 18) return 11;
+    if (x >= 5 && x < 13 && y >= 5 && y < 15) return x < 7 ? 10 : 9;
+    if ((x - 19) ** 2 + (y - 9) ** 2 < 18) return (x - 19) ** 2 + (y - 9) ** 2 < 6 ? 6 : 5;
+    if (y === 15 && x > 3 && x < 24) return 0;
+    return 12;
+  }),
+  sconce: () => fromIdx(7, 10, (x, y) => {
+    if (y < 2) return x > 0 && x < 6 ? 8 : -1;
+    if (y < 6) return x === 0 || x === 6 ? 9 : y === 2 ? 8 : 9;
+    if (y < 8) return x > 1 && x < 5 ? 10 : -1;
+    return x > 2 && x < 4 ? 11 : -1;
+  }),
+  rug: () => fromIdx(70, 34, (x, y) => {
+    const e = Math.min(x, y, 69 - x, 33 - y);
+    if (e < 2) return 12; if (e < 3) return 13;
+    if (e === 6) return 6; if (e === 7) return 4;
+    if (Math.abs(x - 35) + Math.abs(y - 17) * 2 < 12) return Math.abs(x - 35) + Math.abs(y - 17) * 2 < 6 ? 9 : 6;
+    return 5;
+  }),
+};
+
+// Room box: back wall square-on, everything else toward one vanishing point; f is the camera distance in back-wall pixels.
+const G = { x0: 56, y0: 12, x1: 176, y1: 86, vx: 118, vy: 48, f: 120 };
+const WIN = { x0: 92, y0: 18, x1: 164, y1: 76 };
+const SKIRT = 3;
+const sOf = (z) => G.f / (G.f - z), zOf = (s) => G.f * (1 - 1 / s);
+const SURF_COLOUR = { floor: 11, ceiling: 1, left: 2, right: 2, back: 2 };
+// Scale at the nearest visible pixel of each surface, so "1:1 at the near edge" maps one texel to one screen pixel there.
+const smax = () => ({ back: 1, floor: (H - G.vy) / (G.y1 - G.vy), ceiling: G.vy / (G.vy - G.y0), left: G.vx / (G.vx - G.x0), right: (W - G.vx) / (G.x1 - G.vx) });
+
+// Which surface a screen pixel centre lies on, and its coordinates on that surface: (along, across) in world pixels.
+function locate(px, py) {
+  const x = px + 0.5, y = py + 0.5;
+  if (x >= G.x0 && x < G.x1 && y >= G.y0 && y < G.y1) return { surf: "back", a: x, b: y, s: 1 };
+  let s, u, v;
+  if (y >= G.y1) { s = (y - G.vy) / (G.y1 - G.vy); u = G.vx + (x - G.vx) / s; if (u >= G.x0 && u < G.x1) return { surf: "floor", a: u, b: zOf(s), s }; }
+  if (y < G.y0) { s = (G.vy - y) / (G.vy - G.y0); u = G.vx + (x - G.vx) / s; if (u >= G.x0 && u < G.x1) return { surf: "ceiling", a: u, b: zOf(s), s }; }
+  if (x < G.x0) { s = (G.vx - x) / (G.vx - G.x0); v = G.vy + (y - G.vy) / s; if (v >= G.y0 && v < G.y1) return { surf: "left", a: zOf(s), b: v, s }; }
+  if (x >= G.x1) { s = (x - G.vx) / (G.x1 - G.vx); v = G.vy + (y - G.vy) / s; if (v >= G.y0 && v < G.y1) return { surf: "right", a: zOf(s), b: v, s }; }
+  return null;
+}
+// Surface coordinates back to the screen, for drawing lines that stay one pixel thin.
+function project(surf, a, b) {
+  if (surf === "back") return [a, b];
+  const s = sOf(surf === "floor" || surf === "ceiling" ? b : a);
+  if (surf === "floor") return [G.vx + (a - G.vx) * s, G.vy + (G.y1 - G.vy) * s];
+  if (surf === "ceiling") return [G.vx + (a - G.vx) * s, G.vy - (G.vy - G.y0) * s];
+  return [surf === "left" ? G.vx - (G.vx - G.x0) * s : G.vx + (G.x1 - G.vx) * s, G.vy + (b - G.vy) * s];
+}
+
+const shell = new ImageData(W, H);
+const setIdx = (x, y, i) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= W || y >= H) return; const o = (y * W + x) * 4; [shell.data[o], shell.data[o + 1], shell.data[o + 2]] = PAL_RGB[i]; shell.data[o + 3] = 255; };
+const setFrom = (x, y, t, o) => { const so = (y * W + x) * 4; shell.data.set(t.d.subarray(o, o + 4), so); shell.data[so + 3] = 255; };
+function line(x0, y0, x1, y1, c, keep = () => true) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let e = dx + dy;
+  for (let n = 0; n < 4000; n++) {
+    if (keep(x0, y0)) setIdx(x0, y0, c);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; }
+  }
+}
+
+function skirting(b) { const r = Math.floor(b - (G.y1 - SKIRT)); return r < 0 ? -1 : [15, 13, 14][Math.min(r, 2)]; }
+function inWindow(x, y) { return x + 0.5 >= WIN.x0 && x + 0.5 < WIN.x1 && y + 0.5 >= WIN.y0 && y + 0.5 < WIN.y1; }
+
+// Projected features: placed in world coordinates on a surface and drawn through the same mapping as the texture.
+function featureList(set) {
+  return [
+    { id: "painting", surf: "left", a0: 12, b0: 30, w: 30, h: 22, t: set.painting },
+    { id: "sconce", surf: "back", a0: 66, b0: 30, w: set.sconce.w, h: set.sconce.h, t: set.sconce },
+    { id: "rug", surf: "floor", a0: 78, b0: 8, w: 70, h: 34, t: set.rug },
+  ];
+}
+
+function renderShell(v) {
+  shell.data.fill(0);
+  const set = state.src === "pixellab" ? PIXELLAB : LOCALSET;
+  const sm = smax();
+  const feats = state.feat === "off" ? [] : featureList(set).filter((f) => state.feat === "projected" || f.surf === "back");
+  const texFor = { floor: set.floor, ceiling: set.ceiling, back: set.wall, left: set.wall, right: set.wall };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const p = locate(x, y);
+    if (!p) continue;
+    if (p.surf === "back" && inWindow(x, y)) continue;
+    const k = v.shell === "project-near" ? sm[p.surf] : 1;
+    let done = false;
+    for (const f of feats) {
+      if (f.surf !== p.surf || p.a < f.a0 || p.a >= f.a0 + f.w || p.b < f.b0 || p.b >= f.b0 + f.h) continue;
+      const kf = f.surf === "back" ? 1 : k, t = resize(f.t, f.w * kf, f.h * kf);
+      const o = get(t, (p.a - f.a0) * kf, (p.b - f.b0) * kf, false);
+      if (o >= 0) { setFrom(x, y, t, o); done = true; break; }
+    }
+    if (done) continue;
+    const sk = p.surf !== "floor" && p.surf !== "ceiling" ? skirting(p.b) : -1;
+    if (sk >= 0) { setIdx(x, y, sk); continue; }
+    if (p.surf !== "back" && (v.shell === "plain" || v.shell === "drawn")) { setIdx(x, y, SURF_COLOUR[p.surf]); continue; }
+    const t = texFor[p.surf];
+    setFrom(x, y, t, get(t, p.a * k, p.b * k, true));
+  }
+  if (v.shell === "drawn") drawPerspective();
+  if (v.shell === "drawn" && state.feat === "projected") for (const f of feats) if (f.surf !== "back") outline(f, f.surf === "floor" ? 13 : 0);
+  // Back corners: the four rays from the back rectangle and its top and side edges.
+  for (const [cx, cy] of [[G.x0, G.y0], [G.x1, G.y0], [G.x0, G.y1], [G.x1, G.y1]]) line(cx, cy, G.vx + (cx - G.vx) * 4, G.vy + (cy - G.vy) * 4, 0, (x, y) => x !== cx || y !== cy);
+  line(G.x0, G.y0, G.x1 - 1, G.y0, 0); line(G.x0, G.y0, G.x0, G.y1 - 1, 0); line(G.x1 - 1, G.y0, G.x1 - 1, G.y1 - 1, 0);
+  for (let x = WIN.x0 - 2; x < WIN.x1 + 2; x++) for (let y = WIN.y0 - 2; y < WIN.y1 + 2; y++) if (!inWindow(x, y)) setIdx(x, y, x === WIN.x0 - 2 || y === WIN.y0 - 2 || x === WIN.x1 + 1 || y === WIN.y1 + 1 ? 0 : 3);
+}
+
+function outline(f, c) {
+  const pts = [[f.a0, f.b0], [f.a0 + f.w, f.b0], [f.a0 + f.w, f.b0 + f.h], [f.a0, f.b0 + f.h]].map(([a, b]) => project(f.surf, a, b));
+  pts.forEach((p, i) => line(...p, ...pts[(i + 1) % 4], c));
+}
+
+// "Drawn in perspective": the local engine draws seams, grooves and coffers as one-pixel lines at their projected
+// positions, dropping lines that would sit closer than 3 px, so detail thins out with depth instead of aliasing.
+function drawPerspective() {
+  const on = (surf) => (x, y) => locate(x, y)?.surf === surf && !featAt(x, y);
+  let last = -99;
+  for (let k = 0; k < 40; k++) {
+    const y = Math.round(project("floor", 0, k * 6)[1]);
+    if (y >= H) break;
+    if (y - last < 3) continue;
+    for (let x = 0; x < W; x++) if (on("floor")(x, y)) { setIdx(x, y, 0); if (y - last >= 5 && on("floor")(x, y + 1)) setIdx(x, y + 1, 14); }
+    // A butt joint per board, along its ray, and grain dashes on boards tall enough to hold them.
+    const next = Math.round(project("floor", 0, k * 6 + 6)[1]);
+    for (let n = -2; n < 4; n++) {
+      const u = (k * 23 + 7) % 64 + n * 64;
+      const [ax, ay] = project("floor", u, k * 6), [bx, by] = project("floor", u, k * 6 + 6);
+      line(ax, ay + 1, bx, by - 1, 0, on("floor"));
+    }
+    if (next - y >= 4) for (let n = 0; n < 12; n++) {
+      const u = G.x0 + hash(k, n, 3) * (G.x1 - G.x0), z = k * 6 + 2 + Math.floor(hash(k, n, 4) * 3);
+      const [ax, ay] = project("floor", u, z), [bx] = project("floor", u + 4, z);
+      line(ax, ay, bx, ay, 10, on("floor"));
+    }
+    last = y;
+  }
+  for (const surf of ["left", "right"]) {
+    let lastX = surf === "left" ? 999 : -999;
+    for (let k = 1; k < 40; k++) {
+      const x = Math.round(project(surf, k * 16, 0)[0]);
+      if (x < 0 || x >= W) break;
+      if (Math.abs(x - lastX) < 3) continue;
+      const toward = surf === "left" ? -1 : 1;
+      for (let y = 0; y < H; y++) if (on(surf)(x, y) && skirting(locate(x, y).b) < 0) { setIdx(x, y, 1); if (on(surf)(x + toward, y)) setIdx(x + toward, y, 3); }
+      lastX = x;
+    }
+  }
+  let lastY = 999;
+  for (let k = 1; k < 40; k++) {
+    const y = Math.round(project("ceiling", 0, k * 16)[1]);
+    if (y < 0) break;
+    if (lastY - y < 3) continue;
+    for (let x = 0; x < W; x++) if (on("ceiling")(x, y)) setIdx(x, y, 0);
+    lastY = y;
+  }
+  for (let u = G.x0 + 16; u < G.x1; u += 16) { const [ax, ay] = project("ceiling", u, 0), [bx, by] = project("ceiling", u, G.f * 0.75); line(ax, ay - 1, bx, by, 0, on("ceiling")); }
+}
+function featAt(x, y) {
+  if (state.feat !== "projected") return false;
+  const p = locate(x, y); if (!p) return false;
+  return featureList(LOCALSET).some((f) => f.surf === p.surf && p.a >= f.a0 && p.a < f.a0 + f.w && p.b >= f.b0 && p.b < f.b0 + f.h);
+}
+
+// Screen box of a projected feature, where its in-perspective version is placed 1:1 instead.
+function screenBox(f) {
+  const pts = [[f.a0, f.b0], [f.a0 + f.w, f.b0], [f.a0 + f.w, f.b0 + f.h], [f.a0, f.b0 + f.h]].map(([a, b]) => project(f.surf, a, b));
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  return { x: Math.round(Math.min(...xs)), y: Math.round(Math.min(...ys)), w: Math.round(Math.max(...xs) - Math.min(...xs)), h: Math.round(Math.max(...ys) - Math.min(...ys)) };
+}
+
+const drops = Array.from({ length: 50 }, () => ({ x: Math.random() * W, y: Math.random() * H, v: 2 + Math.random() * 2, c: 5 + (Math.random() * 3 | 0) }));
+
+const VARIANTS = [
+  { key: "ref", name: "Reference · Bitforge shell", notes: `<p>The generated-shell attempt from the depth prototype: one Bitforge image (init 300) with the depth prototype's geometry, the window cut out of it. This is what the tiled shells are judged against. Source, Features and Depth do nothing here.</p>` },
+  { key: "project-back", name: "1 · Projected, 1:1 at the back", shell: "project-back", notes: `<p>Every screen pixel is mapped back onto its surface and reads the nearest texel. The texture is 1:1 where a surface meets the back wall, so texels grow toward you, up to about 2x at the front of the floor and left wall.</p><p>Watch for: fat doubled texels near the front (mixels), and rows skipped where the floor recedes fast.</p>` },
+  { key: "project-near", name: "2 · Projected, 1:1 at the front", shell: "project-near", notes: `<p>Same mapping, but each surface is scaled so one texel is one screen pixel at its nearest edge. Texels never grow; toward the back several texels fall into one pixel and get skipped.</p><p>Watch for: shimmer and noise toward the back corners, and the side walls' texture density no longer matching the back wall at the corner.</p>` },
+  { key: "plain", name: "3 · Texture on the back wall only", shell: "plain", notes: `<p>Only the square-on back wall is textured, 1:1. Floor, ceiling and side walls are one flat Palette colour each, with the skirting and the corner lines. Features still sit on the side wall and floor through the projection.</p><p>The cheapest option: nothing on an oblique surface can break the grid because there is nothing there.</p>` },
+  { key: "drawn", name: "4 · Drawn in perspective", shell: "drawn", notes: `<p>The local engine draws the oblique surfaces directly in perspective: each board seam, wall groove and ceiling coffer is a one-pixel line at its projected position, butt joints follow the rays to the vanishing point, grain dashes appear only on boards at least 4 px tall, and lines closer than 3 px are dropped. Projected features get a crisp one-pixel outline.</p><p>The back wall still uses the selected texture source; the obliques are always local, since a PixelLab texture can't be redrawn this way.</p>` },
+];
+
+const params = new URLSearchParams(location.search);
+const SOURCES = ["local", "pixellab"], FEATS = ["projected", "angled", "off"];
+const state = { vi: 0, src: SOURCES.includes(params.get("src")) ? params.get("src") : "local", feat: FEATS.includes(params.get("feat")) ? params.get("feat") : "projected", atmos: params.get("atmos") !== "0", notes: params.get("notes") !== "0" };
+let LOCALSET, PIXELLAB, HAVE_GEN = false;
+
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const off = (w = W, h = H) => { const c = Object.assign(document.createElement("canvas"), { width: w, height: h }); return [c, c.getContext("2d", { willReadFrequently: true })]; };
+const [farC, farX] = off(), [shellC, shellX] = off(), [propC, propX] = off();
+
+function remap(x, mode) {
+  if (!state.atmos || mode === "none") return;
+  const d = x.getImageData(0, 0, W, H), a = d.data;
+  for (let i = 0; i < a.length; i += 4) {
+    if (!a[i + 3]) continue;
+    const idx = palIndex.get((a[i] << 16) | (a[i + 1] << 8) | a[i + 2]);
+    if (idx === undefined) continue;
+    [a[i], a[i + 1], a[i + 2]] = PAL_RGB[remapIndex(idx, mode)];
+  }
+  x.putImageData(d, 0, 0);
+}
+const foot = (n, y) => y - img[n].height;
+
+function rebuild() {
+  const v = VARIANTS[state.vi], ref = v.key === "ref";
+  const win = ref ? { x0: 28, y0: 14, x1: 152, y1: 85 } : WIN;
+  farX.clearRect(0, 0, W, H);
+  farX.fillStyle = PAL[0]; farX.fillRect(0, 0, W, H);
+  farX.drawImage(img["sky-storm-clouds-night-01"], win.x0 - 4, win.y0 - 20);
+  farX.drawImage(img["city-skyline-river-night-02"], win.x0 - 4, win.y1 - img["city-skyline-river-night-02"].height + 6);
+  remap(farX, "far");
+  rebuild.win = win;
+
+  shellX.clearRect(0, 0, W, H);
+  if (ref) {
+    shellX.drawImage(img["gen:shell-A-init300"], 0, 0); shellX.clearRect(28, 14, 124, 71);
+    for (const x of [61, 103]) shellX.drawImage(img["window-mullion-steel-01"], 0, 24, 16, 71, x, 14, 16, 71);
+  } else {
+    renderShell(v); shellX.putImageData(shell, 0, 0);
+    shellX.drawImage(img["window-mullion-steel-01"], 0, 24, 16, WIN.y1 - WIN.y0, (WIN.x0 + WIN.x1) / 2 - 8, WIN.y0, 16, WIN.y1 - WIN.y0);
+    if (state.feat === "angled" && state.src === "pixellab") for (const f of featureList(PIXELLAB)) {
+      const a = PIXELLAB.angled[f.id]; if (!a) continue;
+      const b = screenBox(f), t = resize(a, b.w, b.h);
+      const id = new ImageData(new Uint8ClampedArray(t.d), t.w, t.h), [tc, tx] = off(t.w, t.h);
+      tx.putImageData(id, 0, 0); shellX.drawImage(tc, b.x, b.y);
+    }
+  }
+
+  propX.clearRect(0, 0, W, H);
+  const props = ref
+    ? [["lamp-floor-linen-drum-01", 112, 20, "none"], ["table-side-tumbler-whisky-01", 152, 80, "none"], ["armchair-back-wool-throw-01", 96, 72, "near"]]
+    : [["table-side-tumbler-whisky-01", 64, foot("table-side-tumbler-whisky-01", 104), "none"], ["lamp-floor-linen-drum-01", 146, foot("lamp-floor-linen-drum-01", 96), "none"], ["armchair-back-wool-throw-01", 98, foot("armchair-back-wool-throw-01", 122), "near"]];
+  for (const mode of ["none", "near"]) {
+    const [c, x] = off();
+    for (const [n, px, py, m] of props) if (m === mode) x.drawImage(img[n], px, py);
+    remap(x, mode); propX.drawImage(c, 0, 0);
+  }
+}
+
+let lastRain = 0;
+function frame(now) {
+  const w = rebuild.win;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(farC, 0, 0);
+  if (now - lastRain > 1000 / 24) { lastRain = now; for (const d of drops) { d.y += d.v; d.x += 0.5; if (d.y > H) d.y -= H; } }
+  for (const d of drops) { const x = w.x0 + (d.x % (w.x1 - w.x0)), y = w.y0 + (d.y % (w.y1 - w.y0 - 2)); ctx.fillStyle = PAL[d.c]; ctx.fillRect(Math.round(x), Math.round(y), 1, 2); }
+  ctx.drawImage(shellC, 0, 0);
+  ctx.drawImage(propC, 0, 0);
+  requestAnimationFrame(frame);
+}
+
+function layout() {
+  const s = Math.max(1, Math.floor(Math.min(innerWidth / W, innerHeight / H)));
+  Object.assign(cv.style, { width: W * s + "px", height: H * s + "px", left: (innerWidth - W * s) / 2 + "px", top: (innerHeight - H * s) / 2 + "px" });
+}
+function render() {
+  const v = VARIANTS[state.vi];
+  document.getElementById("label").textContent = v.name;
+  document.getElementById("src").textContent = "Source: " + state.src;
+  document.getElementById("feat").textContent = "Features: " + state.feat;
+  document.getElementById("depth").textContent = "Depth: f=" + G.f;
+  document.getElementById("atmos").classList.toggle("on", state.atmos);
+  document.getElementById("notesBtn").classList.toggle("on", state.notes);
+  const n = document.getElementById("notes");
+  n.style.display = state.notes ? "" : "none";
+  const missing = state.src === "pixellab" && !HAVE_GEN ? `<p><b>No PixelLab images yet</b>: run <code>generate.ts</code>, then <code>npm start</code>. Showing local.</p>` : "";
+  const angledLocal = state.feat === "angled" && state.src === "local" ? `<p><b>Angled</b> needs the PixelLab source: there is no local in-perspective feature (variant 4 is the local answer). Showing back-wall features only.</p>` : "";
+  n.innerHTML = `<h3>${v.name}</h3>${v.notes}${missing}${angledLocal}
+    <h3>Toggles</h3><ul>
+    <li><b>S</b> Source: <i>local</i> textures and features drawn in code (the local engine), or <i>pixellab</i> Pro Flash on cosy-night styled on the armchair. Skirting is local in both.</li>
+    <li><b>F</b> Features: <i>projected</i> (generated square-on, mapped onto the surface), <i>angled</i> (PixelLab generated already in perspective, placed 1:1 over the projected spot; resized to that spot as a stand-in for generating at display size), <i>off</i>.</li>
+    <li><b>A</b> Atmos: far plane one ramp step down, the armchair one step darker.</li>
+    <li><b>-</b> / <b>=</b> Depth: camera distance f; smaller is a shallower, more steeply foreshortened room.</li></ul>
+    <p style="color:#666">Geometry: back wall ${G.x1 - G.x0}x${G.y1 - G.y0} at (${G.x0},${G.y0}), vanishing point (${G.vx},${G.vy}); the window is ${WIN.x1 - WIN.x0} px wide, so the skyline shows once. Wider left wall than the depth prototype's room box so a painting fits on it.</p>`;
+  const q = new URLSearchParams(location.search); q.set("variant", v.key); q.set("src", state.src); q.set("feat", state.feat); history.replaceState(null, "", "?" + q);
+  rebuild();
+}
+function go(d) { state.vi = (state.vi + d + VARIANTS.length) % VARIANTS.length; render(); }
+const cycle = (k, list) => { state[k] = list[(list.indexOf(state[k]) + 1) % list.length]; render(); };
+const depth = (d) => { G.f = Math.min(400, Math.max(60, G.f + d)); render(); };
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.getElementById("src").onclick = () => cycle("src", SOURCES);
+document.getElementById("feat").onclick = () => cycle("feat", FEATS);
+document.getElementById("atmos").onclick = () => { state.atmos = !state.atmos; render(); };
+document.getElementById("depth").onclick = () => depth(G.f >= 400 ? -340 : 40);
+document.getElementById("notesBtn").onclick = () => { state.notes = !state.notes; render(); };
+addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1);
+  else if (e.key === "s") cycle("src", SOURCES); else if (e.key === "f") cycle("feat", FEATS);
+  else if (e.key === "a") { state.atmos = !state.atmos; render(); } else if (e.key === "n") { state.notes = !state.notes; render(); }
+  else if (e.key === "-") depth(-40); else if (e.key === "=") depth(40);
+});
+addEventListener("resize", layout);
+
+Promise.all(Object.entries(ASSETS).map(([k, src]) => new Promise((ok) => { const i = new Image(); i.onload = () => { img[k] = i; ok(); }; i.src = src; })))
+  .then(() => {
+    LOCALSET = Object.fromEntries(Object.entries(LOCAL).map(([k, fn]) => [k, fn()]));
+    const g = (n, trim) => (img["gen:" + n] ? fromImg(img["gen:" + n], trim) : null);
+    HAVE_GEN = !!img["gen:tex-floor"];
+    PIXELLAB = {
+      floor: g("tex-floor") ?? LOCALSET.floor, wall: g("tex-wall") ?? LOCALSET.wall, ceiling: g("tex-ceiling") ?? LOCALSET.ceiling,
+      painting: g("painting-flat", true) ?? LOCALSET.painting, sconce: g("sconce", true) ?? LOCALSET.sconce, rug: g("rug-flat", true) ?? LOCALSET.rug,
+      angled: { painting: g("painting-angled", true), rug: g("rug-angled", true) },
+    };
+    if (img["gen:sconce"]) PIXELLAB.sconce = resize(PIXELLAB.sconce, (PIXELLAB.sconce.w * 12) / PIXELLAB.sconce.h, 12);
+    state.vi = Math.max(0, VARIANTS.findIndex((v) => v.key === (params.get("variant") ?? "project-back")));
+    layout(); render();
+    requestAnimationFrame(frame);
+  });
+</script>
+</body>
+</html>

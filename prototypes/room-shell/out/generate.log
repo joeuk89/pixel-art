@@ -1,0 +1,17 @@
+start tex-floor
+start tex-wall
+start tex-ceiling
+start painting-flat
+start painting-angled
+start sconce
+start rug-flat
+start rug-angled
+ok tex-floor (6 generations)
+ok tex-ceiling (5 generations)
+ok tex-wall (6 generations)
+ok painting-flat (5 generations)
+ok sconce (5 generations)
+ok rug-angled (6 generations)
+ok painting-angled (5 generations)
+ok rug-flat (6 generations)
+done: 44 generations

@@ -1,0 +1,10 @@
+{
+  "name": "prototype-room-shell",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #78: can a room shell built from tiled surfaces with feature Elements layered on look as good as the props?",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js && open index.html"
+  }
+}
