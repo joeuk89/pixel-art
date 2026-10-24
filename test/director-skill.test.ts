@@ -128,3 +128,14 @@ test("a proposed new Palette blocks reuse and forces colours to be re-picked onc
   assert.match(done, /new Palette[\s\S]*pipeline\/validate\.ts/);
   assert.match(done, /rejects the new Palette[\s\S]*step 5[\s\S]*house Palette/);
 });
+
+test("an owner edit to scale, a realSize or an Element re-derives canvases and re-shops before the brief is shown again", () => {
+  const gate = steps(skill()).find((s) => s.title === "Plan gate");
+  assert.ok(gate);
+  const edits = gate.text.slice(gate.text.indexOf("Wait for the owner"), gate.text.indexOf("**Done when**"));
+  assert.match(edits, /`scale`[\s\S]*`realSize`[\s\S]*Element/);
+  assert.match(edits, /`generate` block back on every reused Placement/);
+  assert.match(edits, /step 4[\s\S]*step 5/);
+  assert.match(edits, /reused Element's size[\s\S]*canvas/);
+  assert.match(edits, /pipeline\/validate\.ts[\s\S]*show the brief again/);
+});

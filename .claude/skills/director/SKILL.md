@@ -75,6 +75,6 @@ Estimate the cost by [cost.md](cost.md), with month-to-date spend from `node pip
 
 Call out, each on its own line: budget overage with the amount and the reason; every missing Primitive with the nearest existing one; the proposed new Palette with why no house Palette fits.
 
-Wait for the owner. Apply any edits to the plan, run validate, and show the brief again.
+Wait for the owner. Apply any edits to the plan. If an edit changes `scale`, any `realSize` or any Element, put a `generate` block back on every reused Placement it affects, because `derive-canvas` skips Placements without one. Then rerun step 4 and step 5 for the affected Placements, so every reused Element's size is checked against its new canvas. Run `node pipeline/validate.ts scenes/<id>` until it exits 0, and show the brief again.
 
 **Done when** the owner has said yes to the brief as shown. Record an approved overage in `cost.approvedOverage` with its reason. If the owner approves the new Palette, write it to `library/palettes/`, point the plan at it, re-pick every `fill` and Primitive colour index against the new Palette, and run `node pipeline/validate.ts scenes/<id>` again until it exits 0. If the owner rejects the new Palette, set the plan to a house Palette, rerun step 5 against that house Palette, and show the brief again. Then stop: generation is not part of this skill yet.
