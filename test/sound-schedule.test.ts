@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loopOffset, oneshotFires, type Fire } from "../viewer/sound-schedule.ts";
+import { CROSSFADE_SEC, crossfade, loopOffset, oneshotFires, variantSounds, type Fire } from "../viewer/sound-schedule.ts";
 
 function take(fires: Iterator<Fire>, n: number): Fire[] {
   return Array.from({ length: n }, () => fires.next().value as Fire);
@@ -58,4 +58,37 @@ test("an Ambient loop's start offset is seeded, inside the loop and differs betw
     const offset = loopOffset(k, k % 5, 3);
     assert.ok(offset >= 0 && offset < 3, `offset ${offset}`);
   }
+});
+
+const sound = (file: string, distance = "near") => ({ source: { kind: "curated", id: file }, file, distance });
+const variantPlan = {
+  soundtrack: { ambient: [sound("room.ogg", "mid")], oneshots: [{ ...sound("thunder.ogg", "far"), every: [90, 240] }] },
+  variants: [
+    { id: "night-rain", soundtrack: { ambient: [sound("rain.ogg")] } },
+    { id: "clear-night", soundtrack: { ambient: [sound("wind.ogg", "far")], oneshots: [{ ...sound("owl.ogg", "far"), every: [30, 60] }] } },
+    { id: "plain" },
+  ],
+} as any;
+const [rainy, clear, plain] = variantPlan.variants;
+
+test("a Variant plays the base sounds plus its own, each with a seed index after the base ones", () => {
+  const sounds = variantSounds(variantPlan, clear);
+  assert.deepEqual(sounds.ambient.map((s) => [s.entry.file, s.index, s.base]), [["room.ogg", 0, true], ["wind.ogg", 1, false]]);
+  assert.deepEqual(sounds.oneshots.map((s) => [s.entry.file, s.index, s.base]), [["thunder.ogg", 0, true], ["owl.ogg", 1, false]]);
+  assert.deepEqual(variantSounds(variantPlan, plain).ambient.map((s) => s.entry.file), ["room.ogg"]);
+});
+
+test("switching Variants keeps the base sounds and crossfades the added ones over about two seconds", () => {
+  const fade = crossfade(variantPlan, rainy, clear);
+  assert.ok(CROSSFADE_SEC >= 1.5 && CROSSFADE_SEC <= 2.5, `${CROSSFADE_SEC} s`);
+  const files = (slots: { entry: { file: string } }[]) => slots.map((s) => s.entry.file).sort();
+  assert.deepEqual(files(fade.keep), ["room.ogg", "thunder.ogg"]);
+  assert.deepEqual(files(fade.fadeIn), ["owl.ogg", "wind.ogg"]);
+  assert.deepEqual(files(fade.fadeOut), ["rain.ogg"]);
+});
+
+test("switching to the same Variant changes nothing", () => {
+  const fade = crossfade(variantPlan, clear, clear);
+  assert.deepEqual([fade.fadeIn, fade.fadeOut], [[], []]);
+  assert.equal(fade.keep.length, 4);
 });

@@ -1,7 +1,7 @@
-import type { ScenePlan } from "../schema/index.ts";
+import type { ScenePlan, Variant } from "../schema/index.ts";
 import { fetchOk } from "./http.ts";
 import type { Channel } from "./settings.ts";
-import { DISTANCE_BUSES, loopOffset, oneshotFires } from "./sound-schedule.ts";
+import { CROSSFADE_SEC, crossfade, DISTANCE_BUSES, loopOffset, oneshotFires, variantSounds, type VariantSounds } from "./sound-schedule.ts";
 
 type Distance = keyof typeof DISTANCE_BUSES;
 
@@ -15,8 +15,11 @@ export type Audio = {
   setRunning(running: boolean): void;
 };
 
-export function hasAmbientSound(plan: Pick<ScenePlan, "soundtrack">): boolean {
-  return plan.soundtrack.ambient.length + plan.soundtrack.oneshots.length > 0;
+export function hasAmbientSound(plan: Pick<ScenePlan, "soundtrack" | "variants">): boolean {
+  return plan.variants.some((v) => {
+    const { ambient, oneshots } = variantSounds(plan, v);
+    return ambient.length + oneshots.length > 0;
+  });
 }
 
 export function createAudio(levels: Levels, context: AudioContext = new AudioContext()): Audio {
@@ -40,15 +43,28 @@ export function createAudio(levels: Levels, context: AudioContext = new AudioCon
   };
 }
 
-export async function playSoundtrack({ context, buses: channels }: Audio, plan: ScenePlan, base: URL, signal: AbortSignal): Promise<void> {
-  const { music, ambient, oneshots } = plan.soundtrack;
+export type Soundtrack = { setVariant(variant: Variant): void };
+
+type Playing = { fade: GainNode; stop(at: number): void };
+
+export async function playSoundtrack(
+  { context, buses: channels }: Audio,
+  plan: ScenePlan,
+  base: URL,
+  signal: AbortSignal,
+  variant: Variant = plan.variants[0],
+): Promise<Soundtrack> {
+  const { music } = plan.soundtrack;
+  const files = new Set(plan.variants.flatMap((v) => {
+    const { ambient, oneshots } = variantSounds(plan, v);
+    return [...ambient, ...oneshots].map((slot) => slot.entry.file);
+  }));
   const decode = async (file: string) => context.decodeAudioData(await (await fetchOk(new URL(file, base))).arrayBuffer());
-  const [musicBuffer, ambientBuffers, oneshotBuffers] = await Promise.all([
+  const [musicBuffer, buffers] = await Promise.all([
     music.file ? decode(music.file) : undefined,
-    Promise.all(ambient.map((a) => decode(a.file))),
-    Promise.all(oneshots.map((o) => decode(o.file))),
+    Promise.all([...files].map(async (file) => [file, await decode(file)] as const)).then((pairs) => new Map(pairs)),
   ]);
-  if (signal.aborted) return;
+  if (signal.aborted) return { setVariant() {} };
 
   const nodes = new Set<AudioNode>();
   const sources = new Set<AudioBufferSourceNode>();
@@ -88,32 +104,63 @@ export async function playSoundtrack({ context, buses: channels }: Audio, plan: 
     node.start(startAt);
   }
 
-  ambient.forEach((entry, i) => {
-    const buffer = ambientBuffers[i];
-    const node = source(buffer, gain(entry.gain ?? 1, buses[entry.distance]));
+  const playLoop = ({ entry, index }: VariantSounds["ambient"][number], to: AudioNode, at: number) => {
+    const buffer = buffers.get(entry.file)!;
+    const node = source(buffer, gain(entry.gain ?? 1, to));
     node.loop = true;
-    node.start(startAt, loopOffset(plan.seed, i, buffer.duration));
-  });
+    node.start(at, loopOffset(plan.seed, index, buffer.duration));
+    return (when: number) => node.stop(when);
+  };
 
-  oneshots.forEach((entry, i) => {
-    const fires = oneshotFires(plan.seed, i, entry.every);
+  const playOneshot = ({ entry, index }: VariantSounds["oneshots"][number], to: AudioNode, at: number) => {
+    const fires = oneshotFires(plan.seed, index, entry.every);
+    let stopped = false;
+    let pending: AudioBufferSourceNode | undefined;
     // Chained on each fire's ended event rather than a timer, so firing continues in a hidden tab.
     const scheduleNext = () => {
       const fire = fires.next().value;
-      const level = gain((entry.gain ?? 1) * fire.gain, buses[entry.distance]);
-      const node = source(oneshotBuffers[i], level);
+      const level = gain((entry.gain ?? 1) * fire.gain, to);
+      const node = source(buffers.get(entry.file)!, level);
       node.playbackRate.value = fire.rate;
       node.onended = () => {
         sources.delete(node);
         nodes.delete(level);
         node.disconnect();
         level.disconnect();
-        if (!signal.aborted) scheduleNext();
+        if (!signal.aborted && !stopped) scheduleNext();
       };
-      node.start(Math.max(startAt + fire.at, context.currentTime));
+      pending = node;
+      node.start(Math.max(at + fire.at, context.currentTime));
     };
     scheduleNext();
-  });
+    return (when: number) => {
+      stopped = true;
+      pending?.stop(when);
+    };
+  };
+
+  const playing = new Map<string, Playing>();
+  const play = (variant: Variant, fadeIn: boolean) => {
+    const now = context.currentTime;
+    const at = fadeIn ? now : startAt;
+    const { ambient, oneshots } = variantSounds(plan, variant);
+    for (const slot of [...ambient, ...oneshots]) {
+      if (playing.has(slot.key)) continue;
+      const bus = buses[slot.entry.distance];
+      const fade = gain(1, bus);
+      if (fadeIn) {
+        fade.gain.setValueAtTime(0, now);
+        fade.gain.linearRampToValueAtTime(1, now + CROSSFADE_SEC);
+      }
+      const stop = "every" in slot.entry
+        ? playOneshot(slot as VariantSounds["oneshots"][number], fade, at)
+        : playLoop(slot as VariantSounds["ambient"][number], fade, at);
+      playing.set(slot.key, { fade, stop });
+    }
+  };
+
+  let current = variant;
+  play(current, false);
 
   signal.addEventListener("abort", () => {
     for (const node of sources) {
@@ -123,4 +170,23 @@ export async function playSoundtrack({ context, buses: channels }: Audio, plan: 
     }
     for (const node of nodes) node.disconnect();
   });
+
+  return {
+    setVariant(next) {
+      if (signal.aborted || next === current) return;
+      const { fadeOut } = crossfade(plan, current, next);
+      const now = context.currentTime;
+      for (const slot of fadeOut) {
+        const sound = playing.get(slot.key);
+        if (!sound) continue;
+        playing.delete(slot.key);
+        sound.fade.gain.cancelScheduledValues(now);
+        sound.fade.gain.setValueAtTime(sound.fade.gain.value, now);
+        sound.fade.gain.linearRampToValueAtTime(0, now + CROSSFADE_SEC);
+        sound.stop(now + CROSSFADE_SEC);
+      }
+      current = next;
+      play(current, true);
+    },
+  };
 }
