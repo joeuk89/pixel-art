@@ -8,7 +8,7 @@ import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
 import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { SITE_URL } from "../pipeline/lib/site.ts";
-import { editJson, fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
+import { editJson, fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
 const title = "Fixture rainy desk";
@@ -51,10 +51,14 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     root = makeTree();
     for (const dir of ["viewer", "schema", "node_modules", "package.json"]) symlinkSync(join(repo, dir), join(root, dir));
     cpSync(join(repo, "index.html"), join(root, "index.html"));
+    const bed = readJson(root, "library/ambient/freesound-room-tone-641306.json");
+    for (const [id, brief] of [["elevenlabs-kettle-01", "kettle hiss"], ["elevenlabs-wind-01", "distant wind"]]) {
+      writeJson(root, `library/ambient/${id}.json`, { ...bed, id, brief });
+    }
     editJson(root, fixtureScene, (plan) => {
       plan.soundtrack.ambient.push(
-        { source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" },
-        { source: { kind: "generated", service: "elevenlabs", brief: "distant wind" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
+        { source: { kind: "generated", service: "elevenlabs-fal", brief: "kettle hiss", id: "elevenlabs-kettle-01" }, file: "room.ogg", distance: "near" },
+        { source: { kind: "generated", service: "elevenlabs-fal", brief: "distant wind", id: "elevenlabs-wind-01" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
       );
     });
     const staged = runScript(root, "stage", fixtureScene);

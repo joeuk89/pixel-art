@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { fixtureScene, fixtures, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
+import { editJson, fixtureScene, fixtures, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
 
 function treeWithCurtain(): string {
   const root = makeTree();
@@ -35,6 +35,18 @@ test("a draft Scene's Style anchor, ambient and One-shots count as references", 
   assert.deepEqual(out.elements, []);
   const ids = out.ambient.map((a: any) => a.id);
   for (const id of ["freesound-vent-hum-753540", "freesound-owl-tawny-454842", "freesound-room-tone-641306"]) assert.ok(!ids.includes(id), id);
+});
+
+test("a generated sound's Sound library record counts as referenced", () => {
+  const root = makeTree();
+  const record = readJson(root, "library/ambient/freesound-room-tone-641306.json");
+  writeJson(root, "library/ambient/elevenlabs-room-01.json", { ...record, id: "elevenlabs-room-01", brief: "room tone, quiet" });
+  editJson(root, fixtureScene, (plan) => {
+    plan.soundtrack.ambient[0].source = { kind: "generated", service: "elevenlabs-fal", brief: "room tone, quiet", id: "elevenlabs-room-01" };
+  });
+  const { code, out } = runScript(root, "orphans");
+  assert.equal(code, 0);
+  assert.ok(!out.ambient.some((a: any) => a.id === "elevenlabs-room-01"));
 });
 
 test("orphans exits non-zero with one JSON object when given an argument", () => {

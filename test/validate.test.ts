@@ -84,6 +84,38 @@ test("a curated source with no Sound library record keeps the Scene draft", () =
   failsWith(validate(root), fixtureScene, "soundtrack.ambient[0].source.id", /no record freesound-rain-missing-999999/);
 });
 
+test("a generated source with no Sound library record id yet keeps the Scene draft", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.status = "draft";
+    plan.soundtrack.ambient[0].source = { kind: "generated", service: "elevenlabs-fal", brief: "room tone, quiet" };
+  });
+  const { code, report } = validate(root);
+  assert.equal(code, 0);
+  assert.equal(report.scenes[0].status, "draft");
+  assert.deepEqual(report.scenes[0].pending.map((p: any) => p.path), ["soundtrack.ambient[0].source"]);
+});
+
+test("a generated source naming a missing Sound library record keeps the Scene draft", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.soundtrack.ambient[0].source = { kind: "generated", service: "elevenlabs-fal", brief: "room tone, quiet", id: "elevenlabs-room-01" };
+  });
+  failsWith(validate(root), fixtureScene, "soundtrack.ambient[0].source.id", /no record elevenlabs-room-01/);
+});
+
+test("a generated source naming its Sound library record resolves", () => {
+  const root = makeTree();
+  const record = readJson(root, "library/ambient/freesound-room-tone-641306.json");
+  writeJson(root, "library/ambient/elevenlabs-room-01.json", { ...record, id: "elevenlabs-room-01", brief: "room tone, quiet" });
+  editJson(root, fixtureScene, (plan) => {
+    plan.soundtrack.ambient[0].source = { kind: "generated", service: "elevenlabs-fal", brief: "room tone, quiet", id: "elevenlabs-room-01" };
+  });
+  const { code, report, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+  assert.equal(report.scenes[0].status, "resolved");
+});
+
 for (const [what, breakIt] of [
   ["an Element PNG is missing", (root: string) => rmSync(join(root, "library/elements/window-wood-transparent-panes-01.png"))],
   ["an Element record fails its schema", (root: string) => editJson(root, WINDOW, (record) => { record.width = "wide"; })],

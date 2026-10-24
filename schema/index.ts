@@ -109,7 +109,7 @@ export const primitiveSchema = z.discriminatedUnion("type", [
 
 const soundSource = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("curated"), id: slug }),
-  z.strictObject({ kind: z.literal("generated"), service: z.string().min(1), brief: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("generated"), service: z.string().min(1), brief: z.string().min(1), id: slug.optional() }),
 ]);
 
 const fileName = z.string().regex(/^[^/\\]+$/, "must be a file name beside the plan");

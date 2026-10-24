@@ -193,8 +193,11 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
     ...oneshots.map((entry, i) => ({ entry, at: `soundtrack.oneshots[${i}]` })),
   ];
   for (const { entry, at } of entries) {
-    if (entry.source.kind === "curated" && !sounds.has(entry.source.id)) {
-      pending.push({ path: `${at}.source.id`, message: `Sound library has no record ${entry.source.id}` });
+    const { source } = entry;
+    if (source.kind === "generated" && source.id === undefined) {
+      pending.push({ path: `${at}.source`, message: "sound is not generated yet" });
+    } else if (source.id !== undefined && !sounds.has(source.id)) {
+      pending.push({ path: `${at}.source.id`, message: `Sound library has no record ${source.id}` });
     }
     if (!beside(entry.file)) pending.push({ path: `${at}.file`, message: `${entry.file} is missing beside the plan` });
   }
@@ -233,7 +236,7 @@ function referencedFiles(plan: ScenePlan): Set<string> {
   }
   const { ambient, oneshots } = plan.soundtrack;
   for (const { source } of [...ambient, ...oneshots]) {
-    if (source.kind === "curated") files.add(`${AMBIENT}/${source.id}.json`);
+    if (source.id !== undefined) files.add(`${AMBIENT}/${source.id}.json`);
   }
   return files;
 }

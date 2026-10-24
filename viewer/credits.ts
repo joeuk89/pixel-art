@@ -7,6 +7,7 @@ const SERVICE_NAMES: Record<string, string> = {
   "stable-audio-3": "Stable Audio 3.0",
   lyria: "Lyria",
   elevenlabs: "ElevenLabs",
+  "elevenlabs-fal": "ElevenLabs",
   fal: "fal.ai",
 };
 
