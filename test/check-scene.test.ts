@@ -10,7 +10,7 @@ export function sceneTree(tests: "pass" | "fail" = "pass"): string {
   const root = makeTree();
   writeJson(root, "package.json", { private: true, scripts: { test: `node -e "process.exit(${tests === "pass" ? 0 : 1})"` } });
   assert.equal(runScript(root, "poster", fixtureScene).code, 0);
-  assert.equal(runScript(root, "stage", fixtureScene).code, 0);
+  assert.equal(runScript(root, "stub", fixtureScene).code, 0);
   return root;
 }
 
@@ -33,7 +33,7 @@ test("an unresolved generate block fails the run and names the Placement", () =>
   const root = sceneTree();
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[2].placements[0].generate = { kind: "prop", brief: "wooden window", realSize: { w: 1, h: 1 }, tags: ["window"] };
+    plan.layers[3].placements[0].generate = { kind: "prop", brief: "wooden window", realSize: { w: 1, h: 1 }, tags: ["window"] };
   });
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
@@ -53,7 +53,7 @@ test("an unmeasured loop seam fails", () => {
 
 test("a Poster that no longer matches the plan fails", () => {
   const root = sceneTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[0].x += 3; });
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].x += 3; });
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
   assert.deepEqual(failed(out), ["poster"]);
@@ -66,8 +66,8 @@ test("a stub and gallery written before a title change fail", () => {
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
   assert.deepEqual(failed(out), ["stub", "gallery"]);
-  assert.deepEqual(problems(out, "stub"), ["scenes/fixture-rainy-desk-a1b2/index.html is not what stage writes; run stage"]);
-  assert.deepEqual(problems(out, "gallery"), ["gallery.json is not what stage writes; run stage"]);
+  assert.deepEqual(problems(out, "stub"), ["scenes/fixture-rainy-desk-a1b2/index.html is not what stub writes; run stub"]);
+  assert.deepEqual(problems(out, "gallery"), ["gallery.json is not what stub writes; run stub"]);
 });
 
 test("a gallery without the Scene fails", () => {

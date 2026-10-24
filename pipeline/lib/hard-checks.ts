@@ -2,9 +2,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import sharp from "sharp";
-import { POSTER_FILE, POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, type ScenePlan } from "../../schema/index.ts";
+import { allPlacements, POSTER_FILE, POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, type ScenePlan } from "../../schema/index.ts";
 import { posterFrame } from "./poster.ts";
-import { galleryJson, stub } from "./stage.ts";
+import { galleryJson, stub } from "./stub.ts";
 import { validationReport } from "./validation.ts";
 
 export type Check = { name: string; ok: boolean; problems: string[] };
@@ -13,7 +13,7 @@ const check = (name: string, problems: string[]): Check => ({ name, ok: problems
 const TEST_OUTPUT_BYTES = 256 * 1024 * 1024;
 
 function unresolved(plan: ScenePlan): string[] {
-  return plan.layers.flatMap((l) => l.placements ?? []).filter((p) => p.generate).map((p) => `${p.id} (${p.element}) still has a generate block`);
+  return allPlacements(plan).filter((p) => p.generate).map((p) => `${p.id} (${p.element}) still has a generate block`);
 }
 
 function validation(root: string, file: string): string[] {
@@ -49,8 +49,8 @@ async function poster(root: string, file: string, plan: ScenePlan): Promise<stri
 }
 
 function sameFile(path: string, expected: string, shown: string): string[] {
-  if (!existsSync(path)) return [`${shown} is missing; run stage`];
-  return readFileSync(path, "utf8") === expected ? [] : [`${shown} is not what stage writes; run stage`];
+  if (!existsSync(path)) return [`${shown} is missing; run stub`];
+  return readFileSync(path, "utf8") === expected ? [] : [`${shown} is not what stub writes; run stub`];
 }
 
 function tests(root: string): string[] {

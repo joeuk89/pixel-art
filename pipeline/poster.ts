@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import sharp from "sharp";
-import { POSTER_FILE, POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema } from "../schema/index.ts";
+import { POSTER_FILE, POSTER_OG_FILE, POSTER_OG_SCALE, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema } from "../schema/index.ts";
 import { posterFrame } from "./lib/poster.ts";
 
-const OG_SCALE = 4;
 const root = process.cwd();
 
 async function main(arg: string | undefined) {
@@ -19,7 +18,7 @@ async function main(arg: string | undefined) {
   const ogPath = join(dir, POSTER_OG_FILE);
   await sharp(frame, raw).png().toFile(posterPath);
   await sharp(frame, raw)
-    .resize(SCENE_WIDTH * OG_SCALE, SCENE_HEIGHT * OG_SCALE, { kernel: "nearest" })
+    .resize(SCENE_WIDTH * POSTER_OG_SCALE, SCENE_HEIGHT * POSTER_OG_SCALE, { kernel: "nearest" })
     .png()
     .toFile(ogPath);
   return { ok: true, scene: plan.id, poster: relative(root, posterPath), og: relative(root, ogPath) };

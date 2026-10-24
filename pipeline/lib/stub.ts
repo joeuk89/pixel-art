@@ -1,10 +1,8 @@
 import { join } from "node:path";
-import { POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry, type ScenePlan } from "../../schema/index.ts";
+import { POSTER_OG_FILE, POSTER_OG_SCALE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry, type ScenePlan } from "../../schema/index.ts";
 import { readScene } from "./library.ts";
 import { SITE_URL } from "./site.ts";
 import { validationReport } from "./validation.ts";
-
-const OG_SCALE = 4;
 
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -24,8 +22,8 @@ export function stub(plan: ScenePlan): string {
 <meta property="og:description" content="${escapeHtml(plan.description)}">
 <meta property="og:url" content="${page}">
 <meta property="og:image" content="${page}${POSTER_OG_FILE}">
-<meta property="og:image:width" content="${SCENE_WIDTH * OG_SCALE}">
-<meta property="og:image:height" content="${SCENE_HEIGHT * OG_SCALE}">
+<meta property="og:image:width" content="${SCENE_WIDTH * POSTER_OG_SCALE}">
+<meta property="og:image:height" content="${SCENE_HEIGHT * POSTER_OG_SCALE}">
 <meta name="twitter:card" content="summary_large_image">
 <script src="../../viewer.js" defer></script>
 </head>
