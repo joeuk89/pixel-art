@@ -1,0 +1,45 @@
+{
+  "id": "lamp-floor-linen-drum-01",
+  "subject": "lamp",
+  "tags": [
+    "lamp",
+    "floor lamp",
+    "brass",
+    "linen",
+    "modern",
+    "interior"
+  ],
+  "brief": "tall slim floor lamp, brass stem, round base, cream linen drum shade",
+  "prompt": "tall slim floor lamp, brass stem, round base, cream linen drum shade",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 167835954,
+  "palette": "cosy-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T11:02:44.594Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 24,
+  "height": 80,
+  "realSize": {
+    "w": 0.45,
+    "h": 1.6
+  },
+  "transparent": true
+}

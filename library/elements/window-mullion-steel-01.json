@@ -1,0 +1,46 @@
+{
+  "id": "window-mullion-steel-01",
+  "subject": "window",
+  "tags": [
+    "window",
+    "mullion",
+    "steel",
+    "modern",
+    "penthouse",
+    "interior",
+    "floor-to-ceiling"
+  ],
+  "brief": "slim black steel window mullion, one tall straight vertical post, plain, top to bottom of the canvas",
+  "prompt": "slim black steel window mullion, one tall straight vertical post, plain, top to bottom of the canvas",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1930477836,
+  "palette": "cosy-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T11:05:11.525Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 16,
+  "height": 120,
+  "realSize": {
+    "w": 0.25,
+    "h": 2.5
+  },
+  "transparent": true
+}

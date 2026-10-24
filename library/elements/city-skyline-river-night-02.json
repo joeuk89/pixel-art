@@ -1,0 +1,53 @@
+{
+  "id": "city-skyline-river-night-02",
+  "subject": "city",
+  "tags": [
+    "city",
+    "skyline",
+    "river",
+    "boats",
+    "night",
+    "urban",
+    "towers",
+    "aerial"
+  ],
+  "brief": "city skyline at night seen from high above, a variety of towers, office blocks and spires with yellow window lights, a wide dark river winding across the bottom with small boats, sky above the rooftops fully transparent, tiles left to right",
+  "prompt": "city skyline at night seen from high above, a variety of towers, office blocks and spires with yellow window lights, a wide dark river winding across the bottom with small boats, sky above the rooftops fully transparent, tiles left to right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 1944059799,
+  "palette": "cosy-night",
+  "styleAnchor": "armchair-back-wool-throw-01",
+  "createdAt": "2026-10-24T11:15:17.357Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 128,
+  "height": 72,
+  "realSize": {
+    "w": 2.67,
+    "h": 1.5
+  },
+  "transparent": true
+}

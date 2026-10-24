@@ -1,0 +1,46 @@
+{
+  "id": "table-side-tumbler-whisky-01",
+  "subject": "table",
+  "tags": [
+    "table",
+    "side table",
+    "marble",
+    "whisky",
+    "glass",
+    "modern",
+    "interior"
+  ],
+  "brief": "small round side table, black metal legs, dark marble top, a single crystal whisky tumbler on top",
+  "prompt": "small round side table, black metal legs, dark marble top, a single crystal whisky tumbler on top",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 294554473,
+  "palette": "cosy-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T11:02:44.725Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 24,
+  "height": 28,
+  "realSize": {
+    "w": 0.5,
+    "h": 0.55
+  },
+  "transparent": true
+}

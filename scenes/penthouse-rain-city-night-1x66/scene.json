@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "id": "penthouse-rain-city-night-1x66",
+  "title": "Top of the Tower",
+  "prompt": "view from the inside of a luxury, penthouse apartment, looking out to the huge floor to ceiling windows at the night sky, and the incredible city scape - include a variety of buildings, and a river dotted with boats ect.\n\nThe inside of the apartment it is cosy and modern. It is dark in the apartment apart from a lamp that lets out a gentle warm glow. The vibe is moody, atmospheric - it's raining hard outside, and you can hear the wind this high up buffeting the tallest building in the city that you're at the top of.\n\n---\n\nFeel free to add/tweak to this - those are my ideas so far. I want something moody, a bit melancholy - kind of like a modern 'lonely king' at the top of the tower feel",
+  "createdAt": "2026-10-24T10:58:26Z",
+  "seed": 2038969678,
+  "status": "resolved",
+  "palette": "cosy-night",
+  "scale": 48,
+  "styleAnchor": "armchair-back-wool-throw-01",
+  "layers": [
+    {
+      "name": "room",
+      "fill": 0
+    },
+    {
+      "name": "sky",
+      "placements": [
+        {
+          "id": "sky",
+          "element": "sky-storm-clouds-night-01",
+          "x": 0,
+          "y": 0,
+          "tileX": true
+        }
+      ]
+    },
+    {
+      "name": "city",
+      "placements": [
+        {
+          "id": "city",
+          "element": "city-skyline-river-night-02",
+          "x": 0,
+          "y": 32,
+          "tileX": true
+        }
+      ]
+    },
+    {
+      "name": "glass",
+      "placements": [
+        {
+          "id": "mullion-left",
+          "element": "window-mullion-steel-01",
+          "x": 58,
+          "y": -4
+        },
+        {
+          "id": "mullion-right",
+          "element": "window-mullion-steel-01",
+          "x": 122,
+          "y": -4
+        }
+      ]
+    },
+    {
+      "name": "furniture",
+      "placements": [
+        {
+          "id": "lamp",
+          "element": "lamp-floor-linen-drum-01",
+          "x": 90,
+          "y": 36
+        },
+        {
+          "id": "armchair",
+          "element": "armchair-back-wool-throw-01",
+          "x": 112,
+          "y": 68
+        },
+        {
+          "id": "side-table",
+          "element": "table-side-tumbler-whisky-01",
+          "x": 162,
+          "y": 88
+        }
+      ]
+    }
+  ],
+  "primitives": [
+    {
+      "type": "rain",
+      "anchor": "city",
+      "region": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 104
+      },
+      "colours": [
+        5,
+        6,
+        7
+      ],
+      "density": 64,
+      "drift": 0.5
+    },
+    {
+      "type": "twinkle",
+      "anchor": "city",
+      "colours": [
+        8,
+        12
+      ],
+      "count": 10
+    },
+    {
+      "type": "glow",
+      "anchor": "lamp",
+      "offset": {
+        "x": 12,
+        "y": 10
+      },
+      "colour": 9,
+      "radius": 40,
+      "flicker": 0.05,
+      "pool": {
+        "y": 117,
+        "colour": 10
+      }
+    }
+  ],
+  "soundtrack": {
+    "music": {
+      "brief": "slow solo piano with a soft low cello, sparse and melancholy, late at night, around 60 bpm",
+      "service": "stable-audio-3",
+      "file": "music.mp3",
+      "loopStart": 0,
+      "loopEnd": 112,
+      "seam": {
+        "seamJump": 0.0005,
+        "maxInnerJump": 0.085
+      },
+      "gain": 0.6
+    },
+    "ambient": [
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-rain-window-242889"
+        },
+        "file": "rain-window.ogg",
+        "distance": "near"
+      },
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-night-interior-613147"
+        },
+        "file": "night-interior.ogg",
+        "distance": "mid"
+      },
+      {
+        "source": {
+          "kind": "generated",
+          "service": "elevenlabs-fal",
+          "brief": "strong wind gusting against a tall glass building, low hollow howl, buffeting, steady, no trees",
+          "id": "elevenlabs-tower-wind-01"
+        },
+        "file": "tower-wind.ogg",
+        "distance": "far"
+      },
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-traffic-distant-223093"
+        },
+        "file": "traffic-distant.ogg",
+        "distance": "far",
+        "gain": 0.4
+      }
+    ],
+    "oneshots": [
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-thunder-distant-195522"
+        },
+        "file": "thunder.ogg",
+        "distance": "far",
+        "every": [
+          70,
+          160
+        ]
+      }
+    ]
+  },
+  "cost": {
+    "pixellabGenerations": 39,
+    "meteredUsd": {
+      "stability": 0.08,
+      "fal": 0.044
+    },
+    "attemptsAbandoned": 0,
+    "approvedOverage": null
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "elevenlabs-tower-wind-01",
+  "kind": "loop",
+  "distance": [
+    "far"
+  ],
+  "subject": "tower wind",
+  "tags": [
+    "tower wind"
+  ],
+  "source": "fal",
+  "sourceId": "01a16d92-2e45-7640-8985-8e992e9d45c1",
+  "sourceUrl": "https://v3b.fal.media/files/b/0aafa7fe/sKdpQhvshCCp2aHA1J8A7_sound_effect.ogg",
+  "sourceName": "ElevenLabs Sound Effects v2",
+  "author": "ElevenLabs via fal.ai",
+  "licence": "fal.ai Terms of Service, commercial use",
+  "licenceUrl": "https://fal.ai/terms",
+  "attribution": "Generated with ElevenLabs Sound Effects v2 via fal.ai",
+  "file": "elevenlabs-tower-wind-01.ogg",
+  "durationSec": 22,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "method": "generated",
+    "model": "fal-ai/elevenlabs/sound-effects/v2",
+    "params": {
+      "loop": true,
+      "duration_seconds": 22,
+      "output_format": "opus_48000_128"
+    },
+    "costUsd": 0.044,
+    "target": "-20 dBFS RMS",
+    "gainDb": 6.7,
+    "rmsDbfs": -20,
+    "peakDbfs": -0.7,
+    "limitedBy": null
+  },
+  "fetchedAt": "2026-10-24",
+  "brief": "strong wind gusting against a tall glass building, low hollow howl, buffeting, steady, no trees"
+}

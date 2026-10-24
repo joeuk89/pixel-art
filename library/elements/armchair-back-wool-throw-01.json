@@ -1,0 +1,45 @@
+{
+  "id": "armchair-back-wool-throw-01",
+  "subject": "armchair",
+  "tags": [
+    "armchair",
+    "chair",
+    "modern",
+    "throw",
+    "interior",
+    "back view"
+  ],
+  "brief": "modern armchair seen from behind, high rounded back, dark charcoal fabric, a cream wool throw draped over the back",
+  "prompt": "modern armchair seen from behind, high rounded back, dark charcoal fabric, a cream wool throw draped over the back",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1057954129,
+  "palette": "cosy-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T11:01:39.102Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 44,
+  "height": 48,
+  "realSize": {
+    "w": 0.9,
+    "h": 1
+  },
+  "transparent": true
+}
