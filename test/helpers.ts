@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 export const repo = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const fixtures = join(repo, "test/fixtures");
 export const fixtureScene = "scenes/fixture-rainy-desk-a1b2/scene.json";
+export const ambientRecordCount = readdirSync(join(repo, "library/ambient")).filter((name) => name.endsWith(".json")).length;
 
 export function makeTree(): string {
   const root = mkdtempSync(join(tmpdir(), "pixel-art-"));

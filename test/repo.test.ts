@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { repo, validate } from "./helpers.ts";
+import { ambientRecordCount, repo, validate } from "./helpers.ts";
 
 test("validate exits 0 over the repo and prints one JSON object", () => {
   const { code, report, stderr } = validate(repo);
@@ -22,10 +22,10 @@ test("the cosy-night Palette validates and index 0 is the background colour", ()
   assert.equal(palette.colours[0], "#120e1a");
 });
 
-test("all twenty-three Ambient loop records validate", () => {
+test("every Ambient loop record validates", () => {
   const { code, report } = validate(repo, "library/ambient");
   assert.equal(code, 0);
-  assert.equal(report.checked.ambient, 23);
+  assert.equal(report.checked.ambient, ambientRecordCount);
   assert.deepEqual(report.errors, []);
 });
 

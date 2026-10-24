@@ -2,14 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { copyFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { editJson, fixtureScene, fixtures, makeTree, readJson, validate, writeJson, type ValidateResult } from "./helpers.ts";
+import { ambientRecordCount, editJson, fixtureScene, fixtures, makeTree, readJson, validate, writeJson, type ValidateResult } from "./helpers.ts";
 
 test("a resolved fixture Scene validates and is reported resolved", () => {
   const { code, report } = validate(makeTree());
   assert.equal(code, 0);
   assert.equal(report.ok, true);
   assert.deepEqual(report.errors, []);
-  assert.deepEqual(report.checked, { scenes: 1, elements: 3, palettes: 1, ambient: 23 });
+  assert.deepEqual(report.checked, { scenes: 1, elements: 3, palettes: 1, ambient: ambientRecordCount });
   assert.deepEqual(report.scenes, [
     { id: "fixture-rainy-desk-a1b2", file: fixtureScene, declared: "resolved", status: "resolved", pending: [] },
   ]);
@@ -252,7 +252,7 @@ test("given paths, validate reports only the files under them", () => {
   editJson(root, WINDOW, (record) => { record.palette = "sunny-meadow"; });
   const { code, report } = validate(root, "library/ambient");
   assert.equal(code, 0);
-  assert.deepEqual(report.checked, { scenes: 0, elements: 0, palettes: 0, ambient: 23 });
+  assert.deepEqual(report.checked, { scenes: 0, elements: 0, palettes: 0, ambient: ambientRecordCount });
 });
 
 test("a resolved Scene whose Element PNG is missing fails on its own file when validated by path", () => {
