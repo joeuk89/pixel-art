@@ -1,7 +1,7 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
@@ -87,4 +87,136 @@ test("a lighting-only Save replaces the Variant lighting fields and dither and l
   assert.equal(after.slice(0, after.indexOf('"dither"')), before.slice(0, before.indexOf('"dither"')));
   assert.equal(between(after, '"styleAnchor"', '"ambient"'), between(before, '"styleAnchor"', '"ambient"'));
   assert.equal(after.slice(after.indexOf('{ "id": "clear-night"')), before.slice(before.indexOf('{ "id": "clear-night"')));
+});
+
+const staged = (root: string) => git(root, "diff", "--cached", "--name-only").split("\n").filter(Boolean);
+
+test("an invalid Save is refused with the validation message and writes nothing", async () => {
+  const root = tunerTree();
+  const before = readFileSync(join(root, fixtureScene));
+  const poster = readFileSync(join(root, `scenes/${id}/poster.png`));
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  tuning.variants[0].lights[1].anchor = "window";
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 400);
+  assert.equal(out.ok, false);
+  assert.match(out.error, /a point Light needs exactly one of anchor or at/);
+  assert.deepEqual(readFileSync(join(root, fixtureScene)), before);
+  assert.deepEqual(readFileSync(join(root, `scenes/${id}/poster.png`)), poster);
+  assert.deepEqual(staged(root), []);
+});
+
+test("a Halo colour outside the Palette is refused", async () => {
+  const root = tunerTree();
+  const before = readFileSync(join(root, fixtureScene));
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  tuning.variants[0].lights[0].halo.colour = 31;
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 400);
+  assert.match(out.error, /halo\.colour: colour index 31 is not in Palette fixture-night-v2/);
+  assert.deepEqual(readFileSync(join(root, fixtureScene)), before);
+});
+
+test("a Save cannot add or drop a Variant", async () => {
+  const root = tunerTree();
+  const before = readFileSync(join(root, fixtureScene));
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  tuning.variants.pop();
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 400);
+  assert.match(out.error, /cannot add, remove or reorder Variants/);
+  assert.deepEqual(readFileSync(join(root, fixtureScene)), before);
+});
+
+const posterPath = (root: string) => join(root, `scenes/${id}/poster.png`);
+const old = new Date("2020-01-01T00:00:00Z");
+
+test("a Save that changes the default Variant renders the Poster again under the new lighting", async () => {
+  const root = tunerTree();
+  const poster = readFileSync(posterPath(root));
+  utimesSync(posterPath(root), old, old);
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  tuning.variants[0].ambient.level = -1;
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 200, JSON.stringify(out));
+  assert.equal(out.poster, true);
+  assert.notDeepEqual(readFileSync(posterPath(root)), poster);
+  assert.ok(statSync(posterPath(root)).mtimeMs > old.getTime());
+});
+
+test("a Save that changes only a second Variant leaves the Poster alone", async () => {
+  const root = tunerTree();
+  utimesSync(posterPath(root), old, old);
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  tuning.variants[1].ambient.level = -1;
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 200, JSON.stringify(out));
+  assert.equal(out.poster, false);
+  assert.equal(statSync(posterPath(root)).mtimeMs, old.getTime());
+  assert.equal(readJson(root, fixtureScene).variants[1].ambient.level, -1);
+});
+
+test("preview runs after every Save: the draft Scene is resolved and its files staged, never committed", async () => {
+  const root = tunerTree();
+  const plan = readJson(root, fixtureScene);
+  plan.status = "draft";
+  writeJson(root, fixtureScene, plan);
+  git(root, "commit", "-qam", "draft");
+  const url = await startTuner(root);
+  const tuning = tuningOf(plan);
+  tuning.variants[1].emissiveOff = [];
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 200, JSON.stringify(out));
+  assert.equal(out.ok, true);
+  assert.equal(out.status, "resolved");
+  assert.equal(readJson(root, fixtureScene).status, "resolved");
+  assert.ok(staged(root).includes(`scenes/${id}/scene.json`));
+  assert.equal(git(root, "rev-list", "--count", "HEAD").trim(), "2");
+});
+
+test("when a preview check fails the Scene goes back to draft and the Save names the check", async () => {
+  const root = tunerTree("fail");
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  tuning.variants[0].lights[0].radius = 120;
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 200, JSON.stringify(out));
+  assert.equal(out.ok, false);
+  assert.deepEqual(out.preview.failed, ["tests"]);
+  assert.equal(out.status, "draft");
+  assert.equal(readJson(root, fixtureScene).status, "draft");
+  assert.equal(readJson(root, fixtureScene).variants[0].lights[0].radius, 120);
+  assert.deepEqual(staged(root), []);
+});
+
+test("adding and removing a Light round-trips through Save", async () => {
+  const root = tunerTree();
+  const url = await startTuner(root);
+  const tuning = tuningOf(readJson(root, fixtureScene));
+  const added = { type: "point", id: "moon", at: { x: 40, y: 20 }, radius: 60, strength: 1, tint: "cool" };
+  tuning.variants[0].lights = [tuning.variants[0].lights[0], tuning.variants[0].lights[2], added];
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 200, JSON.stringify(out));
+  const served = await (await fetch(new URL("scene.json", url))).json();
+  for (const plan of [readJson(root, fixtureScene), served]) {
+    assert.deepEqual(plan.variants[0].lights.map((l: any) => l.id), ["lamp", "moonbeam", "moon"]);
+    assert.deepEqual(plan.variants[0].lights[2], added);
+  }
+
+  tuning.variants[0].lights = tuning.variants[0].lights.slice(0, 2);
+  assert.equal((await save(url, tuning)).status, 200);
+  assert.deepEqual(readJson(root, fixtureScene).variants[0].lights.map((l: any) => l.id), ["lamp", "moonbeam"]);
 });
