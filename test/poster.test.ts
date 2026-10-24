@@ -97,9 +97,17 @@ test("a default Variant with a companion Palette renders a Poster in the compani
   const { code, stderr } = poster(root, fixtureScene);
   assert.equal(code, 0, stderr);
   const { data } = await rgba(join(root, sceneDir, "poster.png"));
+  const lamp = { x: 168 + 124, y: 28 + 160, radius: 24 };
+  let halo = 0;
   for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 1] !== 0 || data[i + 2] !== 0x40) assert.fail(`pixel ${(i / 4) % 384},${Math.floor(i / 4 / 384)} is not a dusk colour`);
+    const x = (i / 4) % 384;
+    const y = Math.floor(i / 4 / 384);
+    if (data[i + 1] !== 0) assert.fail(`pixel ${x},${y} has green, which no dusk colour has`);
+    if (Math.hypot(x - lamp.x, y - lamp.y) < lamp.radius) {
+      if (data[i + 2] !== 0x40) halo++;
+    } else if (data[i + 2] !== 0x40) assert.fail(`pixel ${x},${y} is not a dusk colour`);
   }
+  assert.ok(halo > 0, "the lamp's Halo is not drawn in the companion's colour");
 });
 
 test("the Open Graph copy is the Poster at 2x, every 2x2 block one Poster pixel", async () => {
