@@ -11,7 +11,7 @@
   "scale": 48,
   "dither": false,
   "styleAnchor": "window-wood-transparent-panes-01",
-  "stage": { "back": { "x": 48, "y": 24, "w": 288, "h": 160 }, "vanishingPoint": { "x": 190, "y": 118 }, "f": 150 },
+  "stage": { "back": { "x": 48, "y": 26, "w": 288, "h": 190 }, "vanishingPoint": { "x": 190, "y": 118 }, "f": 150 },
   "layers": [
     { "name": "sky", "kind": "fill", "plane": "far", "colour": 1 },
     { "name": "stars", "kind": "placements", "plane": "far", "placements": [
