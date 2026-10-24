@@ -52,6 +52,10 @@ _Avoid_: Library (for Scenes), feed, index
 The Claude Code skill that turns a Prompt into a Scene plan and drives the pipeline that produces the Scene.
 _Avoid_: Generator, orchestrator, agent
 
+**Tuner**:
+The owner's local tool for adjusting a Scene's lighting and zoom by hand before it is published. It never ships and never spends money.
+_Avoid_: Editor, lighting tuner, Scene tuner, studio
+
 **Scene plan**:
 The structured description of a Scene the Director writes before any Element or Soundtrack is generated.
 _Avoid_: Manifest, config, spec, scene file
