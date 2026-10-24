@@ -1,4 +1,4 @@
-import { allPlacements, ambientLoopRecordSchema, elementRecordSchema, type AmbientLoopRecord, type ScenePlan } from "../schema/index.ts";
+import { allPlacements, ambientLoopRecordSchema, elementRecordSchema, sceneSounds, type AmbientLoopRecord, type ScenePlan } from "../schema/index.ts";
 import { fetchJson } from "./http.ts";
 
 const SERVICE_NAMES: Record<string, string> = {
@@ -24,7 +24,7 @@ function serviceName(service: string): string {
 
 export async function loadCredits(root: URL, plan: ScenePlan): Promise<Credits> {
   const elementIds = new Set(allPlacements(plan).map((p) => p.element));
-  const sounds = [...plan.soundtrack.ambient, ...plan.soundtrack.oneshots].map((s) => s.source);
+  const sounds = sceneSounds(plan).map((s) => s.entry.source);
   const curatedIds = new Set(sounds.flatMap((s) => (s.kind === "curated" ? [s.id] : [])));
 
   const [elements, curated] = await Promise.all([

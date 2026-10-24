@@ -10,6 +10,7 @@ import {
   placementsOf,
   POSTER_FILE,
   scenePlanSchema,
+  sceneSounds,
   type AmbientLoopRecord,
   type ElementRecord,
   type Palette,
@@ -236,7 +237,7 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
     }
   }
 
-  const { music, ambient, oneshots } = plan.soundtrack;
+  const { music } = plan.soundtrack;
   if (music.file === undefined || music.loopEnd === undefined) {
     pending.push({ path: "soundtrack.music", message: "music is not generated yet" });
   } else if (!beside(music.file)) {
@@ -244,11 +245,7 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
   } else if (music.seam === undefined) {
     pending.push({ path: "soundtrack.music.seam", message: "music loop seam is not measured" });
   }
-  const entries = [
-    ...ambient.map((entry, i) => ({ entry, at: `soundtrack.ambient[${i}]` })),
-    ...oneshots.map((entry, i) => ({ entry, at: `soundtrack.oneshots[${i}]` })),
-  ];
-  for (const { entry, at } of entries) {
+  for (const { entry, at } of sceneSounds(plan)) {
     const { source } = entry;
     if (source.kind === "generated" && source.id === undefined) {
       pending.push({ path: `${at}.source`, message: "sound is not generated yet" });
@@ -289,8 +286,7 @@ function referencedFiles(plan: ScenePlan): Set<string> {
     const element = elements.get(p.element);
     if (element) files.add(`${PALETTES}/${element.palette}.json`);
   }
-  const { ambient, oneshots } = plan.soundtrack;
-  for (const { source } of [...ambient, ...oneshots]) {
+  for (const { entry: { source } } of sceneSounds(plan)) {
     if (source.id !== undefined) files.add(`${AMBIENT}/${source.id}.json`);
   }
   return files;
