@@ -14,6 +14,9 @@ footer { padding: 16px; opacity: 0.7; font-size: 13px; }
 .controls-shown .overlay { visibility: visible; opacity: 1; }
 .overlay .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .overlay button, .overlay a, .info button { font: inherit; color: inherit; background: #0008; border: 1px solid #fff4; border-radius: 6px; padding: 6px 10px; cursor: pointer; text-decoration: none; }
+.overlay .level { display: flex; align-items: center; gap: 6px; }
+.overlay .level input { width: 88px; margin: 0; accent-color: #e8e0d0; }
+.overlay .level:has(input:disabled) { opacity: 0.5; }
 .info { position: absolute; left: 16px; right: 16px; bottom: 16px; max-width: 560px; max-height: calc(100% - 96px); overflow: auto;
   box-sizing: border-box; padding: 16px; border-radius: 8px; background: #000c; }
 .info h2 { margin: 0 0 8px; font-size: 17px; }

@@ -3,7 +3,7 @@ import { createAudio } from "./audio.ts";
 import { renderGallery } from "./gallery.ts";
 import { createMuteState } from "./mute.ts";
 import { renderScene } from "./scene.ts";
-import { storedSoundOn, storedVolume, storeSoundOn } from "./settings.ts";
+import { storedLevel, storedSoundOn, storeSoundOn } from "./settings.ts";
 import { routeOf, siteRoot, type Route } from "./site.ts";
 import { injectStyle } from "./style.ts";
 
@@ -14,7 +14,7 @@ export function parseScenePlan(json: unknown): ScenePlan {
 function boot(root: URL): void {
   let view: AbortController | undefined;
   const mute = createMuteState(!storedSoundOn());
-  const audio = createAudio(storedVolume());
+  const audio = createAudio({ music: storedLevel("music"), ambient: storedLevel("ambient") });
   audio.setRunning(!mute.muted);
   mute.onChange((muted) => {
     storeSoundOn(!muted);

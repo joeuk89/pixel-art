@@ -1,29 +1,38 @@
 import type { ScenePlan } from "../schema/index.ts";
 import { fetchOk } from "./http.ts";
+import type { Channel } from "./settings.ts";
 import { DISTANCE_BUSES, loopOffset, oneshotFires } from "./sound-schedule.ts";
 
 type Distance = keyof typeof DISTANCE_BUSES;
 
+export type Levels = Record<Channel, number>;
+
 export type Audio = {
   readonly context: AudioContext;
-  readonly master: GainNode;
-  volume: number;
+  readonly buses: Readonly<Record<Channel, GainNode>>;
+  level(channel: Channel): number;
+  setLevel(channel: Channel, level: number): void;
   setRunning(running: boolean): void;
 };
 
-export function createAudio(volume: number): Audio {
-  const context = new AudioContext();
-  const master = context.createGain();
-  master.gain.value = volume;
-  master.connect(context.destination);
+export function hasAmbientSound(plan: Pick<ScenePlan, "soundtrack">): boolean {
+  return plan.soundtrack.ambient.length + plan.soundtrack.oneshots.length > 0;
+}
+
+export function createAudio(levels: Levels, context: AudioContext = new AudioContext()): Audio {
+  const bus = (level: number) => {
+    const node = context.createGain();
+    node.gain.value = level;
+    node.connect(context.destination);
+    return node;
+  };
+  const buses = { music: bus(levels.music), ambient: bus(levels.ambient) };
   return {
     context,
-    master,
-    get volume() {
-      return master.gain.value;
-    },
-    set volume(value) {
-      master.gain.value = value;
+    buses,
+    level: (channel) => buses[channel].gain.value,
+    setLevel(channel, level) {
+      buses[channel].gain.value = level;
     },
     setRunning(running) {
       (running ? context.resume() : context.suspend()).catch(() => {});
@@ -31,7 +40,7 @@ export function createAudio(volume: number): Audio {
   };
 }
 
-export async function playSoundtrack({ context, master }: Audio, plan: ScenePlan, base: URL, signal: AbortSignal): Promise<void> {
+export async function playSoundtrack({ context, buses: channels }: Audio, plan: ScenePlan, base: URL, signal: AbortSignal): Promise<void> {
   const { music, ambient, oneshots } = plan.soundtrack;
   const decode = async (file: string) => context.decodeAudioData(await (await fetchOk(new URL(file, base))).arrayBuffer());
   const [musicBuffer, ambientBuffers, oneshotBuffers] = await Promise.all([
@@ -59,7 +68,7 @@ export async function playSoundtrack({ context, master }: Audio, plan: ScenePlan
   };
   const busInput = (distance: Distance): AudioNode => {
     const spec = DISTANCE_BUSES[distance];
-    const out = gain(spec.gain, master);
+    const out = gain(spec.gain, channels.ambient);
     if (!("lowpassHz" in spec)) return out;
     const filter = context.createBiquadFilter();
     filter.type = "lowpass";
@@ -72,7 +81,7 @@ export async function playSoundtrack({ context, master }: Audio, plan: ScenePlan
   const startAt = context.currentTime;
 
   if (musicBuffer) {
-    const node = source(musicBuffer, gain(music.gain, master));
+    const node = source(musicBuffer, gain(music.gain, channels.music));
     node.loop = true;
     node.loopStart = music.loopStart ?? 0;
     node.loopEnd = music.loopEnd ?? musicBuffer.duration;
