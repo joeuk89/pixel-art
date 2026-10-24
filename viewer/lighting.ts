@@ -48,7 +48,7 @@ export type LightField = { level: Float32Array; tint: Uint8Array };
 type Point = Extract<Light, { type: "point" }>;
 type Source = { tint: number; flicker?: Flicker; at(x: number, y: number): number };
 
-function pointOf(light: Point, plan: ScenePlan): { x: number; y: number } {
+export function pointOf(light: Point, plan: ScenePlan): { x: number; y: number } {
   if (light.at) return light.at;
   const anchor = allPlacements(plan).find((p) => p.id === light.anchor);
   if (!anchor) throw new Error(`Light ${light.id}: no Placement ${light.anchor} to anchor to`);
