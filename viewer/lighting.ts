@@ -1,4 +1,5 @@
 import { createFlicker, flickerTick, type Flicker } from "./flicker.ts";
+import { positioned, type Size } from "./placement.ts";
 import { allPlacements, PLANE_RAMP_OFFSETS, SCENE_HEIGHT, SCENE_WIDTH, type Light, type Palette, type ScenePlan, type Variant } from "../schema/index.ts";
 
 const MIN_LEVEL = -4;
@@ -14,7 +15,8 @@ const PIXELS = SCENE_WIDTH * SCENE_HEIGHT;
 
 export type Planes = { rgba: Uint8ClampedArray; index: Uint8Array; layer: Uint8Array; emissive: Uint8Array };
 
-export type LightingInput = { plan: ScenePlan; palette: Palette; variant: Variant; seed: number; companion?: Palette };
+export type LightingInput = { plan: ScenePlan; palette: Palette; variant: Variant; seed: number; companion?: Palette; sizeOf: SizeOf };
+type SizeOf = (element: string) => Size | undefined;
 
 // Browsers and Node run little-endian, so a pixel's RGBA bytes read as one ABGR word.
 function words(palette: Palette): Uint32Array {
@@ -48,15 +50,18 @@ export type LightField = { level: Float32Array; tint: Uint8Array };
 type Point = Extract<Light, { type: "point" }>;
 type Source = { tint: number; flicker?: Flicker; at(x: number, y: number): number };
 
-export function pointOf(light: Point, plan: ScenePlan): { x: number; y: number } {
+export function pointOf(light: Point, plan: ScenePlan, sizeOf: SizeOf): { x: number; y: number } {
   if (light.at) return light.at;
-  const anchor = allPlacements(plan).find((p) => p.id === light.anchor);
-  if (!anchor) throw new Error(`Light ${light.id}: no Placement ${light.anchor} to anchor to`);
+  const found = allPlacements(plan).find((p) => p.id === light.anchor);
+  if (!found) throw new Error(`Light ${light.id}: no Placement ${light.anchor} to anchor to`);
+  const size = sizeOf(found.element);
+  if (!size) throw new Error(`Light ${light.id}: Element ${found.element} has no pixels`);
+  const anchor = positioned(found, size);
   return { x: anchor.x + (light.offset?.x ?? 0), y: anchor.y + (light.offset?.y ?? 0) };
 }
 
-function pointContribution(light: Point, plan: ScenePlan): (x: number, y: number) => number {
-  const { x: lx, y: ly } = pointOf(light, plan);
+function pointContribution(light: Point, plan: ScenePlan, sizeOf: SizeOf): (x: number, y: number) => number {
+  const { x: lx, y: ly } = pointOf(light, plan, sizeOf);
   const r2 = light.radius * light.radius;
   return (x, y) => {
     const d2 = (x - lx) ** 2 + (y - ly) ** 2;
@@ -110,11 +115,11 @@ function lightField(sources: readonly Source[], dipped: number): LightField {
 
 type Halo = { x: number; y: number; radius: number; strength: number; rgb: readonly [number, number, number]; flicker?: Flicker };
 
-function halosOf(plan: ScenePlan, lights: readonly Light[], shown: Palette, sources: readonly Source[]): Halo[] {
+function halosOf(plan: ScenePlan, lights: readonly Light[], shown: Palette, sources: readonly Source[], sizeOf: SizeOf): Halo[] {
   return lights.flatMap((light, i): Halo[] => {
     if (light.type !== "point" || !light.halo) return [];
     const n = parseInt(shown.colours[light.halo.colour].slice(1), 16);
-    const { x, y } = pointOf(light, plan);
+    const { x, y } = pointOf(light, plan, sizeOf);
     return [{ x, y, radius: light.halo.radius, strength: light.halo.strength, rgb: [n >> 16, (n >> 8) & 255, n & 255], flicker: sources[i].flicker }];
   });
 }
@@ -146,7 +151,7 @@ export type Lighting = {
   apply(planes: Planes, out: Uint8ClampedArray, timeMs: number): void;
 };
 
-export function createLighting({ plan, palette, variant, seed, companion }: LightingInput): Lighting {
+export function createLighting({ plan, palette, variant, seed, companion, sizeOf }: LightingInput): Lighting {
   const shown = companion ?? palette;
   if (shown.colours.length !== palette.colours.length) {
     throw new Error(`companion Palette ${shown.name} has ${shown.colours.length} colours, ${palette.name} has ${palette.colours.length}`);
@@ -158,10 +163,10 @@ export function createLighting({ plan, palette, variant, seed, companion }: Ligh
   const sources: Source[] = variant.lights.map((light) => ({
     tint: light.tint === "cool" ? COOL : WARM,
     flicker: light.type === "point" && light.flicker ? createFlicker(light.flicker, seed, light.id) : undefined,
-    at: light.type === "point" ? pointContribution(light, plan) : beamContribution(light),
+    at: light.type === "point" ? pointContribution(light, plan, sizeOf) : beamContribution(light),
   }));
   const flickers = sources.some((s) => s.flicker);
-  const halos = halosOf(plan, variant.lights, shown, sources);
+  const halos = halosOf(plan, variant.lights, shown, sources, sizeOf);
   const haloFlickers = halos.some((h) => h.flicker);
   const fields = new Map<number, LightField>();
   const dippedAt = (tick: number) => sources.reduce((mask, s, i) => (s.flicker?.dips(tick) ? mask | (1 << i) : mask), 0);

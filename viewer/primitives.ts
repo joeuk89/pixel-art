@@ -1,5 +1,6 @@
 import { placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
-import { mix, placedXs, positioned, step, type ElementPixels, type Pixels, type Positioned, type PrimitiveDraw } from "./compositor.ts";
+import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
+import { positioned, type Positioned } from "./placement.ts";
 import { random } from "./random.ts";
 
 export const WEATHER_FPS = 24;

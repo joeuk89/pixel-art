@@ -1,6 +1,7 @@
 import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
 import { FLICKER_FPS } from "./flicker.ts";
 import { createLighting, NONE, UNLIT, type LightField, type Planes } from "./lighting.ts";
+import { positioned, type Positioned } from "./placement.ts";
 
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
@@ -92,13 +93,6 @@ function blit(planes: Planes, src: Source, x0: number, y0: number, flipX: boolea
       planes.emissive[p] = emissive ? emissive[k] : 0;
     }
   }
-}
-
-export type Positioned = Placement & { x: number; y: number };
-
-export function positioned(p: Placement, size: { width: number; height: number }): Positioned {
-  if (!p.foot) return p as Positioned;
-  return { ...p, x: Math.round(p.foot.x - size.width / 2), y: p.foot.y - size.height };
 }
 
 // Foot Placements take the slots foot Placements hold, nearest last, so x, y Placements keep their place in the order.
@@ -258,7 +252,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   });
   if (drawn) ops.push({ overlay: current });
 
-  const lighting = createLighting({ plan, palette, variant, seed, companion });
+  const lighting = createLighting({ plan, palette, variant, seed, companion, sizeOf: (element) => elements.get(element)?.still });
   type Clock = { fps: number; state(timeMs: number): number };
   const clocks: Clock[] = ops.flatMap((op): Clock[] => {
     if ("animated" in op) return [{ fps: op.animated.fps, state: (t) => step(t, op.animated.fps) }];
