@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import { fal } from "./fixtures/services/fal.ts";
 import { freesound } from "./fixtures/services/freesound.ts";
 import { gemini } from "./fixtures/services/gemini.ts";
+import { pixellab } from "./fixtures/services/pixellab.ts";
 import { stability } from "./fixtures/services/stability.ts";
 
 export type FixtureRequest = {
@@ -23,7 +24,7 @@ export type ServiceFixture = {
   handle: (req: FixtureRequest, base: string) => FixtureReply | undefined;
 };
 
-export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal];
+export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal, pixellab];
 
 export type FixtureServer = {
   url: string;
