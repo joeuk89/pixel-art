@@ -1,0 +1,40 @@
+{
+  "id": "freesound-fire-texture-650574",
+  "kind": "loop",
+  "distance": [
+    "near"
+  ],
+  "subject": "fire crackle",
+  "tags": [
+    "fire",
+    "crackle",
+    "fireplace",
+    "short",
+    "texture",
+    "feature"
+  ],
+  "source": "freesound",
+  "sourceId": 650574,
+  "sourceUrl": "https://freesound.org/people/soundofsong/sounds/650574/",
+  "sourceName": "fire crackling loop.wav",
+  "author": "soundofsong",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"fire crackling loop.wav\" by soundofsong on Freesound, CC0",
+  "file": "freesound-fire-texture-650574.ogg",
+  "durationSec": 5.03,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 5,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.0001,
+    "maxInnerJump": 1.4313,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 0.2
+  },
+  "fetchedAt": "2026-10-24",
+  "note": "5 s source; listen for an audible repeat before using it as the only fire sound."
+}

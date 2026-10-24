@@ -9,7 +9,7 @@ test("a resolved fixture Scene validates and is reported resolved", () => {
   assert.equal(code, 0);
   assert.equal(report.ok, true);
   assert.deepEqual(report.errors, []);
-  assert.deepEqual(report.checked, { scenes: 1, elements: 3, palettes: 1, ambient: 13 });
+  assert.deepEqual(report.checked, { scenes: 1, elements: 3, palettes: 1, ambient: 23 });
   assert.deepEqual(report.scenes, [
     { id: "fixture-rainy-desk-a1b2", file: fixtureScene, declared: "resolved", status: "resolved", pending: [] },
   ]);
@@ -80,8 +80,8 @@ test("a draft Scene with every file in place is reported resolved", () => {
 
 test("a curated source with no Sound library record keeps the Scene draft", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.soundtrack.ambient[0].source.id = "freesound-rain-window-242889"; });
-  failsWith(validate(root), fixtureScene, "soundtrack.ambient[0].source.id", /no record freesound-rain-window-242889/);
+  editJson(root, fixtureScene, (plan) => { plan.soundtrack.ambient[0].source.id = "freesound-rain-missing-999999"; });
+  failsWith(validate(root), fixtureScene, "soundtrack.ambient[0].source.id", /no record freesound-rain-missing-999999/);
 });
 
 for (const [what, breakIt] of [
@@ -208,7 +208,7 @@ test("given paths, validate reports only the files under them", () => {
   editJson(root, WINDOW, (record) => { record.palette = "sunny-meadow"; });
   const { code, report } = validate(root, "library/ambient");
   assert.equal(code, 0);
-  assert.deepEqual(report.checked, { scenes: 0, elements: 0, palettes: 0, ambient: 13 });
+  assert.deepEqual(report.checked, { scenes: 0, elements: 0, palettes: 0, ambient: 23 });
 });
 
 test("a resolved Scene whose Element PNG is missing fails on its own file when validated by path", () => {

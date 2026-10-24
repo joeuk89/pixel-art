@@ -1,0 +1,41 @@
+{
+  "id": "freesound-birds-forest-723913",
+  "kind": "loop",
+  "distance": [
+    "mid",
+    "far"
+  ],
+  "subject": "forest birds",
+  "tags": [
+    "birds",
+    "birdsong",
+    "forest",
+    "woodland",
+    "morning",
+    "garden",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 723913,
+  "sourceUrl": "https://freesound.org/people/Magnesus/sounds/723913/",
+  "sourceName": "Forest birds - ambient seamless loop",
+  "author": "Magnesus",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Forest birds - ambient seamless loop\" by Magnesus on Freesound, CC0",
+  "file": "freesound-birds-forest-723913.ogg",
+  "durationSec": 27.052,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 27.1,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.0041,
+    "maxInnerJump": 0.7825,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": 1
+  },
+  "fetchedAt": "2026-10-24"
+}

@@ -22,10 +22,10 @@ test("the cosy-night Palette validates and index 0 is the background colour", ()
   assert.equal(palette.colours[0], "#120e1a");
 });
 
-test("all thirteen Ambient loop records validate", () => {
+test("all twenty-three Ambient loop records validate", () => {
   const { code, report } = validate(repo, "library/ambient");
   assert.equal(code, 0);
-  assert.equal(report.checked.ambient, 13);
+  assert.equal(report.checked.ambient, 23);
   assert.deepEqual(report.errors, []);
 });
 

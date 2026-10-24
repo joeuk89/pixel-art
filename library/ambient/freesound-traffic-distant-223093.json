@@ -1,0 +1,41 @@
+{
+  "id": "freesound-traffic-distant-223093",
+  "kind": "loop",
+  "distance": [
+    "mid",
+    "far"
+  ],
+  "subject": "distant traffic",
+  "tags": [
+    "traffic",
+    "city",
+    "street",
+    "cars",
+    "urban",
+    "distant",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 223093,
+  "sourceUrl": "https://freesound.org/people/qubodup/sounds/223093/",
+  "sourceName": "Seamless City Loop",
+  "author": "qubodup",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Seamless City Loop\" by qubodup on Freesound, CC0",
+  "file": "freesound-traffic-distant-223093.ogg",
+  "durationSec": 30,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 30,
+    "sourceType": "flac",
+    "method": "whole",
+    "seamJump": 0.002,
+    "maxInnerJump": 0.1609,
+    "normalisedTo": "-20 dBFS RMS",
+    "gainDb": -0.1
+  },
+  "fetchedAt": "2026-10-24"
+}
