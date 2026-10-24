@@ -50,7 +50,7 @@ function hex(colour: string): [number, number, number] {
   return [n >> 16, (n >> 8) & 255, n & 255];
 }
 
-// A clean default: the whole canvas opaque in one Palette colour.
+// Every pixel opaque and in the Palette, so an Attempt passes the still Quality gate unless a test queues another image.
 function solid(width: number, height: number, colour: string): Buffer {
   const [r, g, b] = hex(colour);
   const rgba = new Uint8Array(width * height * 4);

@@ -8,7 +8,7 @@ import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { createImageProFlash, PixelLabError, STYLE_OPTIONS, STYLE_USAGE, type ProFlashRequest } from "./lib/pixellab.ts";
-import { gateStill } from "./lib/quality-gate.ts";
+import { gateStill, type GateReport } from "./lib/quality-gate.ts";
 
 const UPSCALE = 8;
 const ELEMENTS = "library/elements";
@@ -32,7 +32,7 @@ function findPlacement(plan: ScenePlan, id: string): Placement {
   return placement;
 }
 
-const attemptFile = (dir: string, placementId: string, n: number, ext: string) => `${dir}/${placementId}-a${n}.${ext}`;
+const attemptStem = (dir: string, placementId: string, n: number) => `${dir}/${placementId}-a${n}`;
 
 function attemptNumbers(dir: string, placementId: string): number[] {
   const prefix = `${placementId}-a`;
@@ -56,7 +56,8 @@ function createExclusive(path: string, data: Uint8Array): boolean {
 // The PNG is created exclusively, so parallel runs never write over each other's Attempt and lose its generations.
 function claimAttempt(dir: string, placementId: string, wanted: number | null, png: Uint8Array): number {
   for (let n = wanted ?? 1 + Math.max(0, ...attemptNumbers(dir, placementId)); ; n++) {
-    if (!existsSync(attemptFile(dir, placementId, n, "json")) && createExclusive(attemptFile(dir, placementId, n, "png"), png)) return n;
+    const stem = attemptStem(dir, placementId, n);
+    if (!existsSync(`${stem}.json`) && createExclusive(`${stem}.png`, png)) return n;
     if (wanted !== null) throw new Error(attemptTaken(dir, placementId, n));
   }
 }
@@ -101,7 +102,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
 
   mkdirSync(dir, { recursive: true });
   const attemptNo = claimAttempt(dir, placement.id, opts.attempt, png);
-  const stem = `${dir}/${placement.id}-a${attemptNo}`;
+  const stem = attemptStem(dir, placement.id, attemptNo);
   const decoded = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const pixels = { width: decoded.info.width, height: decoded.info.height, data: new Uint8Array(decoded.data) };
   await sharp(png).resize(pixels.width * UPSCALE, pixels.height * UPSCALE, { kernel: "nearest" }).png().toFile(`${stem}.x8.png`);
@@ -141,7 +142,7 @@ type Sidecar = {
   generations: number;
   params: Record<string, unknown>;
   styleAnchor: string | null;
-  gate: ReturnType<typeof gateStill>;
+  gate: GateReport;
 };
 
 const sidecarOf = (png: string) => png.replace(/\.png$/, ".json");

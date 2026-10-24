@@ -1,10 +1,9 @@
 import { linkSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 
 export type Slot = { release: () => void };
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function alive(pid: number): boolean {
   try {

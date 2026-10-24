@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { takeSlot } from "./job-slots.ts";
 import { service } from "./services.ts";
 
@@ -34,7 +35,6 @@ export const STYLE_USAGE = "style reference only: copy its outline, shading and 
 
 export type ProFlashResult = { png: Buffer; generations: number };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const pollMs = () => Number(process.env.PIXELLAB_POLL_MS ?? 3000);
 
 async function detail(res: Response): Promise<string> {
