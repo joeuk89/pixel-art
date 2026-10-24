@@ -9,6 +9,7 @@ import {
   scenePlanSchema,
   type AmbientLoopRecord,
   type ElementRecord,
+  type Palette,
   type ScenePlan,
 } from "../schema/index.ts";
 import { pngSize } from "./lib/png.ts";
@@ -70,10 +71,27 @@ function checkStem(file: string, field: string, value: string): void {
 }
 
 const paletteNames = new Set<string>();
+const palettes = new Map<string, Palette>();
 for (const file of jsonFiles(PALETTES)) {
   const { value } = load("palettes", file, paletteSchema);
   paletteNames.add(stem(file));
-  if (value) checkStem(file, "name", value.name);
+  if (!value) continue;
+  checkStem(file, "name", value.name);
+  palettes.set(value.name, value);
+}
+
+function primitiveColours(plan: ScenePlan): { path: string; index: number }[] {
+  return plan.primitives.flatMap((p, i) => {
+    const at = `primitives[${i}]`;
+    switch (p.type) {
+      case "glow":
+        return [{ path: `${at}.colour`, index: p.colour }, ...(p.pool ? [{ path: `${at}.pool.colour`, index: p.pool.colour }] : [])];
+      case "blink":
+        return p.swaps.flatMap((pair, k) => pair.map((index, j) => ({ path: `${at}.swaps[${k}][${j}]`, index })));
+      default:
+        return p.colours.map((index, k) => ({ path: `${at}.colours[${k}]`, index }));
+    }
+  });
 }
 
 function checkPng(file: string, path: string, png: string, width: number, height: number, what: string): void {
@@ -127,6 +145,12 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
 
   if (plan.id !== folder) problems.push({ path: "id", message: `id ${plan.id} does not match Scene folder ${folder}` });
   if (!paletteNames.has(plan.palette)) problems.push({ path: "palette", message: `Palette ${plan.palette} does not exist` });
+  const paletteSize = palettes.get(plan.palette)?.colours.length;
+  if (paletteSize !== undefined) {
+    for (const { path, index } of primitiveColours(plan)) {
+      if (index >= paletteSize) problems.push({ path, message: `colour index ${index} is not in Palette ${plan.palette} (${paletteSize} colours)` });
+    }
+  }
 
   plan.layers.forEach((layer, li) =>
     layer.placements?.forEach((p, pi) => {
@@ -148,6 +172,13 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
       }
     }),
   );
+
+  const placementIds = new Set(plan.layers.flatMap((layer) => (layer.placements ?? []).map((p) => p.id)));
+  plan.primitives.forEach((primitive, i) => {
+    if (primitive.anchor !== undefined && !placementIds.has(primitive.anchor)) {
+      pending.push({ path: `primitives[${i}].anchor`, message: `no Placement ${primitive.anchor} in this plan to anchor to` });
+    }
+  });
 
   const { music, ambient, oneshots } = plan.soundtrack;
   if (music.file === undefined || music.loopEnd === undefined) {

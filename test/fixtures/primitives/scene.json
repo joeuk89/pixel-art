@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-primitives-c3d4",
+  "title": "Fixture Primitives",
+  "prompt": "a snowy, rainy desk by a window at night, lamp on, tea steaming, a sign blinking",
+  "createdAt": "2026-10-24T21:00:00Z",
+  "seed": 2024,
+  "status": "draft",
+  "palette": "cosy-night",
+  "scale": 48,
+  "styleAnchor": "window-wood-transparent-panes-01",
+  "layers": [
+    { "name": "sky", "fill": 1 },
+    { "name": "city", "placements": [
+      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 0, "y": 30, "tileX": true } ] },
+    { "name": "room", "placements": [
+      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 72, "y": 14 },
+      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 140, "y": 96 } ] }
+  ],
+  "primitives": [
+    { "type": "rain", "anchor": "skyline", "region": { "x": 75, "y": 17, "w": 42, "h": 42 }, "colours": [6, 7], "density": 40, "drift": 0.3 },
+    { "type": "snow", "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 70, "h": 60 }, "colours": [15, 12], "density": 30, "drift": 1.5, "wind": 0.2 },
+    { "type": "glow", "anchor": "window", "offset": { "x": 24, "y": 24 }, "colour": 8, "radius": 24, "flicker": 0.4, "pool": { "y": 100, "colour": 9 } },
+    { "type": "steam", "anchor": "cat", "offset": { "x": 12, "y": 0 }, "colours": [12, 15], "count": 12 },
+    { "type": "twinkle", "anchor": "skyline", "colours": [8], "count": 5 },
+    { "type": "blink", "anchor": "window", "swaps": [[10, 14]], "rate": 2, "longShare": 0.4, "longFrames": [3, 6] }
+  ],
+  "soundtrack": {
+    "music": { "brief": "slow piano, warm and sparse", "service": "stable-audio-3", "gain": 0.6 },
+    "ambient": [],
+    "oneshots": []
+  },
+  "cost": { "pixellabGenerations": 0, "meteredUsd": {}, "attemptsAbandoned": 0, "approvedOverage": null }
+}
