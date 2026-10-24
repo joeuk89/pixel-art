@@ -1,5 +1,5 @@
 import { placementsOf } from "../schema/index.ts";
-import { anchorFits, deriveCanvas, layerScale, tier, type Canvas } from "./lib/canvas.ts";
+import { anchorFits, deriveCanvas, firstAttemptGenerations, layerScale, tier, type Canvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScene } from "./lib/library.ts";
 
@@ -32,7 +32,7 @@ main(() => {
       }];
     }),
   );
-  const generations = placements.reduce((sum, p) => sum + (p.tier.service === null ? 0 : p.tier.generations), 0);
+  const generations = placements.reduce((sum, p) => sum + firstAttemptGenerations(p.canvas), 0);
 
   return { scene: plan.id, scale: plan.scale, styleAnchor: anchor, generations, placements };
 });

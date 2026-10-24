@@ -69,7 +69,7 @@ test("a Backdrop's canvas is the size its generate block names", () => {
   assert.deepEqual(out.placements[0].canvas, { width: 264, height: 148 });
 });
 
-test("a Backdrop over 256 px on an axis has no Pro Flash tier and lists the alternatives, outside the generation count", () => {
+test("a Backdrop over 256 px on an axis has no Pro Flash tier and lists the alternatives, counted at Pro's 25 generations", () => {
   const root = treeWithExample((plan) => { plan.layers[2].placements[0].generate.size = { w: 384, h: 148 }; });
   const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
   assert.equal(code, 0, stderr);
@@ -77,7 +77,7 @@ test("a Backdrop over 256 px on an axis has no Pro Flash tier and lists the alte
     service: null,
     alternatives: [{ service: "pro", generations: 25 }, { service: "pixflux", generations: 1 }, { service: "rd-plus", meteredUsd: 0.06 }],
   });
-  assert.equal(out.generations, 5);
+  assert.equal(out.generations, 25 + 5);
 });
 
 test("an x, y Placement in a far Layer with its own scale takes that scale", () => {

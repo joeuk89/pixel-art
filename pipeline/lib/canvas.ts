@@ -41,6 +41,11 @@ export function tier(canvas: Canvas): Tier {
   return fitsProFlash(canvas) ? { service: "pro-flash", generations: proFlashGenerations(canvas) } : { service: null, alternatives: OVER_CAP_SERVICES };
 }
 
+export function firstAttemptGenerations(canvas: Canvas): number {
+  const t = tier(canvas);
+  return t.service === null ? OVER_CAP_SERVICES[0].generations : t.generations;
+}
+
 export function anchorFits(anchor: Canvas, target: Canvas): boolean {
   return anchor.width <= target.width && anchor.height <= target.height;
 }
