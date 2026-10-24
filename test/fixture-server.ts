@@ -1,7 +1,10 @@
 import { createServer, type IncomingHttpHeaders } from "node:http";
 import { spawn } from "node:child_process";
 import type { AddressInfo } from "node:net";
+import { fal } from "./fixtures/services/fal.ts";
 import { freesound } from "./fixtures/services/freesound.ts";
+import { gemini } from "./fixtures/services/gemini.ts";
+import { stability } from "./fixtures/services/stability.ts";
 
 export type FixtureRequest = {
   service: string;
@@ -20,7 +23,7 @@ export type ServiceFixture = {
   handle: (req: FixtureRequest, base: string) => FixtureReply | undefined;
 };
 
-export const serviceFixtures: ServiceFixture[] = [freesound];
+export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal];
 
 export type FixtureServer = {
   url: string;
