@@ -1,0 +1,47 @@
+{
+  "id": "bookcase-short-crammed-books-01",
+  "subject": "bookcase",
+  "tags": [
+    "bookcase",
+    "books",
+    "shelf",
+    "wood",
+    "kids",
+    "interior"
+  ],
+  "brief": "short wooden bookcase crammed with colourful children's books, two shelves",
+  "prompt": "short wooden bookcase crammed with colourful children's books, two shelves",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1442914989,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:26:55.430Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": [
+      "trimmed box 30x29 is outside 0.7x to 1.5x the target box 38.4x43.2"
+    ]
+  },
+  "kind": "prop",
+  "width": 40,
+  "height": 44,
+  "realSize": {
+    "w": 0.8,
+    "h": 0.9
+  },
+  "transparent": true
+}

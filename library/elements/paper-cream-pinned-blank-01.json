@@ -1,0 +1,45 @@
+{
+  "id": "paper-cream-pinned-blank-01",
+  "subject": "paper",
+  "tags": [
+    "paper",
+    "sheet",
+    "blank",
+    "pinned",
+    "poster",
+    "wall"
+  ],
+  "brief": "blank sheet of cream paper filling the whole canvas, thick dark brown outline all round, a red pin in each top corner, nothing drawn on it",
+  "prompt": "a plain flat cream rectangle of blank paper seen straight on, filling the whole canvas, a thin dark brown border, a small red pin at each top corner, completely empty inside: no picture, no scenery, no sky, no sun",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": false
+  },
+  "seed": 282026390,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:47:07.355Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 24,
+  "height": 32,
+  "realSize": {
+    "w": 0.5,
+    "h": 0.6
+  },
+  "transparent": true
+}

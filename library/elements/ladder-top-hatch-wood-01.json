@@ -1,0 +1,46 @@
+{
+  "id": "ladder-top-hatch-wood-01",
+  "subject": "ladder",
+  "tags": [
+    "ladder",
+    "hatch",
+    "wood",
+    "tree house",
+    "floor"
+  ],
+  "brief": "top of a wooden ladder poking up out of a dark square hatch in the floorboards",
+  "prompt": "top of a wooden ladder poking up out of a dark square hatch in the floorboards",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1835570999,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:26:55.855Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": [
+      "trimmed box 22x26 is outside 0.7x to 1.5x the target box 24x43.2"
+    ]
+  },
+  "kind": "prop",
+  "width": 24,
+  "height": 44,
+  "realSize": {
+    "w": 0.5,
+    "h": 0.9
+  },
+  "transparent": true
+}

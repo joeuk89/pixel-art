@@ -1,0 +1,50 @@
+{
+  "id": "garden-suburban-sunset-01",
+  "subject": "garden",
+  "tags": [
+    "garden",
+    "suburban",
+    "house",
+    "fence",
+    "rooftops",
+    "trees",
+    "sunset",
+    "evening",
+    "outdoor"
+  ],
+  "brief": "suburban back garden at sunset under an orange-pink sky: the back of a brick house close by with a kitchen window with warm yellow panes, a wooden garden fence, neighbouring rooftops and leafy trees beyond",
+  "prompt": "suburban back garden at sunset under an orange-pink sky: the back of a brick house close by with a kitchen window with warm yellow panes, a wooden garden fence, neighbouring rooftops and leafy trees beyond",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": false,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 915241991,
+  "palette": "golden-hour",
+  "styleAnchor": "child-asleep-beanbag-red-01",
+  "createdAt": "2026-10-24T13:25:34.342Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "backdrop",
+  "width": 128,
+  "height": 64,
+  "transparent": false
+}

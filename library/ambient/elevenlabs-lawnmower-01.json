@@ -1,0 +1,39 @@
+{
+  "id": "elevenlabs-lawnmower-01",
+  "kind": "oneshot",
+  "distance": [
+    "far"
+  ],
+  "subject": "lawnmower",
+  "tags": [
+    "lawnmower"
+  ],
+  "source": "fal",
+  "sourceId": "01a16e13-c053-7233-aee6-d9380b4c4fac",
+  "sourceUrl": "https://v3b.fal.media/files/b/0aafab4f/GPPmoXkm0WeNKtw6YUkvV_sound_effect.ogg",
+  "sourceName": "ElevenLabs Sound Effects v2",
+  "author": "ElevenLabs via fal.ai",
+  "licence": "fal.ai Terms of Service, commercial use",
+  "licenceUrl": "https://fal.ai/terms",
+  "attribution": "Generated with ElevenLabs Sound Effects v2 via fal.ai",
+  "file": "elevenlabs-lawnmower-01.ogg",
+  "durationSec": 1,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "method": "generated",
+    "model": "fal-ai/elevenlabs/sound-effects/v2",
+    "params": {
+      "loop": false,
+      "output_format": "opus_48000_128"
+    },
+    "costUsd": 0.002,
+    "target": "-6 dBFS peak",
+    "gainDb": 8.3,
+    "rmsDbfs": -22.8,
+    "peakDbfs": -6,
+    "limitedBy": null
+  },
+  "fetchedAt": "2026-10-24",
+  "brief": "petrol lawnmower running a few gardens away, faint and distant, rises then fades"
+}

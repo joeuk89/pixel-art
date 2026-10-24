@@ -1,0 +1,11 @@
+{
+  "name": "golden-hour",
+  "mood": "Late summer sun indoors: amber light on warm wood, sunset pinks and leaf greens outside.",
+  "colours": [
+    "#1f1418", "#3a2420", "#5c3a2a", "#8a5a3a",
+    "#b77f4e", "#e0a868", "#ffd27a", "#fff1c9",
+    "#f08a4b", "#f19a8e", "#c45a7a", "#6b3f63",
+    "#7e1f24", "#c8372d", "#2a4f9c", "#5b8ad6",
+    "#2f4a2a", "#5f7a35", "#f2c9a0", "#4a3a5c"
+  ]
+}

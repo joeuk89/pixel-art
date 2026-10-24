@@ -1,0 +1,47 @@
+{
+  "id": "child-asleep-beanbag-red-01",
+  "subject": "child",
+  "tags": [
+    "child",
+    "kid",
+    "asleep",
+    "sleeping",
+    "beanbag",
+    "book",
+    "red",
+    "interior"
+  ],
+  "brief": "child asleep slumped sideways on a squashy red beanbag, eyes closed, closed picture book with a bright blue cover resting on their lap",
+  "prompt": "large squashy red beanbag filling the whole canvas edge to edge, a child asleep slumped sideways on it, eyes closed, closed picture book with a bright blue cover resting on their lap",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 690091421,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:24:07.688Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 48,
+  "height": 44,
+  "realSize": {
+    "w": 1,
+    "h": 0.9
+  },
+  "transparent": true
+}

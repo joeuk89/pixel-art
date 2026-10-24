@@ -1,0 +1,51 @@
+{
+  "id": "window-frame-square-wood-01",
+  "subject": "window",
+  "tags": [
+    "window",
+    "wall",
+    "planks",
+    "wood",
+    "tree house",
+    "interior"
+  ],
+  "brief": "big square wooden window frame filling the whole canvas edge to edge, chunky honey-brown frame, four panes left fully transparent, no sky, no view through the glass",
+  "prompt": "big square wooden window frame filling the whole canvas edge to edge, chunky honey-brown frame, four panes left fully transparent, no sky, no view through the glass",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 713708141,
+  "palette": "golden-hour",
+  "styleAnchor": "child-asleep-beanbag-red-01",
+  "createdAt": "2026-10-24T13:29:03.154Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 4,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 80,
+  "height": 80,
+  "realSize": {
+    "w": 1.6,
+    "h": 1.6
+  },
+  "transparent": true
+}

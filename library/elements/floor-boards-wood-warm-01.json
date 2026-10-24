@@ -1,0 +1,46 @@
+{
+  "id": "floor-boards-wood-warm-01",
+  "subject": "floor",
+  "tags": [
+    "floor",
+    "floorboards",
+    "wood",
+    "interior",
+    "tree house"
+  ],
+  "brief": "wooden floorboards seen from a low angle filling the whole canvas, warm brown boards running left to right, tiles left to right",
+  "prompt": "plain wooden floorboards filling the whole canvas, warm brown boards running left to right, evenly lit, no light patches, no leaves, no moss, tiles left to right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": false,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 232705273,
+  "palette": "golden-hour",
+  "styleAnchor": "child-asleep-beanbag-red-01",
+  "createdAt": "2026-10-24T13:28:00.436Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "backdrop",
+  "width": 128,
+  "height": 64,
+  "transparent": false
+}

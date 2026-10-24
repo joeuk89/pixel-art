@@ -1,0 +1,46 @@
+{
+  "id": "rug-braided-oval-rag-01",
+  "subject": "rug",
+  "tags": [
+    "rug",
+    "braided",
+    "rag rug",
+    "floor",
+    "interior"
+  ],
+  "brief": "oval braided rag rug lying flat, red, blue and cream rings, seen from a low angle",
+  "prompt": "oval braided rag rug lying flat, red, blue and cream rings, seen from a low angle",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1548923606,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:26:55.572Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": [
+      "trimmed box 47x15 is outside 0.7x to 1.5x the target box 67.2x14.4"
+    ]
+  },
+  "kind": "prop",
+  "width": 68,
+  "height": 16,
+  "realSize": {
+    "w": 1.4,
+    "h": 0.3
+  },
+  "transparent": true
+}

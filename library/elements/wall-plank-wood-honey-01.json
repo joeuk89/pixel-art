@@ -1,0 +1,47 @@
+{
+  "id": "wall-plank-wood-honey-01",
+  "subject": "wall",
+  "tags": [
+    "wall",
+    "planks",
+    "wood",
+    "interior",
+    "tree house",
+    "cabin"
+  ],
+  "brief": "wall of horizontal wooden planks filling the whole canvas, honey-brown boards with dark seams, tiles left to right and top to bottom",
+  "prompt": "wall of horizontal wooden planks filling the whole canvas, honey-brown boards with dark seams, tiles left to right and top to bottom",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": false,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 1948903262,
+  "palette": "golden-hour",
+  "styleAnchor": "child-asleep-beanbag-red-01",
+  "createdAt": "2026-10-24T13:25:34.503Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "backdrop",
+  "width": 128,
+  "height": 64,
+  "transparent": false
+}

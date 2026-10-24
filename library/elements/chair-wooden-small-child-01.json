@@ -1,0 +1,44 @@
+{
+  "id": "chair-wooden-small-child-01",
+  "subject": "chair",
+  "tags": [
+    "chair",
+    "wood",
+    "kids",
+    "small",
+    "interior"
+  ],
+  "brief": "small plain wooden child's chair, side view",
+  "prompt": "small plain wooden child's chair, side view",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 214346444,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:26:55.716Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 20,
+  "height": 32,
+  "realSize": {
+    "w": 0.4,
+    "h": 0.6
+  },
+  "transparent": true
+}

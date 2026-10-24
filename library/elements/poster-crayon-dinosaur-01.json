@@ -1,0 +1,47 @@
+{
+  "id": "poster-crayon-dinosaur-01",
+  "subject": "poster",
+  "tags": [
+    "poster",
+    "drawing",
+    "crayon",
+    "dinosaur",
+    "kids",
+    "wall"
+  ],
+  "brief": "cream paper sheet with a dark brown outline filling the whole canvas, a child's crayon drawing of a green dinosaur and a yellow sun on it, a red pin in each top corner",
+  "prompt": "cream paper sheet with a dark brown outline filling the whole canvas, a child's crayon drawing of a green dinosaur and a yellow sun on it, a red pin in each top corner",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1375322301,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:37:46.083Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 4,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": [
+      "12 disconnected opaque islands"
+    ]
+  },
+  "kind": "prop",
+  "width": 24,
+  "height": 32,
+  "realSize": {
+    "w": 0.5,
+    "h": 0.6
+  },
+  "transparent": true
+}

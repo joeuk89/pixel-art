@@ -1,0 +1,40 @@
+{
+  "id": "elevenlabs-kids-playing-01",
+  "kind": "loop",
+  "distance": [
+    "far"
+  ],
+  "subject": "kids playing",
+  "tags": [
+    "kids playing"
+  ],
+  "source": "fal",
+  "sourceId": "01a16e13-9c73-7cb2-9954-b365e27219cd",
+  "sourceUrl": "https://v3b.fal.media/files/b/0aafab4e/MBn7A92ffn6uWPEMnwRP3_sound_effect.ogg",
+  "sourceName": "ElevenLabs Sound Effects v2",
+  "author": "ElevenLabs via fal.ai",
+  "licence": "fal.ai Terms of Service, commercial use",
+  "licenceUrl": "https://fal.ai/terms",
+  "attribution": "Generated with ElevenLabs Sound Effects v2 via fal.ai",
+  "file": "elevenlabs-kids-playing-01.ogg",
+  "durationSec": 22,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "method": "generated",
+    "model": "fal-ai/elevenlabs/sound-effects/v2",
+    "params": {
+      "loop": true,
+      "duration_seconds": 22,
+      "output_format": "opus_48000_128"
+    },
+    "costUsd": 0.044,
+    "target": "-20 dBFS RMS",
+    "gainDb": 15.3,
+    "rmsDbfs": -20,
+    "peakDbfs": -2.2,
+    "limitedBy": null
+  },
+  "fetchedAt": "2026-10-24",
+  "brief": "children playing and laughing in a back garden a few houses away, faint and distant, steady"
+}

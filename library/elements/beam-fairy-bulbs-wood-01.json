@@ -1,0 +1,45 @@
+{
+  "id": "beam-fairy-bulbs-wood-01",
+  "subject": "beam",
+  "tags": [
+    "beam",
+    "ceiling",
+    "fairy lights",
+    "string lights",
+    "wood",
+    "interior"
+  ],
+  "brief": "wooden ceiling beam running left to right with a string of small round fairy light bulbs draped along it",
+  "prompt": "wooden ceiling beam running left to right with a string of small round fairy light bulbs draped along it",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1523011663,
+  "palette": "golden-hour",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T13:25:34.645Z",
+  "firstScene": "tree-house-golden-hour-x1z5",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 128,
+  "height": 16,
+  "realSize": {
+    "w": 2.6,
+    "h": 0.3
+  },
+  "transparent": true
+}

@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "id": "tree-house-golden-hour-x1z5",
+  "title": "Golden Hour Den",
+  "prompt": "Inside a cosy, lovingly decorated tree house in the late afternoon, at golden hour. Low sun pours through a big window on one side, washing the room in warm amber light.\n\n The focal point is a child asleep, slumped sideways on a squashy red beanbag. A closed picture book with a bright blue cover rests on their lap. The room is a kid's den: one small wooden chair, a short bookcase crammed with books, a couple of hand-drawn posters pinned to the plank walls, a string of fairy lights along the ceiling beam, and a rug on the floorboards. In one corner, the top of a wooden ladder pokes up through a square hatch in the floor.\n\n Through the window you see a suburban street at sunset: the back of the child's house close by, with a lit kitchen window, a garden fence, and neighbouring rooftops and trees against an orange-pink sky.\n\n The mood is peaceful and nostalgic, a perfect summer afternoon that's drifted into sleep. Sounds: evening birdsong, leaves rustling around the tree house, a far-off lawnmower or kids playing. Music: soft acoustic guitar or a gentle music box, slow and warm.",
+  "description": "A child has fallen asleep on a squashy red beanbag in a tree house den, a blue picture book closed on their lap and crayon drawings pinned to the plank walls. Low golden sun pours through the big window, with dust drifting in the beam, while outside the garden glows orange and pink and birds cross the evening sky.",
+  "createdAt": "2026-10-24T12:10:55Z",
+  "seed": 663373095,
+  "status": "resolved",
+  "palette": "golden-hour",
+  "scale": 48,
+  "styleAnchor": "child-asleep-beanbag-red-01",
+  "layers": [
+    {
+      "name": "ceiling",
+      "fill": 1
+    },
+    {
+      "name": "outside",
+      "placements": [
+        {
+          "id": "outside",
+          "element": "garden-suburban-sunset-01",
+          "x": 0,
+          "y": 14
+        }
+      ]
+    },
+    {
+      "name": "wall",
+      "placements": [
+        {
+          "id": "wall",
+          "element": "wall-plank-wood-honey-01",
+          "x": 80,
+          "y": 24
+        }
+      ]
+    },
+    {
+      "name": "window",
+      "placements": [
+        {
+          "id": "window",
+          "element": "window-frame-square-wood-01",
+          "x": 0,
+          "y": 12
+        }
+      ]
+    },
+    {
+      "name": "beam",
+      "placements": [
+        {
+          "id": "beam",
+          "element": "beam-fairy-bulbs-wood-01",
+          "x": 64,
+          "y": 10
+        }
+      ]
+    },
+    {
+      "name": "wall-decor",
+      "placements": [
+        {
+          "id": "paper-rocket",
+          "element": "paper-cream-pinned-blank-01",
+          "x": 86,
+          "y": 34
+        },
+        {
+          "id": "poster-rocket",
+          "element": "poster-crayon-rocket-01",
+          "x": 86,
+          "y": 34
+        },
+        {
+          "id": "paper-dinosaur",
+          "element": "paper-cream-pinned-blank-01",
+          "x": 154,
+          "y": 30
+        },
+        {
+          "id": "poster-dinosaur",
+          "element": "poster-crayon-dinosaur-01",
+          "x": 154,
+          "y": 30
+        },
+        {
+          "id": "bookcase",
+          "element": "bookcase-short-crammed-books-01",
+          "x": 108,
+          "y": 50
+        }
+      ]
+    },
+    {
+      "name": "floor",
+      "placements": [
+        {
+          "id": "floor",
+          "element": "floor-boards-wood-warm-01",
+          "x": 0,
+          "y": 88,
+          "tileX": true
+        }
+      ]
+    },
+    {
+      "name": "furniture",
+      "placements": [
+        {
+          "id": "rug",
+          "element": "rug-braided-oval-rag-01",
+          "x": 40,
+          "y": 92
+        },
+        {
+          "id": "chair",
+          "element": "chair-wooden-small-child-01",
+          "x": 6,
+          "y": 66
+        },
+        {
+          "id": "ladder",
+          "element": "ladder-top-hatch-wood-01",
+          "x": 166,
+          "y": 68
+        },
+        {
+          "id": "child",
+          "element": "child-asleep-beanbag-red-01",
+          "x": 52,
+          "y": 56
+        }
+      ]
+    }
+  ],
+  "primitives": [
+    {
+      "type": "glow",
+      "anchor": "window",
+      "offset": {
+        "x": 40,
+        "y": 40
+      },
+      "colour": 6,
+      "radius": 72,
+      "flicker": 0,
+      "pool": {
+        "y": 104,
+        "colour": 8
+      }
+    },
+    {
+      "type": "dust",
+      "anchor": "window",
+      "region": {
+        "x": 20,
+        "y": 24,
+        "w": 96,
+        "h": 76
+      },
+      "colours": [
+        6,
+        7
+      ],
+      "count": 12
+    },
+    {
+      "type": "glow",
+      "anchor": "outside",
+      "offset": {
+        "x": 13,
+        "y": 26
+      },
+      "colour": 6,
+      "radius": 8,
+      "flicker": 0.1
+    },
+    {
+      "type": "twinkle",
+      "anchor": "beam",
+      "colours": [
+        6
+      ],
+      "count": 3
+    },
+    {
+      "type": "sway",
+      "anchor": "outside",
+      "region": {
+        "x": 12,
+        "y": 32,
+        "w": 58,
+        "h": 46
+      },
+      "colours": [
+        16,
+        17
+      ],
+      "amplitude": 1,
+      "rate": 0.25
+    },
+    {
+      "type": "birds",
+      "anchor": "outside",
+      "region": {
+        "x": 36,
+        "y": 22,
+        "w": 34,
+        "h": 12
+      },
+      "colours": [
+        0
+      ],
+      "count": 3,
+      "every": [
+        20,
+        45
+      ]
+    }
+  ],
+  "soundtrack": {
+    "music": {
+      "brief": "slow fingerpicked acoustic guitar with a soft music box, warm and gentle, summer evening, around 65 bpm",
+      "service": "stable-audio-3",
+      "file": "music.mp3",
+      "loopStart": 0,
+      "loopEnd": 107.05,
+      "seam": {
+        "seamJump": 0.0071,
+        "maxInnerJump": 0.7159
+      },
+      "gain": 0.6
+    },
+    "ambient": [
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-wind-trees-444921"
+        },
+        "file": "wind-trees.ogg",
+        "distance": "mid"
+      },
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-birds-forest-723913"
+        },
+        "file": "birds.ogg",
+        "distance": "far"
+      },
+      {
+        "source": {
+          "kind": "generated",
+          "service": "elevenlabs-fal",
+          "brief": "children playing and laughing in a back garden a few houses away, faint and distant, steady",
+          "id": "elevenlabs-kids-playing-01"
+        },
+        "file": "kids-playing.ogg",
+        "distance": "far",
+        "gain": 0.4
+      }
+    ],
+    "oneshots": [
+      {
+        "source": {
+          "kind": "generated",
+          "service": "elevenlabs-fal",
+          "brief": "petrol lawnmower running a few gardens away, faint and distant, rises then fades",
+          "id": "elevenlabs-lawnmower-01"
+        },
+        "file": "lawnmower.ogg",
+        "distance": "far",
+        "gain": 0.5,
+        "every": [
+          90,
+          240
+        ]
+      }
+    ]
+  },
+  "cost": {
+    "pixellabGenerations": 153,
+    "meteredUsd": {
+      "fal": 0.046,
+      "stability": 0.08
+    },
+    "attemptsAbandoned": 10,
+    "approvedOverage": null
+  }
+}
