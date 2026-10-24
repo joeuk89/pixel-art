@@ -180,6 +180,7 @@ export const scenePlanSchema = z
     id: slug,
     title: z.string().min(1),
     prompt: z.string().min(1),
+    description: z.string().min(1),
     createdAt: datetime,
     seed: int,
     status: z.enum(["draft", "resolved"]),
@@ -298,4 +299,4 @@ export type Primitive = z.infer<typeof primitiveSchema>;
 export type ElementRecord = z.infer<typeof elementRecordSchema>;
 export type Palette = z.infer<typeof paletteSchema>;
 export type AmbientLoopRecord = z.infer<typeof ambientLoopRecordSchema>;
-export type GalleryEntry = Pick<ScenePlan, "id" | "title" | "createdAt" | "prompt">;
+export type GalleryEntry = Pick<ScenePlan, "id" | "title" | "createdAt" | "description">;

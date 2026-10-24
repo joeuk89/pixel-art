@@ -9,8 +9,12 @@ One generated bundle: the artwork, its animation, its Soundtrack and the Prompt 
 _Avoid_: Wallpaper, image, video, artwork (for the whole bundle)
 
 **Prompt**:
-The text typed to request a new Scene.
-_Avoid_: Request, description, query
+The text typed to request a new Scene. Kept in the Scene plan; never shown on the site.
+_Avoid_: Request, query
+
+**Description**:
+The Director's two-or-three-sentence account of a finished Scene, written from the Prompt and what was generated. The Viewer's info panel and link previews show it.
+_Avoid_: Caption, blurb, summary
 
 **Viewer**:
 The browser page that plays one Scene, including fullscreen.

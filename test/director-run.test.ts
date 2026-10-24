@@ -17,6 +17,7 @@ beforeEach(() => pixellabState.reset());
 
 const draft = {
   schemaVersion: 1, id: ID, title: "Lamp desk in the rain", prompt: "a desk lamp on by a rainy window, cat asleep",
+  description: "A desk lamp glows by a rainy window while a grey cat sleeps beneath it.",
   createdAt: "2026-10-24T21:00:00Z", seed: 4242, status: "draft", palette: "cosy-night", scale: 48, styleAnchor: null,
   layers: [
     { name: "sky", fill: 1 },

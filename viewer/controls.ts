@@ -45,8 +45,8 @@ function infoPanel(plan: ScenePlan, credits: Promise<Credits>, close: () => void
   panel.setAttribute("aria-label", "About this Scene");
   const heading = document.createElement("h2");
   heading.textContent = plan.title;
-  const prompt = document.createElement("blockquote");
-  prompt.textContent = plan.prompt;
+  const description = document.createElement("p");
+  description.textContent = plan.description;
   const notice = document.createElement("p");
   const attributions = document.createElement("ul");
   credits.then(
@@ -60,7 +60,7 @@ function infoPanel(plan: ScenePlan, credits: Promise<Credits>, close: () => void
     },
     () => (notice.textContent = aiNotice([])),
   );
-  panel.append(heading, prompt, notice, attributions, button("Close", close));
+  panel.append(heading, description, notice, attributions, button("Close", close));
   return panel;
 }
 

@@ -508,14 +508,16 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
-  test("I opens the info panel with the Prompt, the AI notice naming every service and one attribution line per curated sound", async () => {
+  test("I opens the info panel with the Description, the AI notice naming every service and one attribution line per curated sound", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();
     const info = page.getByRole("region", { name: "About this Scene" });
     assert.equal(await info.count(), 0);
     await page.keyboard.press("i");
     await info.waitFor();
-    assert.match(await info.innerText(), /a cosy desk by a rainy window at night, cat asleep/);
+    const text = await info.innerText();
+    assert.match(text, /A cosy desk by a rainy window at night, with a cat asleep in the lamplight\./);
+    assert.doesNotMatch(text, /a cosy desk by a rainy window at night, cat asleep/);
     await info.getByText("Artwork, music and sound effects generated with AI using PixelLab, Stable Audio 3.0 and ElevenLabs.").waitFor();
     const lines = info.getByRole("listitem");
     assert.equal(await lines.count(), 2);

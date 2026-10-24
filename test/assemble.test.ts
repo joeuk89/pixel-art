@@ -90,7 +90,7 @@ for (const [name, breakTree, message] of [
   ["NOTICE.md is missing", (root: string) => rmSync(join(root, "NOTICE.md")), /NOTICE\.md/],
   [
     "gallery.json lists a Scene that is not resolved",
-    (root: string) => writeJson(root, "gallery.json", [{ id: "deleted-scene-z9z9", title: "Gone", createdAt: "2026-10-27T00:00:00Z", prompt: "gone" }]),
+    (root: string) => writeJson(root, "gallery.json", [{ id: "deleted-scene-z9z9", title: "Gone", createdAt: "2026-10-27T00:00:00Z", description: "gone" }]),
     /deleted-scene-z9z9/,
   ],
   ["a resolved Scene has no stub", (root: string) => rmSync(join(root, "scenes", id, "index.html")), /index\.html.*stage/],

@@ -38,7 +38,7 @@ Compose this Scene from its Concept. The patterns in composition.md are worked e
 
 ## 3. Working draft
 
-Run `node pipeline/scene-id.ts <three to five words from the Prompt>` and use its `id`, `seed` and `createdAt`. Write `scenes/<id>/scene.json` with `status: "draft"`, `styleAnchor: null`, a zeroed `cost` block (`approvedOverage: null`) and every Element as a Placement with a `generate` block and a proposed Element id (`<subject>-<two-or-three-descriptors>-01`). Use house Palette indices for every colour; while a new Palette is only proposed, set `palette` to the nearest house Palette and say so at the Plan gate.
+Run `node pipeline/scene-id.ts <three to five words from the Prompt>` and use its `id`, `seed` and `createdAt`. Write `scenes/<id>/scene.json` with `status: "draft"`, a first-draft `description` written from the Concept, `styleAnchor: null`, a zeroed `cost` block (`approvedOverage: null`) and every Element as a Placement with a `generate` block and a proposed Element id (`<subject>-<two-or-three-descriptors>-01`). Use house Palette indices for every colour; while a new Palette is only proposed, set `palette` to the nearest house Palette and say so at the Plan gate.
 
 **Done when** `node pipeline/validate.ts scenes/<id>` exits 0.
 
@@ -96,11 +96,11 @@ Elements that passed the gate stay in the library even when a later step drops t
 
 ## 8. Hard checks
 
-Run `node pipeline/poster.ts scenes/<id>/scene.json`, then `node pipeline/stage.ts scenes/<id>/scene.json`, then `node pipeline/check-scene.ts scenes/<id>/scene.json`. check-scene reports each hard check: every `generate` block resolved, `validate` green, the loop seam measured, the Poster equal to frame 0 of the plan, the stub and `gallery.json` current, and `npm test` passing.
+Rewrite the plan's `description` to fit the Scene as generated: two or three sentences in plain present tense that a visitor reads in the Viewer's info panel and in link previews. Describe what the Scene shows and how it feels, from the Prompt's intent and the Elements, Primitives and sounds that made it in. Leave out anything abandoned, any address to the Director, and the Prompt's working notes. Then run `node pipeline/poster.ts scenes/<id>/scene.json`, then `node pipeline/stage.ts scenes/<id>/scene.json`, then `node pipeline/check-scene.ts scenes/<id>/scene.json`. check-scene reports each hard check: every `generate` block resolved, `validate` green, the loop seam measured, the Poster equal to frame 0 of the plan, the stub and `gallery.json` current, and `npm test` passing.
 
 When a check names a mechanical fix (run poster, run stage, or `music.ts --force` for an unmeasured seam), make it and run check-scene again. On any other failure, stop and report the failing checks: the Scene stays `draft` with its completed work kept, so a later run resumes at step 7.
 
-**Done when** `node pipeline/check-scene.ts scenes/<id>/scene.json` exits 0.
+**Done when** the `description` matches the generated Scene and `node pipeline/check-scene.ts scenes/<id>/scene.json` exits 0.
 
 ## 9. Preview
 

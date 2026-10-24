@@ -3,6 +3,7 @@
   "id": "fixture-rainy-desk-a1b2",
   "title": "Fixture rainy desk",
   "prompt": "a cosy desk by a rainy window at night, cat asleep",
+  "description": "A cosy desk by a rainy window at night, with a cat asleep in the lamplight.",
   "createdAt": "2026-10-24T20:00:00Z",
   "seed": 1337,
   "status": "resolved",

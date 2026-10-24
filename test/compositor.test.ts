@@ -9,7 +9,7 @@ const rgb = (i: number) => [(i + 1) * 16, 0, 0, 255];
 
 function plan(layers: unknown[], seed = 1337): any {
   return {
-    schemaVersion: 1, id: "test-scene-a1b2", title: "t", prompt: "t", createdAt: "2026-10-24T20:00:00Z", seed,
+    schemaVersion: 1, id: "test-scene-a1b2", title: "t", prompt: "t", description: "t", createdAt: "2026-10-24T20:00:00Z", seed,
     status: "draft", palette: "test", scale: 48, styleAnchor: null, layers, primitives: [],
     soundtrack: { music: { brief: "b", service: "s", gain: 0.6 }, ambient: [], oneshots: [] },
     cost: { pixellabGenerations: 0, meteredUsd: {}, attemptsAbandoned: 0, approvedOverage: null },

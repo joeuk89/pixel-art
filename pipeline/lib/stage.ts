@@ -21,7 +21,7 @@ export function stub(plan: ScenePlan): string {
 <link rel="icon" href="data:,">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${title}">
-<meta property="og:description" content="${escapeHtml(plan.prompt)}">
+<meta property="og:description" content="${escapeHtml(plan.description)}">
 <meta property="og:url" content="${page}">
 <meta property="og:image" content="${page}${POSTER_OG_FILE}">
 <meta property="og:image:width" content="${SCENE_WIDTH * OG_SCALE}">
@@ -38,7 +38,7 @@ function resolvedScenes(root: string): GalleryEntry[] {
   return validationReport(root).scenes
     .filter((s) => s.status === "resolved")
     .map((s) => readScene(join(root, s.file)))
-    .map(({ id, title, createdAt, prompt }) => ({ id, title, createdAt, prompt }))
+    .map(({ id, title, createdAt, description }) => ({ id, title, createdAt, description }))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 

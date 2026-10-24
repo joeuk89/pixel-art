@@ -35,6 +35,7 @@ test("stage writes the Scene stub with Open Graph title and Poster tags and a re
   assert.match(html, /^<!doctype html>/);
   assert.match(html, /<title>Fixture rainy desk<\/title>/);
   assert.equal(meta(html, "og:title"), "Fixture rainy desk");
+  assert.equal(meta(html, "og:description"), "A cosy desk by a rainy window at night, with a cat asleep in the lamplight.");
   assert.equal(meta(html, "og:image"), `${SITE}${sceneDir}/poster-og.png`);
   assert.equal(meta(html, "og:url"), `${SITE}${sceneDir}/`);
   assert.match(html, /<script src="\.\.\/\.\.\/viewer\.js" defer><\/script>/);
@@ -53,7 +54,7 @@ test("stage rewrites gallery.json with only resolved Scenes, newest first", () =
   const root = makeTree();
   copyScene(root, "snowy-street-dusk-b3c4", (plan) => {
     plan.title = "Snowy street at dusk";
-    plan.prompt = "a snowy street at dusk";
+    plan.description = "Snow settles on a quiet street at dusk.";
     plan.createdAt = "2026-10-25T09:00:00Z";
   });
   copyScene(root, "unfinished-garden-c5d6", (plan) => {
@@ -61,13 +62,13 @@ test("stage rewrites gallery.json with only resolved Scenes, newest first", () =
     plan.createdAt = "2026-10-26T09:00:00Z";
   });
   rmSync(join(root, "scenes/unfinished-garden-c5d6/poster.png"));
-  writeJson(root, "gallery.json", [{ id: "deleted-scene-z9z9", title: "Gone", createdAt: "2026-10-27T00:00:00Z", prompt: "gone" }]);
+  writeJson(root, "gallery.json", [{ id: "deleted-scene-z9z9", title: "Gone", createdAt: "2026-10-27T00:00:00Z", description: "gone" }]);
 
   const { code, stderr } = runScript(root, "stage", fixtureScene);
   assert.equal(code, 0, stderr);
   assert.deepEqual(readJson(root, "gallery.json"), [
-    { id: "snowy-street-dusk-b3c4", title: "Snowy street at dusk", createdAt: "2026-10-25T09:00:00Z", prompt: "a snowy street at dusk" },
-    { id, title: "Fixture rainy desk", createdAt: "2026-10-24T20:00:00Z", prompt: "a cosy desk by a rainy window at night, cat asleep" },
+    { id: "snowy-street-dusk-b3c4", title: "Snowy street at dusk", createdAt: "2026-10-25T09:00:00Z", description: "Snow settles on a quiet street at dusk." },
+    { id, title: "Fixture rainy desk", createdAt: "2026-10-24T20:00:00Z", description: "A cosy desk by a rainy window at night, with a cat asleep in the lamplight." },
   ]);
 });
 

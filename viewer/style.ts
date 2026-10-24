@@ -17,7 +17,6 @@ footer { padding: 16px; opacity: 0.7; font-size: 13px; }
 .info { position: absolute; left: 16px; right: 16px; bottom: 16px; max-width: 560px; max-height: calc(100% - 96px); overflow: auto;
   box-sizing: border-box; padding: 16px; border-radius: 8px; background: #000c; }
 .info h2 { margin: 0 0 8px; font-size: 17px; }
-.info blockquote { margin: 0 0 12px; font-style: italic; }
 .info p { margin: 0 0 8px; }
 .info ul { margin: 0 0 12px; padding-left: 20px; font-size: 13px; }
 .hint { position: absolute; right: 16px; bottom: 12px; margin: 0; padding: 4px 10px; border-radius: 6px; background: #0008; font-size: 13px; pointer-events: none; }
