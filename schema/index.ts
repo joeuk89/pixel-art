@@ -106,6 +106,8 @@ export type Generate = z.infer<typeof generate>;
 
 export const isLocal = (g: Generate) => g.kind === "texture" || (g.kind === "prop" && g.finish === "local");
 
+const stage = z.strictObject({ back: region, vanishingPoint: point, f: z.number().positive() });
+
 const placement = z.strictObject({
   id: slug,
   element: elementId,
@@ -489,6 +491,7 @@ export type Layer = z.infer<typeof layer>;
 export type Variant = z.infer<typeof variant>;
 export type Light = z.infer<typeof lightSchema>;
 export type Tint = z.infer<typeof tintSchema>;
+export type Stage = z.infer<typeof stage>;
 export type Placement = z.infer<typeof placement>;
 export type Primitive = z.infer<typeof primitiveSchema>;
 export type ElementRecord = z.infer<typeof elementRecordSchema>;
