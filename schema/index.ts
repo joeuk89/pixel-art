@@ -358,6 +358,7 @@ const elementBase = {
   cost: elementCost,
   checks,
   emissive: z.array(colourIndex).optional(),
+  emissiveMask: z.literal(true).optional(),
 };
 
 const propSide = int.min(MIN_PROP_SIDE).max(MAX_PROP_SIDE).multipleOf(SIDE_STEP);

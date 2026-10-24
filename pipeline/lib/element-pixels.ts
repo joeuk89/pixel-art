@@ -34,12 +34,14 @@ export async function loadElementPixels(root: string, plan: ScenePlan): Promise<
   const loaded = new Map<string, ElementPixels>();
   for (const id of ids) {
     const record = elementRecordSchema.parse(readJson(join(root, ELEMENTS, `${id}.json`)));
-    const still = await decode(join(root, ELEMENTS, `${id}.png`));
+    const pixels: ElementPixels = { still: await decode(join(root, ELEMENTS, `${id}.png`)) };
     if (record.kind === "prop" && record.animation) {
       const { frames, fps, order } = record.animation;
-      const image = await decode(join(root, ELEMENTS, `${id}.strip.png`));
-      loaded.set(id, { still, strip: { image, frames, fps, order } });
-    } else loaded.set(id, { still });
+      pixels.strip = { image: await decode(join(root, ELEMENTS, `${id}.strip.png`)), frames, fps, order };
+    }
+    if (record.emissive) pixels.emissive = record.emissive;
+    if (record.emissiveMask) pixels.mask = await decode(join(root, ELEMENTS, `${id}.emissive.png`));
+    loaded.set(id, pixels);
   }
   return loaded;
 }

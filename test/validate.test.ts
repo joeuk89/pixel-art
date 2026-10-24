@@ -146,7 +146,7 @@ test("point and beam Lights with flicker and halo blocks validate", () => {
   editJson(root, fixtureScene, (plan) => {
     plan.variants[1].lights = [
       { ...lamp, flicker: { depth: 0.12, rate: 0.8 }, halo: { colour: 8, radius: 36, strength: 0.6 } },
-      { type: "point", id: "spill", at: { x: 192, y: 52 }, radius: 120, strength: 0.75, tint: "cool" },
+      { type: "point", id: "spill", at: { x: 190, y: 52 }, radius: 100, strength: 0.75, tint: "cool" },
       { type: "beam", id: "moon", corners: [{ x: 170, y: 76 }, { x: 214, y: 76 }, { x: 250, y: 239 }, { x: 150, y: 239 }], strength: 1, tint: "cool", softness: 6 },
     ];
   });
@@ -204,7 +204,21 @@ test("two Lights with the same id in one Variant fail", () => {
 test("an emissive mask whose size differs from the Element fails", () => {
   const root = makeTree();
   copyFileSync(join(root, "library/elements/sky-stars-night-01.png"), join(root, "library/elements/skyline-night-warm-windows-01.emissive.png"));
-  failsWith(validate(root), SKYLINE, "emissive", /emissive mask .* is 32x32, record says 256x128/);
+  failsWith(validate(root), SKYLINE, "emissiveMask", /emissive mask .* is 32x32, record says 256x128/);
+});
+
+test("a record claiming an emissive mask that is missing fails", () => {
+  const root = makeTree();
+  rmSync(join(root, "library/elements/skyline-night-warm-windows-01.emissive.png"));
+  failsWith(validate(root), SKYLINE, "emissiveMask", /emissive mask .*skyline-night-warm-windows-01\.emissive\.png is missing/);
+});
+
+test("an emissive mask file the record does not claim fails, and so does a mask with no emissive colours", () => {
+  const root = makeTree();
+  copyFileSync(join(root, "library/elements/skyline-night-warm-windows-01.emissive.png"), join(root, "library/elements/sky-stars-night-01.emissive.png"));
+  failsWith(validate(root), "library/elements/sky-stars-night-01.json", "emissiveMask", /has an emissive mask beside it; set emissiveMask/);
+  editJson(root, SKYLINE, (record) => { delete record.emissive; });
+  failsWith(validate(root), SKYLINE, "emissiveMask", /needs emissive colours/);
 });
 
 test("a Scene with zero Variants fails", () => {

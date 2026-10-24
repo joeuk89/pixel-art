@@ -36,10 +36,14 @@ async function loadElements(root: URL, plan: ScenePlan): Promise<Map<string, Ele
     [...ids].map(async (id): Promise<[string, ElementPixels]> => {
       const base = new URL(`library/elements/${id}`, root);
       const record = elementRecordSchema.parse(await fetchJson(new URL(`${base.href}.json`)));
-      const still = await decode(new URL(`${base.href}.png`));
-      if (record.kind !== "prop" || !record.animation) return [id, { still }];
-      const { frames, fps, order } = record.animation;
-      return [id, { still, strip: { image: await decode(new URL(`${base.href}.strip.png`)), frames, fps, order } }];
+      const pixels: ElementPixels = { still: await decode(new URL(`${base.href}.png`)) };
+      if (record.kind === "prop" && record.animation) {
+        const { frames, fps, order } = record.animation;
+        pixels.strip = { image: await decode(new URL(`${base.href}.strip.png`)), frames, fps, order };
+      }
+      if (record.emissive) pixels.emissive = record.emissive;
+      if (record.emissiveMask) pixels.mask = await decode(new URL(`${base.href}.emissive.png`));
+      return [id, pixels];
     }),
   );
   return new Map(loaded);
@@ -120,7 +124,12 @@ export async function renderScene(
 
   const elements = await loadElements(root, plan);
   if (signal.aborted) return;
-  const compositor = createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
+  const [variant] = plan.variants;
+  const companion = variant.companionPalette === undefined
+    ? undefined
+    : paletteSchema.parse(await fetchJson(new URL(`library/palettes/${variant.companionPalette}.json`, root)));
+  if (signal.aborted) return;
+  const compositor = createCompositor({ plan, elements, palette, variant, companion, primitives: createPrimitives({ plan, elements, palette }) });
   const canvas = document.createElement("canvas");
   canvas.width = SCENE_WIDTH;
   canvas.height = SCENE_HEIGHT;

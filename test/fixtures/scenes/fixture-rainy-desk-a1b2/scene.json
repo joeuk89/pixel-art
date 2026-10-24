@@ -31,11 +31,17 @@
   "variants": [
     { "id": "night-rain", "title": "Rainy night",
       "ambient": { "level": -2.5, "layers": { "sky": -0.5, "city": -0.5 } },
-      "lights": [],
+      "lights": [
+        { "type": "point", "id": "lamp", "anchor": "window", "offset": { "x": 124, "y": 160 }, "radius": 90, "strength": 3, "tint": "warm",
+          "flicker": { "depth": 0.12, "rate": 0.8 }, "halo": { "colour": 8, "radius": 24, "strength": 0.5 } },
+        { "type": "point", "id": "window-spill", "at": { "x": 190, "y": 52 }, "radius": 100, "strength": 1.5, "tint": "cool" },
+        { "type": "beam", "id": "moonbeam", "corners": [ { "x": 172, "y": 76 }, { "x": 212, "y": 76 }, { "x": 252, "y": 236 }, { "x": 140, "y": 236 } ],
+          "strength": 1.5, "tint": "cool", "softness": 8 } ],
       "emissiveOff": [] },
     { "id": "clear-night", "title": "Clear night",
       "ambient": { "level": -2 },
-      "lights": [],
+      "lights": [
+        { "type": "point", "id": "lamp", "anchor": "window", "offset": { "x": 124, "y": 160 }, "radius": 90, "strength": 3, "tint": "warm" } ],
       "primitives": [],
       "soundtrack": { "ambient": [], "oneshots": [] },
       "emissiveOff": ["stars"] }

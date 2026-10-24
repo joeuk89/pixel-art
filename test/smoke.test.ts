@@ -159,8 +159,33 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       return { width: c.width, height: c.height, first: [data[0], data[1], data[2]], colours: colours.size };
     });
     assert.deepEqual([pixels.width, pixels.height], [384, 240]);
-    assert.deepEqual(pixels.first, rgb(palette[1]));
+    assert.deepEqual(pixels.first, rgb(palette[0]), "the sky's colour 1 is three dark steps down under the rainy night");
     assert.ok(pixels.colours > 4, `canvas shows only ${pixels.colours} colours`);
+    assert.deepEqual(errors, []);
+  });
+
+  test("the Scene draws lit under its default Variant, as the lit Poster shows it", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    const canvas = page.locator("canvas");
+    await canvas.waitFor();
+    const window = { x: 168, y: 28, w: 48, h: 3 };
+    const drawn = await canvas.evaluate((c: HTMLCanvasElement, r) => Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data), window);
+    const poster = await sharp(join(root, `scenes/${id}/poster.png`)).extract({ left: window.x, top: window.y, width: window.w, height: window.h }).raw().toBuffer();
+    const element = await sharp(join(root, "library/elements/window-wood-transparent-panes-01.png")).extract({ left: 0, top: 0, width: window.w, height: window.h }).raw().toBuffer();
+    assert.deepEqual(drawn, Array.from(poster), "the window frame differs from the lit Poster");
+    let unlit = 0;
+    for (let i = 0; i < drawn.length; i += 4) if (drawn[i] === element[i] && drawn[i + 1] === element[i + 1] && drawn[i + 2] === element[i + 2]) unlit++;
+    assert.equal(unlit, 0, `${unlit} window frame pixels show the Element's own colour`);
+
+    const city = { x: 64, y: 84, w: 90, h: 80 };
+    const yellow = rgb(palette[8]);
+    const lights = await canvas.evaluate((c: HTMLCanvasElement, [r, colour]) => {
+      const data = c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data;
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4) if (data[i] === colour[0] && data[i + 1] === colour[1] && data[i + 2] === colour[2]) n++;
+      return n;
+    }, [city, yellow] as const);
+    assert.ok(lights > 0, "no emissive city window inside the mask kept its colour");
     assert.deepEqual(errors, []);
   });
 
@@ -480,7 +505,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.locator("canvas").waitFor();
     await page.mouse.move(300, 300);
     const ambient = page.getByRole("slider", { name: "Ambient", exact: true });
-    assert.equal(await ambient.isVisible(), true);
+    await ambient.waitFor({ state: "visible", timeout: 2000 });
     assert.equal(await ambient.isDisabled(), true);
     assert.equal(await page.getByRole("slider", { name: "Music", exact: true }).isEnabled(), true);
     assert.deepEqual(errors, []);
