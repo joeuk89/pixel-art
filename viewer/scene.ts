@@ -7,8 +7,9 @@ import {
   SCENE_WIDTH,
   scenePlanSchema,
   type ScenePlan,
+  type Variant,
 } from "../schema/index.ts";
-import { playSoundtrack, type Audio } from "./audio.ts";
+import { playSoundtrack, type Audio, type Soundtrack } from "./audio.ts";
 import { mountControls } from "./controls.ts";
 import { loadCredits } from "./credits.ts";
 import { createCompositor, elementPixelsOf, type ElementPixels, type Pixels } from "./compositor.ts";
@@ -17,6 +18,7 @@ import { startLoop } from "./loop.ts";
 import { createPrimitives } from "./primitives.ts";
 import type { MuteState } from "./mute.ts";
 import { sceneUrl } from "./site.ts";
+import { createVariantSwitch } from "./variant.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -73,14 +75,14 @@ export function renderMissing(host: HTMLElement, root: URL): void {
   document.title = "No such Scene";
 }
 
-export type SceneSession = { mute: MuteState; audio: Audio; navigate: (url: URL) => void };
+export type SceneSession = { mute: MuteState; audio: Audio; navigate: (url: URL) => void; url: URL };
 
 export async function renderScene(
   host: HTMLElement,
   root: URL,
   id: string,
   signal: AbortSignal,
-  { mute, audio, navigate }: SceneSession,
+  { mute, audio, navigate, url }: SceneSession,
 ): Promise<void> {
   const base = sceneUrl(root, id);
   let plan: ScenePlan;
@@ -104,39 +106,60 @@ export async function renderScene(
   fitToViewport([poster], signal);
   const credits = loadCredits(root, plan);
   credits.catch((e) => console.error(e));
-  mountControls(main, { plan, root, mute, audio, credits, navigate, signal });
+  let onVariant = (_variant: Variant) => {};
+  const variants = createVariantSwitch({ plan, url, history, onChange: (variant) => onVariant(variant) });
+  mountControls(main, { plan, root, mute, audio, credits, navigate, variants, signal });
 
   const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;
   document.body.style.background = palette.colours[0];
-  const startSound = () =>
-    playSoundtrack(audio, plan, base, signal).catch((e) => {
+  let soundtrack: Promise<Soundtrack | undefined> | undefined;
+  const startSound = () => {
+    soundtrack = playSoundtrack(audio, plan, base, signal, variants.current).catch((e) => {
       if (!signal.aborted) console.error(e);
+      return undefined;
     });
-  if (reducedMotion.matches) return void startSound();
+  };
+  const switchSound = (variant: Variant) => void soundtrack?.then((s) => s?.setVariant(variant));
+  if (reducedMotion.matches) {
+    onVariant = switchSound;
+    return startSound();
+  }
 
   const elements = await loadElements(root, plan);
   if (signal.aborted) return;
-  const [variant] = plan.variants;
-  const companion = variant.companionPalette === undefined
-    ? undefined
-    : paletteSchema.parse(await fetchJson(new URL(`library/palettes/${variant.companionPalette}.json`, root)));
+  const primitivesFor = (variant: Variant) => createPrimitives({ plan, elements, palette, variant });
+  const compositorFor = async (variant: Variant) => {
+    const companion = variant.companionPalette === undefined
+      ? undefined
+      : paletteSchema.parse(await fetchJson(new URL(`library/palettes/${variant.companionPalette}.json`, root)));
+    return createCompositor({ plan, elements, palette, variant, companion, primitives: primitivesFor(variant) });
+  };
+  const compositor = await compositorFor(variants.current);
   if (signal.aborted) return;
-  const compositor = createCompositor({ plan, elements, palette, variant, companion, primitives: createPrimitives({ plan, elements, palette }) });
   const canvas = document.createElement("canvas");
   canvas.width = SCENE_WIDTH;
   canvas.height = SCENE_HEIGHT;
   const ctx = canvas.getContext("2d", { alpha: false })!;
   let image: ImageData | undefined;
   fitToViewport([canvas], signal);
-  startLoop(
+  const loop = startLoop(
     compositor,
     (frame) => {
-      image ??= new ImageData(frame, SCENE_WIDTH, SCENE_HEIGHT);
+      if (image?.data !== frame) image = new ImageData(frame, SCENE_WIDTH, SCENE_HEIGHT);
       ctx.putImageData(image, 0, 0);
       if (poster.isConnected) poster.replaceWith(canvas);
     },
     signal,
   );
+  onVariant = (variant) => {
+    switchSound(variant);
+    compositorFor(variant).then(
+      (next) => {
+        if (!signal.aborted && variants.current === variant) loop.swap(next);
+      },
+      (e) => console.error(e),
+    );
+  };
   startSound();
 }

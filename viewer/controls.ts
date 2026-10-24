@@ -4,6 +4,7 @@ import { aiNotice, type Credits } from "./credits.ts";
 import type { MuteState } from "./mute.ts";
 import { storeLevel, type Channel } from "./settings.ts";
 import { sceneUrl } from "./site.ts";
+import type { VariantSwitch } from "./variant.ts";
 
 const OVERLAY_HIDE_MS = 3000;
 const COPIED_MS = 2000;
@@ -15,6 +16,7 @@ export type ControlsOptions = {
   audio: Audio;
   credits: Promise<Credits>;
   navigate: (url: URL) => void;
+  variants: VariantSwitch;
   signal: AbortSignal;
 };
 
@@ -92,7 +94,7 @@ function toggleFullscreen(mute: MuteState): void {
   document.documentElement.requestFullscreen().catch(() => {});
 }
 
-export function mountControls(host: HTMLElement, { plan, root, mute, audio, credits, navigate, signal }: ControlsOptions): void {
+export function mountControls(host: HTMLElement, { plan, root, mute, audio, credits, navigate, variants, signal }: ControlsOptions): void {
   const overlay = document.createElement("nav");
   overlay.className = "overlay";
   overlay.setAttribute("aria-label", "Scene controls");
@@ -103,14 +105,21 @@ export function mountControls(host: HTMLElement, { plan, root, mute, audio, cred
   const title = document.createElement("span");
   title.className = "title";
   title.textContent = plan.title;
+  const variant = button(variants.current.title, () => cycleVariant());
+  variant.className = "variant";
+  variant.title = "Switch Variant (V)";
+  variant.hidden = !variants.visible;
+  const cycleVariant = () => {
+    if (variants.visible) variant.textContent = variants.next().title;
+  };
   const sound = button("Sound", () => mute.toggle());
   const canFullscreen = fullscreenSupported();
   const music = levelSlider("Music", "music", audio);
   const ambient = levelSlider("Ambient", "ambient", audio, hasAmbientSound(plan));
-  overlay.append(back, title, sound, music, ambient);
+  overlay.append(back, title, variant, sound, music, ambient);
   if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
   const copy = button("Copy link", () => {
-    navigator.clipboard.writeText(sceneUrl(root, plan.id).href).then(
+    navigator.clipboard.writeText(variants.urlFor(sceneUrl(root, plan.id)).href).then(
       () => flash("Copied"),
       () => flash("Copy failed"),
     );
@@ -168,6 +177,10 @@ export function mountControls(host: HTMLElement, { plan, root, mute, audio, cred
           break;
         case "i":
           toggleInfo();
+          break;
+        case "v":
+          if (!variants.visible) return;
+          cycleVariant();
           break;
         case "escape":
           if (document.fullscreenElement) return;
