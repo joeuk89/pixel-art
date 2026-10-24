@@ -1,0 +1,18 @@
+{
+  "backdrop-proflash-192": "{\"type\":\"generations\",\"generations\":6}",
+  "sconce-384": "{\"type\":\"generations\",\"generations\":5}",
+  "painting-384": "{\"type\":\"generations\",\"generations\":5}",
+  "lamp-384": "{\"type\":\"generations\",\"generations\":6}",
+  "table-384": "{\"type\":\"generations\",\"generations\":5}",
+  "rug-384": "{\"type\":\"generations\",\"generations\":9}",
+  "rejected:armchair-384": "{\"type\":\"generations\",\"generations\":6}",
+  "rejected:backdrop-proflash-384": "{\"type\":\"generations\",\"generations\":6}",
+  "rejected:backdrop-pro-384": "{\"type\":\"generations\",\"generations\":10}",
+  "rejected:backdrop-pixflux-384": "{\"type\":\"generations\",\"generations\":1}",
+  "rejected:backdrop-rdplus-384": "$0.06",
+  "backdrop-rdplus-384": "$0.06",
+  "backdrop-pixflux-384": "{\"type\":\"generations\",\"generations\":1}",
+  "backdrop-pro-384": "{\"type\":\"generations\",\"generations\":10}",
+  "backdrop-proflash-384": "{\"type\":\"generations\",\"generations\":6}",
+  "armchair-384": "{\"type\":\"generations\",\"generations\":6}"
+}

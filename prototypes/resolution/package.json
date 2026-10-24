@@ -1,0 +1,10 @@
+{
+  "name": "prototype-resolution",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #71: is 384x240 the right v2 resolution for the penthouse?",
+  "scripts": {
+    "build": "node build.ts",
+    "start": "node build.ts && open index.html"
+  }
+}

@@ -1,0 +1,222 @@
+{
+  "v1-poster": {
+    "size": "192x120",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 192,
+      "height": 120
+    },
+    "islands": 1,
+    "orphans": 2711,
+    "opaque": 23040
+  },
+  "v1-armchair": {
+    "size": "44x48",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 34,
+      "height": 40
+    },
+    "islands": 1,
+    "orphans": 99,
+    "opaque": 1033
+  },
+  "v1-lamp": {
+    "size": "24x80",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 18,
+      "height": 70
+    },
+    "islands": 1,
+    "orphans": 111,
+    "opaque": 586
+  },
+  "v1-table": {
+    "size": "24x28",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 20,
+      "height": 25
+    },
+    "islands": 1,
+    "orphans": 94,
+    "opaque": 266
+  },
+  "v1-sky": {
+    "size": "128x64",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 128,
+      "height": 64
+    },
+    "islands": 1,
+    "orphans": 419,
+    "opaque": 8192
+  },
+  "v1-city": {
+    "size": "128x72",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 126,
+      "height": 69
+    },
+    "islands": 1,
+    "orphans": 1435,
+    "opaque": 6129
+  },
+  "rs-painting-flat": {
+    "size": "64x64",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 45,
+      "height": 45
+    },
+    "islands": 1,
+    "orphans": 24,
+    "opaque": 2025
+  },
+  "rs-sconce": {
+    "size": "64x64",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 29,
+      "height": 33
+    },
+    "islands": 1,
+    "orphans": 94,
+    "opaque": 767
+  },
+  "rs-rug-flat": {
+    "size": "128x128",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 89,
+      "height": 72
+    },
+    "islands": 1,
+    "orphans": 394,
+    "opaque": 6358
+  },
+  "armchair-384": {
+    "size": "96x104",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 73,
+      "height": 88
+    },
+    "islands": 1,
+    "orphans": 394,
+    "opaque": 4154
+  },
+  "backdrop-pixflux-384": {
+    "size": "196x148",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 196,
+      "height": 148
+    },
+    "islands": 1,
+    "orphans": 2983,
+    "opaque": 29008
+  },
+  "backdrop-pro-384": {
+    "size": "196x148",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 196,
+      "height": 148
+    },
+    "islands": 1,
+    "orphans": 1177,
+    "opaque": 29008
+  },
+  "backdrop-proflash-192": {
+    "size": "100x76",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 100,
+      "height": 76
+    },
+    "islands": 1,
+    "orphans": 577,
+    "opaque": 7600
+  },
+  "backdrop-proflash-384": {
+    "size": "196x148",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 196,
+      "height": 148
+    },
+    "islands": 1,
+    "orphans": 1500,
+    "opaque": 29008
+  },
+  "backdrop-rdplus-384": {
+    "size": "196x148",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 196,
+      "height": 148
+    },
+    "islands": 1,
+    "orphans": 1188,
+    "opaque": 29008
+  },
+  "lamp-384": {
+    "size": "48x136",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 34,
+      "height": 128
+    },
+    "islands": 1,
+    "orphans": 100,
+    "opaque": 1555
+  },
+  "painting-384": {
+    "size": "96x68",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 60,
+      "height": 57
+    },
+    "islands": 1,
+    "orphans": 24,
+    "opaque": 3420
+  },
+  "rug-384": {
+    "size": "216x108",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 105,
+      "height": 58
+    },
+    "islands": 1,
+    "orphans": 566,
+    "opaque": 5980
+  },
+  "sconce-384": {
+    "size": "16x24",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 14,
+      "height": 13
+    },
+    "islands": 1,
+    "orphans": 20,
+    "opaque": 147
+  },
+  "table-384": {
+    "size": "48x48",
+    "offPaletteBefore": 0,
+    "trimmed": {
+      "width": 30,
+      "height": 36
+    },
+    "islands": 1,
+    "orphans": 101,
+    "opaque": 594
+  }
+}

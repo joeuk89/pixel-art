@@ -1,0 +1,421 @@
+<!doctype html>
+<!-- PROTOTYPE, throwaway (wayfinder ticket #71). The penthouse as a v2 Scene at 192x120 and 384x240, judged fullscreen
+     beside the v1 Poster. All geometry, lights and rain are written in 192x120 units and multiplied by S, so the two v2
+     renders differ only in resolution and in which Elements they use. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Resolution prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font: 13px/1.4 system-ui, sans-serif; }
+  #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 16px; }
+  canvas { image-rendering: pixelated; display: block; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #888; }
+  body.bare .cell span { display: none; }
+  #bar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; align-items: center;
+    background: #fff; color: #111; border-radius: 999px; padding: 6px 12px; box-shadow: 0 4px 16px #0008; z-index: 2; white-space: nowrap; }
+  #bar button { border: 0; background: #eee; border-radius: 999px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  #bar button.on { background: #111; color: #fff; }
+  #panel { position: fixed; top: 12px; right: 12px; width: 400px; max-height: 80vh; overflow: auto; background: #fffe; color: #111;
+    border-radius: 8px; padding: 10px 14px; box-shadow: 0 4px 16px #0008; z-index: 2; }
+  #panel table { border-collapse: collapse; font-size: 12px; } #panel td, #panel th { padding: 1px 6px; text-align: left; }
+  #panel h3 { margin: 6px 0 2px; font-size: 14px; }
+  body.bare #bar, body.bare #panel { display: none; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="panel"></div>
+<div id="bar">
+  <button data-view="v1">1 v1</button><button data-view="v192">2 v2·192</button><button data-view="v384">3 v2·384</button>
+  <button data-view="pair">4 192|384</button><button data-view="pairv1">5 v1|384</button>
+  <button id="bd" title="B">Backdrop</button><button id="tx" title="T">Texture</button><button id="zm" title="Z">Zoom</button><button id="lt" title="L">Light</button>
+  <button id="pn" title="P">Panel</button><button id="fs" title="F">Fullscreen</button>
+</div>
+<script>
+const ASSETS = /*ASSETS*/{};
+const PAL = /*PALETTE*/[];
+const GATE = /*GATE*/{};
+const LEDGER = /*LEDGER*/{};
+
+const NONE = 255, K = PAL.length;
+const PAL_RGB = PAL.map((h) => [1, 3, 5].map((o) => parseInt(h.slice(o, o + 2), 16)));
+const RGBA32 = PAL_RGB.map(([r, g, b]) => (0xff << 24) | (b << 16) | (g << 8) | r);
+const indexOf = new Map(PAL_RGB.map(([r, g, b], i) => [(r << 16) | (g << 8) | b, i]));
+
+// cosy-night's ramps, darkest first with shared dark ends (the lighting prototype's hand ramps).
+const CHAINS = [[0, 1, 2, 3, 15], [0, 4, 5, 6, 7], [0, 11, 10, 9, 8], [0, 1, 14, 13, 12]];
+const MIN = -4, MAX = 3, N = MAX - MIN + 1;
+const LUT = new Uint8Array(K * N);
+for (let c = 0; c < K; c++) {
+  const ch = CHAINS.find((x) => x.indexOf(c) > 0) ?? CHAINS[0], p = ch.indexOf(c);
+  for (let l = MIN; l <= MAX; l++) LUT[c * N + l - MIN] = ch[Math.max(0, Math.min(ch.length - 1, p + l))];
+}
+
+// ---- images as Palette index planes
+
+const img = {};
+function toIdx(im) {
+  const c = Object.assign(document.createElement("canvas"), { width: im.width, height: im.height }), x = c.getContext("2d");
+  x.drawImage(im, 0, 0);
+  const d = x.getImageData(0, 0, im.width, im.height).data, idx = new Uint8Array(im.width * im.height).fill(NONE);
+  for (let i = 0; i < idx.length; i++) if (d[i * 4 + 3] > 127) idx[i] = indexOf.get((d[i * 4] << 16) | (d[i * 4 + 1] << 8) | d[i * 4 + 2]) ?? NONE;
+  return { w: im.width, h: im.height, idx };
+}
+function trim(t) {
+  if (!t) return t;
+  let x0 = t.w, y0 = t.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < t.h; y++) for (let x = 0; x < t.w; x++) if (t.idx[y * t.w + x] !== NONE) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  return sub(t, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+}
+function sub(t, x0, y0, w, h) {
+  const r = { w, h, idx: new Uint8Array(w * h).fill(NONE) };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const sx = x + x0, sy = y + y0; if (sx >= 0 && sy >= 0 && sx < t.w && sy < t.h) r.idx[y * w + x] = t.idx[sy * t.w + sx]; }
+  return r;
+}
+
+// ---- one v2 Scene at scale S
+
+const P_FAR = 0, P_MID = 1, P_NEAR = 2;
+const OFFSET = { [P_FAR]: -0.5, [P_MID]: -2.5, [P_NEAR]: -3 };
+const ZOOMS = [1, 1.25, 1.5];
+const BACKDROPS = ["proflash", "pro", "pixflux", "rdplus"], TEXTURES = ["plain", "lines", "fine"];
+
+// Zoom Z walks the camera forward: every 192x120 coordinate scales by Z about the vanishing point, and so does f.
+// Props, Features and the Backdrop are resampled by Z as a stand-in; a real Scene generates them at the new size.
+function scaleBy(t, k) {
+  if (!t || k === 1) return t;
+  const w = Math.max(1, Math.round(t.w * k)), h = Math.max(1, Math.round(t.h * k)), r = { w, h, idx: new Uint8Array(w * h) };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) r.idx[y * w + x] = t.idx[Math.floor(((y + 0.5) * t.h) / h) * t.w + Math.floor(((x + 0.5) * t.w) / w)];
+  return r;
+}
+
+function buildScene(S, set, opt) {
+  const Z = opt.zoom, W = 192 * S, H = 120 * S, n = W * H;
+  const tx = (x) => Math.round((118 + (x - 118) * Z) * S), ty = (y) => Math.round((48 + (y - 48) * Z) * S), len = (v) => v * S * Z;
+  set = { ...set, painting: scaleBy(set.painting, Z), rug: scaleBy(set.rug, Z), sconce: scaleBy(set.sconce, Z), table: scaleBy(set.table, Z), lamp: scaleBy(set.lamp, Z), armchair: scaleBy(set.armchair, Z) };
+  const G = { x0: tx(56), y0: ty(12), x1: tx(176), y1: ty(86), vx: 118 * S, vy: 48 * S, f: len(120) };
+  const WIN = { x0: tx(70), y0: ty(12), x1: tx(168), y1: ty(86), frame: Math.round(len(2)), mullions: 2 };
+  if (set.backdrop && Z !== 1) set.backdrop = scaleBy(set.backdrop, Math.max((WIN.x1 - WIN.x0) / set.backdrop.w, (WIN.y1 - WIN.y0) / set.backdrop.h));
+  const idx = new Uint8Array(n).fill(0), plane = new Uint8Array(n), emissive = new Uint8Array(n), win = new Uint8Array(n);
+  const put = (x, y, c, p = P_MID, e = 0) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= W || y >= H || c === NONE) return; const i = y * W + x; idx[i] = c; plane[i] = p; emissive[i] = e; };
+  const sOf = (z) => G.f / (G.f - z), zOf = (s) => G.f * (1 - 1 / s);
+
+  function locate(px, py) {
+    const x = px + 0.5, y = py + 0.5;
+    if (x >= G.x0 && x < G.x1 && y >= G.y0 && y < G.y1) return { surf: "back", a: x, b: y };
+    let s, u, v;
+    if (y >= G.y1) { s = (y - G.vy) / (G.y1 - G.vy); u = G.vx + (x - G.vx) / s; if (u >= G.x0 && u < G.x1) return { surf: "floor", a: u, b: zOf(s) }; }
+    if (y < G.y0) { s = (G.vy - y) / (G.vy - G.y0); u = G.vx + (x - G.vx) / s; if (u >= G.x0 && u < G.x1) return { surf: "ceiling", a: u, b: zOf(s) }; }
+    if (x < G.x0) { s = (G.vx - x) / (G.vx - G.x0); v = G.vy + (y - G.vy) / s; if (v >= G.y0 && v < G.y1) return { surf: "left", a: zOf(s), b: v }; }
+    if (x >= G.x1) { s = (x - G.vx) / (G.x1 - G.vx); v = G.vy + (y - G.vy) / s; if (v >= G.y0 && v < G.y1) return { surf: "right", a: zOf(s), b: v }; }
+    return null;
+  }
+  function project(surf, a, b) {
+    if (surf === "back") return [a, b];
+    const s = sOf(surf === "floor" || surf === "ceiling" ? b : a);
+    if (surf === "floor") return [G.vx + (a - G.vx) * s, G.vy + (G.y1 - G.vy) * s];
+    if (surf === "ceiling") return [G.vx + (a - G.vx) * s, G.vy - (G.vy - G.y0) * s];
+    return [surf === "left" ? G.vx - (G.vx - G.x0) * s : G.vx + (G.x1 - G.vx) * s, G.vy + (b - G.vy) * s];
+  }
+  function line(x0, y0, x1, y1, c, keep = () => true) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let e = dx + dy;
+    for (let k = 0; k < 8000; k++) {
+      if (keep(x0, y0)) put(x0, y0, c);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; }
+    }
+  }
+  const inWin = (x, y) => x + 0.5 >= WIN.x0 && x + 0.5 < WIN.x1 && y + 0.5 >= WIN.y0 && y + 0.5 < WIN.y1;
+
+  // Far plane: the Backdrop, sized to the window Opening and placed once.
+  const bd = set.backdrop;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!inWin(x, y)) continue;
+    const i = y * W + x; win[i] = 1; plane[i] = P_FAR; idx[i] = 4;
+    if (!bd) continue;
+    const bx = x - WIN.x0 + Math.floor((bd.w - (WIN.x1 - WIN.x0)) / 2), by = y - WIN.y0 + Math.floor((bd.h - (WIN.y1 - WIN.y0)) / 2);
+    const c = bx >= 0 && by >= 0 && bx < bd.w && by < bd.h ? bd.idx[by * bd.w + bx] : NONE;
+    if (c !== NONE) { idx[i] = c; emissive[i] = c === 8 || c === 12 ? 1 : 0; }
+  }
+
+  // Room shell, drawn by the local engine: flat Surfaces, skirting, optional one-pixel lines at projected positions.
+  const SKIRT = Math.round(len(3)), COLOUR = { floor: 11, ceiling: 1, left: 2, right: 2, back: 2 };
+  // A side-wall or floor Feature is generated square-on at the Scale of its nearest edge (sOf(42) = 1.54 here), so its
+  // size on the surface comes from its own pixels and projection only ever shrinks it.
+  const NEAR = sOf(len(42));
+  const feats = [
+    { surf: "left", a0: len(12), b0: ty(30), t: set.painting },
+    { surf: "floor", a0: tx(112), b0: len(8), t: set.rug, centred: true },
+  ].filter((f) => f.t).map((f) => {
+    const w = f.t.w / NEAR, h = f.t.h / NEAR;
+    return { ...f, a0: f.centred ? f.a0 - w / 2 : f.a0, w, h };
+  });
+  const featAt = (p) => feats.find((f) => f.surf === p.surf && p.a >= f.a0 && p.a < f.a0 + f.w && p.b >= f.b0 && p.b < f.b0 + f.h);
+  const skirt = (b) => { const r = Math.floor(b - (G.y1 - SKIRT)); return r < 0 ? -1 : [15, 13, 14][Math.min(2, Math.floor((r * 3) / SKIRT))]; };
+  const surfAt = new Array(n);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (inWin(x, y)) continue;
+    const p = locate(x, y); surfAt[y * W + x] = p;
+    if (!p) continue;
+    const f = featAt(p);
+    if (f) {
+      const c = f.t.idx[Math.floor(((p.b - f.b0) / f.h) * f.t.h) * f.t.w + Math.floor(((p.a - f.a0) / f.w) * f.t.w)];
+      if (c !== NONE) { put(x, y, c); p.feature = true; continue; }
+    }
+    const sk = p.surf !== "floor" && p.surf !== "ceiling" ? skirt(p.b) : -1;
+    put(x, y, sk >= 0 ? sk : COLOUR[p.surf]);
+    if (sk >= 0) p.skirt = true;
+  }
+  const on = (surf) => (x, y) => { const p = x >= 0 && y >= 0 && x < W && y < H ? surfAt[y * W + x] : null; return p && p.surf === surf && !p.feature && !p.skirt; };
+  if (opt.texture !== "plain") {
+    const u = opt.texture === "fine" ? 1 : S * Z;
+    let last = -99;
+    for (let k = 0; k < 400; k++) {
+      const y = Math.round(project("floor", 0, k * 6 * u)[1]);
+      if (y >= H) break;
+      if (y - last < 3) continue;
+      for (let x = 0; x < W; x++) if (on("floor")(x, y)) put(x, y, 0);
+      for (let m = -4; m < 8; m++) {
+        const a = G.x0 + (((k * 23 + 7) % 64) + m * 64) * u;
+        const [ax, ay] = project("floor", a, k * 6 * u), [bx, by] = project("floor", a, (k + 1) * 6 * u);
+        line(ax, ay + 1, bx, by - 1, 0, on("floor"));
+      }
+      last = y;
+    }
+    for (const surf of ["left", "right"]) {
+      let lastX = surf === "left" ? 1e9 : -1e9;
+      for (let k = 1; k < 400; k++) {
+        const x = Math.round(project(surf, k * 16 * u, 0)[0]);
+        if (x < 0 || x >= W) break;
+        if (Math.abs(x - lastX) < 3) continue;
+        const toward = surf === "left" ? -1 : 1;
+        for (let y = 0; y < H; y++) if (on(surf)(x, y)) { put(x, y, 1); if (on(surf)(x + toward, y)) put(x + toward, y, 3); }
+        lastX = x;
+      }
+    }
+    for (let a = G.x0 + 16 * u; a < G.x1; a += 16 * u) for (let y = G.y0; y < G.y1; y++) if (on("back")(a, y)) put(a, y, 1);
+    let lastY = 1e9;
+    for (let k = 1; k < 400; k++) {
+      const y = Math.round(project("ceiling", 0, k * 16 * u)[1]);
+      if (y < 0) break;
+      if (lastY - y < 3) continue;
+      for (let x = 0; x < W; x++) if (on("ceiling")(x, y)) put(x, y, 0);
+      lastY = y;
+    }
+    for (let a = G.x0; a <= G.x1; a += 16 * u) { const [ax, ay] = project("ceiling", a, 0), [bx, by] = project("ceiling", a, G.f * 0.8); line(ax, ay - 1, bx, by, 0, on("ceiling")); }
+  }
+  for (const [cx, cy] of [[G.x0, G.y0], [G.x1, G.y0], [G.x0, G.y1], [G.x1, G.y1]]) line(cx, cy, G.vx + (cx - G.vx) * 6, G.vy + (cy - G.vy) * 6, 0, (x, y) => !inWin(x, y));
+  line(G.x0, G.y0, G.x1 - 1, G.y0, 0); line(G.x0, G.y0, G.x0, G.y1 - 1, 0); line(G.x1 - 1, G.y0, G.x1 - 1, G.y1 - 1, 0);
+
+  // The window Opening's frame and mullions, drawn by the engine (they replace v1's mullion Elements).
+  const fw = WIN.frame;
+  const frameRect = (x0, x1) => { for (let x = x0; x < x1; x++) for (let y = WIN.y0; y < WIN.y1; y++) { put(x, y, x === x0 ? 3 : x === x1 - 1 ? 0 : 1); win[y * W + x] = 0; } };
+  frameRect(WIN.x0, WIN.x0 + fw); frameRect(WIN.x1 - fw, WIN.x1);
+  for (let m = 1; m <= WIN.mullions; m++) { const cx = Math.round(WIN.x0 + ((WIN.x1 - WIN.x0) * m) / (WIN.mullions + 1)); frameRect(cx - fw / 2, cx + fw / 2); }
+  for (const yy of [WIN.y0, WIN.y1 - fw]) for (let y = yy; y < yy + fw; y++) for (let x = WIN.x0; x < WIN.x1; x++) { put(x, y, y === yy ? 3 : 1); win[y * W + x] = 0; }
+
+  // Back-wall Feature, drawn 1:1.
+  if (set.sconce) blit(set.sconce, Math.round(tx(63) - set.sconce.w / 2), ty(30), P_MID, (c) => c === 8 || c === 9);
+
+  // Floor props stand on their foot (bottom centre), sorted by foot y.
+  const props = [
+    { t: set.table, x: 74, y: 104, p: P_MID },
+    { t: set.lamp, x: 150, y: 108, p: P_MID, lamp: true },
+    { t: set.armchair, x: 104, y: 124, p: P_NEAR },
+  ].filter((q) => q.t).sort((a, b) => a.y - b.y);
+  let lampLight = { x: tx(150), y: ty(70) };
+  for (const q of props) {
+    const x0 = Math.round(tx(q.x) - q.t.w / 2), y0 = Math.round(ty(q.y) - q.t.h);
+    const shadeRows = Math.round(q.t.h * 0.28);
+    blit(q.t, x0, y0, q.p, (c, sy) => q.lamp && sy < shadeRows && (c === 12 || c === 13 || c === 15));
+    if (q.lamp) lampLight = { x: x0 + q.t.w / 2, y: y0 + shadeRows / 2 };
+  }
+  function blit(t, x0, y0, p, isEmissive) {
+    for (let sy = 0; sy < t.h; sy++) for (let sx = 0; sx < t.w; sx++) {
+      const c = t.idx[sy * t.w + sx]; if (c === NONE) continue;
+      const x = x0 + sx, y = y0 + sy; if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      put(x, y, c, p, isEmissive(c, sy) ? 1 : 0); win[y * W + x] = 0;
+    }
+  }
+
+  const lights = [
+    { x: lampLight.x, y: lampLight.y, r: len(55), peak: 3.5, flicker: true },
+    set.sconce ? { x: tx(63), y: ty(33), r: len(18), peak: 2 } : null,
+  ].filter(Boolean);
+  // Cool spill from the window: falls off with distance from the Opening, on everything in the room.
+  const spill = new Float32Array(n), reach = len(70);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const dx = Math.max(WIN.x0 - x, 0, x - WIN.x1), dy = Math.max(WIN.y0 - y, 0, y - WIN.y1), d = Math.hypot(dx, dy);
+    spill[y * W + x] = d < reach ? 1.5 * (1 - d / reach) : 0;
+  }
+  const drops = Array.from({ length: 50 * S * S }, () => ({ x: Math.random() * (WIN.x1 - WIN.x0), y: Math.random() * H, v: (2 + Math.random() * 2) * S, c: 5 + ((Math.random() * 3) | 0) }));
+  return { S, W, H, idx, plane, emissive, win, lights, spill, drops, WIN, work: new Uint8Array(n), out: new Uint32Array(n), image: new ImageData(W, H), cost: 0 };
+}
+
+// ---- per frame: rain into the window, then the ramp-lighting pass, then the smooth lamp Halo
+
+const hash = (k) => { let h = Math.imul(k ^ 0x9e3779b9, 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+const noise = (t) => { const k = Math.floor(t), f = t - k, s = f * f * (3 - 2 * f); return hash(k) * (1 - s) + hash(k + 1) * s; };
+const flickerAt = (ms) => 1 - 0.08 * noise(Math.floor(ms / 100) / 14);
+
+function drawScene(sc, now, step) {
+  const t0 = performance.now();
+  const { S, W, H, idx, plane, emissive, win, work, out, WIN } = sc;
+  work.set(idx);
+  for (const d of sc.drops) {
+    if (step) { d.y += d.v; d.x += 0.5 * S; if (d.y > H) d.y -= H; }
+    const x = Math.round(WIN.x0 + (d.x % (WIN.x1 - WIN.x0)));
+    for (let k = 0; k < S + 1; k++) { const y = Math.round(d.y) + k; if (y < H && win[y * W + x]) work[y * W + x] = d.c; }
+  }
+  if (!state.light) { for (let i = 0; i < work.length; i++) out[i] = RGBA32[work[i]]; }
+  else {
+    const flick = flickerAt(now), L0 = sc.lights[0];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x, c = work[i];
+        let f;
+        if (emissive[i]) f = 0;
+        else if (plane[i] === P_FAR) f = OFFSET[P_FAR];
+        else {
+          f = OFFSET[plane[i]] + sc.spill[i];
+          for (const l of sc.lights) {
+            const d = Math.hypot(x - l.x, y - l.y);
+            if (d < l.r) f += l.peak * (1 - d / l.r) * (l.flicker ? flick : 1);
+          }
+        }
+        let lv = Math.round(f); lv = lv < MIN ? MIN : lv > MAX ? MAX : lv;
+        out[i] = RGBA32[LUT[c * N + lv - MIN]];
+      }
+    }
+    const bytes = new Uint8ClampedArray(out.buffer), hr = 40 * S, a0 = 0.16 * flick;
+    for (let y = Math.max(0, Math.floor(L0.y - hr)); y < Math.min(H, L0.y + hr); y++)
+      for (let x = Math.max(0, Math.floor(L0.x - hr)); x < Math.min(W, L0.x + hr); x++) {
+        const d = Math.hypot(x - L0.x, y - L0.y) / hr; if (d >= 1) continue;
+        const a = a0 * (1 - d) ** 2, o = (y * W + x) * 4;
+        bytes[o] += 247 * a; bytes[o + 1] += 211 * a; bytes[o + 2] += 92 * a;
+      }
+  }
+  sc.image.data.set(new Uint8ClampedArray(out.buffer));
+  sc.cost = sc.cost * 0.95 + (performance.now() - t0) * 0.05;
+  sc.ctx.putImageData(sc.image, 0, 0);
+}
+
+// ---- views
+
+const params = new URLSearchParams(location.search);
+const state = {
+  view: params.get("view") ?? "pair", backdrop: BACKDROPS.includes(params.get("backdrop")) ? params.get("backdrop") : "proflash",
+  texture: TEXTURES.includes(params.get("texture")) ? params.get("texture") : "plain", light: params.get("light") !== "0", zoom: ZOOMS.includes(+params.get("zoom")) ? +params.get("zoom") : 1, panel: params.get("panel") !== "0",
+};
+const VIEWS = { v1: ["v1"], v192: ["v192"], v384: ["v384"], pair: ["v192", "v384"], pairv1: ["v1", "v384"] };
+const LABEL = { v1: "v1 as shipped (Poster, 192x120)", v192: "v2 rules at 192x120 (v1 props)", v384: "v2 rules at 384x240 (regenerated)" };
+let scenes = {}, sets = {};
+const stage = document.getElementById("stage");
+
+function rebuild() {
+  const bdKey = { proflash: "backdrop-proflash-384", pro: "backdrop-pro-384", pixflux: "backdrop-pixflux-384", rdplus: "backdrop-rdplus-384" }[state.backdrop];
+  sets.v384.backdrop = img[bdKey] ?? null;
+  stage.innerHTML = "";
+  scenes = {};
+  for (const key of VIEWS[state.view]) {
+    const cell = document.createElement("div"); cell.className = "cell";
+    const cv = document.createElement("canvas");
+    if (key === "v1") { cv.width = 192; cv.height = 120; cv.getContext("2d").drawImage(img["v1-poster"].im, 0, 0); }
+    else {
+      const sc = buildScene(key === "v384" ? 2 : 1, sets[key], { texture: state.texture, zoom: state.zoom });
+      cv.width = sc.W; cv.height = sc.H; sc.ctx = cv.getContext("2d"); scenes[key] = sc;
+    }
+    cell.append(cv, Object.assign(document.createElement("span"), { textContent: LABEL[key] }));
+    stage.append(cell);
+  }
+  fit(); render();
+}
+
+// Every canvas in a view gets the same display width, and each at a whole multiple of its own pixels where it can.
+function fit() {
+  const cells = [...stage.querySelectorAll("canvas")], dpr = devicePixelRatio || 1;
+  const avail = ((innerWidth - 16 * (cells.length + 1)) / cells.length) * dpr, availH = (innerHeight - (document.body.classList.contains("bare") ? 0 : 60)) * dpr;
+  const unit = Math.max(1, Math.floor(Math.min(avail / 384, availH / 240)));
+  for (const cv of cells) { cv.style.width = (384 * unit) / dpr + "px"; cv.style.height = (240 * unit) / dpr + "px"; }
+  render.unit = unit;
+}
+
+function render() {
+  for (const b of document.querySelectorAll("[data-view]")) b.classList.toggle("on", b.dataset.view === state.view);
+  document.getElementById("bd").textContent = "Backdrop: " + state.backdrop;
+  document.getElementById("tx").textContent = "Texture: " + state.texture;
+  document.getElementById("zm").textContent = "Zoom: " + state.zoom + "x";
+  document.getElementById("lt").classList.toggle("on", state.light);
+  document.getElementById("pn").classList.toggle("on", state.panel);
+  const q = new URLSearchParams({ view: state.view, backdrop: state.backdrop, texture: state.texture, zoom: state.zoom, light: state.light ? 1 : 0, panel: state.panel ? 1 : 0 });
+  history.replaceState(null, "", "?" + q);
+  panel();
+}
+
+function panel() {
+  const p = document.getElementById("panel");
+  p.style.display = state.panel ? "" : "none";
+  if (!state.panel) return;
+  const cost = Object.entries(scenes).map(([k, s]) => `<tr><td>${LABEL[k]}</td><td>${s.cost.toFixed(2)} ms</td></tr>`).join("");
+  const rows = Object.entries(GATE).filter(([k]) => !k.startsWith("v1-poster")).map(([k, g]) =>
+    `<tr><td>${k}</td><td>${g.size}</td><td>${g.trimmed.width}x${g.trimmed.height}</td><td>${g.offPaletteBefore}</td><td>${g.orphans}</td><td>${g.islands}</td><td>${LEDGER[k] ?? ""}</td></tr>`).join("");
+  p.innerHTML = `<h3>Frame cost (rain, lighting, Halo; whole frame)</h3><table>${cost}</table>
+    <p>Display: one 384x240 pixel = ${render.unit} device pixels; one 192x120 pixel = ${render.unit * 2}.</p>
+    <h3>Keys</h3><p>1–5 views · B Backdrop service (384 only) · T shell texture: <i>plain</i>, <i>lines</i> (same spacing in metres), <i>fine</i> (same spacing in pixels as at 192) · Z zoom: walk the camera forward (props, Features and Backdrop resampled as a stand-in) · L lighting · P panel · F fullscreen (hides the UI)</p>
+    <h3>Quality gate per image</h3><table><tr><th>image</th><th>canvas</th><th>trimmed</th><th>off-Palette</th><th>orphans</th><th>islands</th><th>cost</th></tr>${rows}</table>`;
+}
+setInterval(() => state.panel && panel(), 1000);
+
+let lastStep = 0;
+function frame(now) {
+  const step = now - lastStep > 1000 / 24;
+  if (step) lastStep = now;
+  for (const sc of Object.values(scenes)) drawScene(sc, now, step);
+  requestAnimationFrame(frame);
+}
+
+const setView = (v) => { state.view = v; rebuild(); };
+const cycle = (k, list) => { state[k] = list[(list.indexOf(state[k]) + 1) % list.length]; rebuild(); };
+for (const b of document.querySelectorAll("[data-view]")) b.onclick = () => setView(b.dataset.view);
+document.getElementById("bd").onclick = () => cycle("backdrop", BACKDROPS);
+document.getElementById("tx").onclick = () => cycle("texture", TEXTURES);
+document.getElementById("zm").onclick = () => cycle("zoom", ZOOMS);
+document.getElementById("lt").onclick = () => { state.light = !state.light; render(); };
+document.getElementById("pn").onclick = () => { state.panel = !state.panel; render(); };
+const full = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
+document.getElementById("fs").onclick = full;
+document.addEventListener("fullscreenchange", () => { document.body.classList.toggle("bare", !!document.fullscreenElement); fit(); });
+addEventListener("resize", fit);
+addEventListener("keydown", (e) => {
+  const v = { 1: "v1", 2: "v192", 3: "v384", 4: "pair", 5: "pairv1" }[e.key];
+  if (v) setView(v);
+  else if (e.key === "b") cycle("backdrop", BACKDROPS); else if (e.key === "t") cycle("texture", TEXTURES); else if (e.key === "z") cycle("zoom", ZOOMS);
+  else if (e.key === "l") { state.light = !state.light; render(); } else if (e.key === "p") { state.panel = !state.panel; render(); }
+  else if (e.key === "f") full();
+});
+
+Promise.all(Object.entries(ASSETS).map(([k, src]) => new Promise((ok) => { const i = new Image(); i.onload = () => { img[k] = Object.assign(toIdx(i), { im: i }); ok(); }; i.src = src; })))
+  .then(() => {
+    const t = (k) => (img[k] ? trim(img[k]) : null);
+    sets.v192 = {
+      backdrop: img["backdrop-proflash-192"] ?? null,
+      armchair: t("v1-armchair"), lamp: t("v1-lamp"), table: t("v1-table"),
+      painting: t("rs-painting-flat"), rug: t("rs-rug-flat"), sconce: t("rs-sconce"),
+    };
+    if (sets.v192.sconce) sets.v192.sconce = shrinkTo(sets.v192.sconce, 12);
+    sets.v384 = { armchair: t("armchair-384"), lamp: t("lamp-384"), table: t("table-384"), painting: t("painting-384"), rug: t("rug-384"), sconce: t("sconce-384") };
+    rebuild();
+    requestAnimationFrame(frame);
+  });
+// The room-shell prototype's sconce came back at 64 px; it showed it 12 px tall, so this one does too.
+function shrinkTo(t, h) {
+  const w = Math.max(1, Math.round((t.w * h) / t.h)), r = { w, h, idx: new Uint8Array(w * h) };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) r.idx[y * w + x] = t.idx[Math.floor(((y + 0.5) * t.h) / h) * t.w + Math.floor(((x + 0.5) * t.w) / w)];
+  return r;
+}
+</script>
+</body>
+</html>
