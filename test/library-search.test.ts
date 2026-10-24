@@ -67,7 +67,9 @@ test("library-search --sounds searches the Sound library and prints kind and Dis
   assert.equal(code, 0, stderr);
   assert.deepEqual(out.results, [
     { id: "freesound-night-interior-613147", kind: "loop", subject: "night interior", tags: ["night", "room", "interior", "quiet", "bedroom", "bed"], distance: ["mid"], matched: ["subject", "tags"] },
+    { id: "freesound-crickets-night-167304", kind: "loop", subject: "crickets", tags: ["crickets", "insects", "night", "summer", "countryside", "garden", "bed"], distance: ["mid", "far"], matched: ["tags"] },
     { id: "freesound-owl-tawny-454842", kind: "oneshot", subject: "owl", tags: ["owl", "tawny owl", "hoot", "night", "countryside"], distance: ["far"], matched: ["tags"] },
+    { id: "freesound-rain-window-242889", kind: "loop", subject: "rain on glass", tags: ["rain", "window", "glass", "indoors", "night", "weather", "bed"], distance: ["near", "mid"], matched: ["tags"] },
   ]);
 });
 
