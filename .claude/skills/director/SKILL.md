@@ -1,6 +1,6 @@
 ---
 name: director
-description: Turn a Prompt into a draft Scene plan and stop at the Plan gate for the owner's yes.
+description: Turn a Prompt into a Scene: plan it, stop once at the Plan gate for the owner's yes, then generate, check and stage it for the owner to preview and commit.
 argument-hint: <Prompt>
 disable-model-invocation: true
 ---
@@ -77,4 +77,48 @@ Call out, each on its own line: budget overage with the amount and the reason; e
 
 Wait for the owner. Apply any edits to the plan. If an edit changes `scale`, any `realSize` or any Element, put a `generate` block back on every reused Placement it affects, because `derive-canvas` skips Placements without one. Then rerun step 4 and step 5 for the affected Placements, so every reused Element's size is checked against its new canvas. Run `node pipeline/validate.ts scenes/<id>` until it exits 0, and show the brief again.
 
-**Done when** the owner has said yes to the brief as shown. Record an approved overage in `cost.approvedOverage` with its reason. If the owner approves the new Palette, write it to `library/palettes/`, point the plan at it, re-pick every `fill` and Primitive colour index against the new Palette, and run `node pipeline/validate.ts scenes/<id>` again until it exits 0. If the owner rejects the new Palette, set the plan to a house Palette, rerun step 5 against that house Palette, and show the brief again. Then stop: generation is not part of this skill yet.
+**Done when** the owner has said yes to the brief as shown. Record an approved overage in `cost.approvedOverage` with its reason. If the owner approves the new Palette, write it to `library/palettes/`, point the plan at it, re-pick every `fill` and Primitive colour index against the new Palette, and run `node pipeline/validate.ts scenes/<id>` again until it exits 0. If the owner rejects the new Palette, set the plan to a house Palette, rerun step 5 against that house Palette, and show the brief again. Then go straight on to step 7.
+
+## 7. Generate
+
+From the owner's yes until the preview, never ask the owner anything. Every decision here is yours, and anything that goes wrong ends in the report at step 9, not in a question. Run each script that calls a service as `node --env-file=.env pipeline/<script>.ts`; the plan path below is `scenes/<id>/scene.json`.
+
+1. In parallel: `pipeline/music.ts <plan>`, `pipeline/ambient.ts <plan>`, and the Style anchor. Generate the anchor with `pipeline/generate-element.ts <plan> <placementId>`, judge it as in point 3 and accept it with `--accept <png> --style-anchor`. If the plan has no generated prop of 48 px or more on its longer side, there is no anchor; go on.
+2. Then every other generated Element, backdrops and props, in batches of up to 8 parallel `generate-element` runs. The script sends the anchor as the style image wherever it fits the canvas.
+3. Judge every Attempt by the Quality gate. Its `gate.ok` must be true; then open its 8x upscale (`scratch.upscale`) with Read and check the five points of [rubric.md](rubric.md) against the anchor and the Elements already accepted for this Scene. Accept with `--accept <png>` only when both pass. Otherwise climb the still retry ladder in rubric.md, one rung per Attempt: run again unchanged; then pass `--brief` with the brief reworded to name the defect; then change the decomposition in the plan (split, merge or resize the Element), rerun `derive-canvas` and `validate`, and run again.
+4. After the fourth failed Attempt, or when the script refuses one, abandon the Element. Search for a substitute with `pipeline/library-search.ts <subject> --palette <palette> --size <WxH>` and view each candidate at 8x. If one passes points 1 to 4 of the rubric, run `generate-element <plan> <placementId> --abandon --substitute <elementId>`; otherwise `--abandon` alone drops the Placement and the Primitives anchored to it.
+5. Frame strips last, only for Elements whose still was accepted with `stripRequested` in the accept output: `pipeline/generate-strip.ts <elementId> --scene <plan>`, with `--service`, `--frames` and `--motion` as planned. Judge its strip gate and its 8x upscale the same way and accept with `--accept <strip.png> --scene <plan>`. Follow the strip retry ladder in rubric.md; when the ladder ends, `--abandon --scene <plan>` keeps the still.
+6. After each batch run `pipeline/budget.ts <plan>`. When `capsHit` names a cap, start no new Attempt it covers: let the Attempts in flight finish, abandon each still Element left as in point 4, fall each strip left back to its still, and keep the caps hit for the report.
+
+Elements that passed the gate stay in the library even when a later step drops their Placement. If a script fails mid-run, the plan stays `draft` with everything accepted kept; rerun this step and it carries on from the Placements that still have a `generate` block.
+
+**Done when** no Placement has a `generate` block, every planned strip is accepted or fallen back to its still, the music has a measured seam, every Ambient loop and One-shot file sits beside the plan, and `node pipeline/validate.ts scenes/<id>` exits 0.
+
+## 8. Hard checks
+
+Run `node pipeline/poster.ts scenes/<id>/scene.json`, then `node pipeline/stage.ts scenes/<id>/scene.json`, then `node pipeline/check-scene.ts scenes/<id>/scene.json`. check-scene reports each hard check: every `generate` block resolved, `validate` green, the loop seam measured, the Poster equal to frame 0 of the plan, the stub and `gallery.json` current, and `npm test` passing.
+
+When a check names a mechanical fix (run poster, run stage, or `music.ts --force` for an unmeasured seam), make it and run check-scene again. On any other failure, stop and report the failing checks: the Scene stays `draft` with its completed work kept, so a later run resumes at step 7.
+
+**Done when** `node pipeline/check-scene.ts scenes/<id>/scene.json` exits 0.
+
+## 9. Preview
+
+Start the dev server with `npm run dev` in the background unless something already listens on port 8000. Then run `node pipeline/preview.ts scenes/<id>/scene.json`: it runs the hard checks again, marks the Scene `resolved`, stages the Scene folder, new library files, any new Palette and `gallery.json`, and prints the report. Show the owner:
+
+- the preview URL
+- the staged files
+- the cost block, beside the estimate from the Plan gate
+- the ledger: the month's PixelLab generations and metered spend after this commit, against the 2,000-generation and £50 ceilings
+- every abandoned Element and what happened to it (substituted, dropped or still only), offering a paid retry for each dropped one, and any cap that stopped generation
+- the proposed commit message
+
+Then stop. Never commit or push: the owner does both.
+
+**Done when** preview exited 0, its report is shown to the owner, and `git log` shows no commit made by this run.
+
+## 10. Rejection
+
+If the owner rejects the preview, change only what the owner named, under the same Scene id. For Placements whose Element should change, run `node pipeline/reopen.ts scenes/<id>/scene.json <placementId...>`: it puts a `generate` block back on each with a fresh proposed id and marks the Scene `draft`. Apply the owner's edits to those blocks, rerun `derive-canvas` when a size changed, and run `validate`. Edit positions, Layers, Primitives or the Soundtrack in the plan directly, and rerun `music.ts --force` only when the owner rejects the music. Then run step 7 for the reopened Placements only, step 8 and step 9.
+
+**Done when** the owner accepts a preview or ends the session; every Placement the owner did not name keeps its Element.

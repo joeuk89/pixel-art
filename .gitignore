@@ -11,3 +11,5 @@ scratch/
 !/.claude/
 /.claude/*
 !/.claude/skills/
+/scenes/*/scene.json.lock
+/scenes/*/scene.json.*.tmp

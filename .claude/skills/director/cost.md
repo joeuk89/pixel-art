@@ -32,4 +32,4 @@ Run `node pipeline/ledger.ts` and add this Scene's estimate to its `pixellabGene
 
 ## Overage
 
-If either estimate exceeds its per-Scene budget, or the month's total would pass a ceiling, say by how much and why ("music plus four Retro Diffusion strips: $1.08 against $1.00"), and ask. A yes goes in the plan's `cost.approvedOverage` with the reason and the approved amounts.
+If either estimate exceeds its per-Scene budget, or the month's total would pass a ceiling, say by how much and why ("music plus four Retro Diffusion strips: $1.08 against $1.00"), and ask. A yes goes in the plan's `cost.approvedOverage` with the reason and the approved amounts above the budget (`pixellabGenerations`, `meteredUsd`). `pipeline/budget.ts` adds them to the caps during generation.
