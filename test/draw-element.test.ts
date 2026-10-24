@@ -176,3 +176,23 @@ for (const [what, placement, args, message] of [
     assert.match(out.error, message);
   });
 }
+
+test("--accept charges service Attempts the Placement had before it turned local to the plan's cost", () => {
+  const root = tree(localProp("cabinet", "box", { w: 0.6, h: 0.8 }, { fill: 13, drawers: 2 }));
+  writeJson(root, "scratch/attempts/rainy-desk-night-k7f2/cabinet-a1.json", {
+    scene: "rainy-desk-night-k7f2", placement: "cabinet", attempt: 1, canvas: { width: 32, height: 40 }, prompt: "a plain cabinet",
+    seed: 1, service: "rd-plus", generations: 5, meteredUsd: 0.02, params: {}, styleAnchor: null,
+    gate: { ok: false, passed: [], failed: ["palette"], warnings: [], measurements: {} },
+  });
+  const drawn = draw(root, "cabinet");
+  assert.equal(drawn.code, 0, drawn.stderr);
+  assert.equal(drawn.out.attempt, 2);
+  const accepted = draw(root, "cabinet", "--accept", drawn.out.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stderr);
+  assert.equal(accepted.out.generationsAdded, 5);
+
+  const plan = readJson(root, PLAN);
+  assert.equal(plan.cost.pixellabGenerations, 5);
+  assert.deepEqual(plan.cost.meteredUsd, { "retro-diffusion": 0.02 });
+  assert.equal(readJson(root, "scratch/attempts/rainy-desk-night-k7f2/cabinet-a1.json").charged, true);
+});

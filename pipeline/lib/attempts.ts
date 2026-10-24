@@ -43,13 +43,19 @@ export function stillAttempts(dir: string, placementId?: string): StillAttempt[]
 
 const METERED_VENDOR = "retro-diffusion";
 
+const roundUsd = (usd: number) => Math.round(usd * 1e4) / 1e4;
+
+export function addMetered(raw: any, byService: Record<string, number>): void {
+  for (const [name, usd] of Object.entries(byService)) raw.cost.meteredUsd[name] = roundUsd((raw.cost.meteredUsd[name] ?? 0) + usd);
+}
+
 // Every Attempt costs, accepted or not; marking them charged keeps a later accept or abandon from charging them again.
 export function chargeStillAttempts(dir: string, placementId: string): { generations: number; meteredByService: Record<string, number>; attempts: number; commit: () => void } {
   const open = sidecars(dir, (n) => n.startsWith(`${placementId}-a`)).filter((f) => f.value.placement === placementId && !f.value.charged);
   const metered = open.reduce((sum, f) => sum + (f.value.meteredUsd ?? 0), 0);
   return {
     generations: open.reduce((sum, f) => sum + f.value.generations, 0),
-    meteredByService: metered > 0 ? { [METERED_VENDOR]: Math.round(metered * 1e4) / 1e4 } : {},
+    meteredByService: metered > 0 ? { [METERED_VENDOR]: roundUsd(metered) } : {},
     attempts: open.length,
     commit: () => {
       for (const f of open) writeFileSync(f.file, JSON.stringify({ ...f.value, charged: true }, null, 2) + "\n");

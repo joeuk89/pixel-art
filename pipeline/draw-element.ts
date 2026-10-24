@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import sharp from "sharp";
 import { elementRecordSchema, isLocal, placementsOf, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
 import {
-  attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, rawPlacement, sidecarOf, stillAttemptsDir,
+  addMetered, attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, rawPlacement, sidecarOf, stillAttemptsDir,
   type StillAttempt,
 } from "./lib/attempts.ts";
 import { deriveCanvas, layerScale } from "./lib/canvas.ts";
@@ -136,6 +136,8 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     const target = rawPlacement(raw, placement.id);
     delete target.generate;
     target.element = id;
+    raw.cost.pixellabGenerations += charge.generations;
+    addMetered(raw, charge.meteredByService);
   });
 
   mkdirSync(ELEMENTS, { recursive: true });
@@ -151,7 +153,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     png: `${ELEMENTS}/${id}.png`,
     record: `${ELEMENTS}/${id}.json`,
     plan: file,
-    generationsAdded: 0,
+    generationsAdded: charge.generations,
   };
 }
 

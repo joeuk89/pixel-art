@@ -11,7 +11,7 @@ import { readElements, readScene } from "./lib/library.ts";
 import { checkService, generateImage, parseService, serviceInfo, type ImageService } from "./lib/image-services.ts";
 import { PixelLabError } from "./lib/pixellab.ts";
 import {
-  attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, logAbandoned, rawPlacement, sidecarOf, stillAttemptsDir,
+  addMetered, attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, logAbandoned, rawPlacement, sidecarOf, stillAttemptsDir,
   type Abandoned, type StillAttempt,
 } from "./lib/attempts.ts";
 import { editPlan } from "./lib/plan-file.ts";
@@ -125,12 +125,6 @@ async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { att
     upscaleFactor: upscale,
     scratch: { png: `${stem}.png`, upscale: `${stem}.x${upscale}.png`, attempt: `${stem}.json` },
   };
-}
-
-const roundUsd = (usd: number) => Math.round(usd * 1e4) / 1e4;
-
-function addMetered(raw: any, byService: Record<string, number>): void {
-  for (const [name, usd] of Object.entries(byService)) raw.cost.meteredUsd[name] = roundUsd((raw.cost.meteredUsd[name] ?? 0) + usd);
 }
 
 function checkAnchor(placement: Placement, canvas: { width: number; height: number }): void {
