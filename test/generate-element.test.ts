@@ -242,6 +242,16 @@ test("style_image with all four style_options is sent only when the Style anchor
   assert.equal(validate(root).code, 0);
 });
 
+test("a prop with removeBackground false is sent with no_background false", async () => {
+  server.requests.length = 0;
+  const root = tree((plan) => { placementIn(plan, "cat").generate.removeBackground = false; });
+  const cat = await run(root, "cat");
+  assert.equal(cat.code, 0, cat.stdout + cat.stderr);
+  const [prop] = sentBodies();
+  assert.equal(prop.no_background, false);
+  assert.deepEqual(readJson(root, cat.json.scratch.attempt).params, { no_background: false });
+});
+
 test("a plan with no Style anchor sends no style_image", async () => {
   server.requests.length = 0;
   const root = tree((plan) => { plan.styleAnchor = null; });

@@ -91,7 +91,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     description: prompt,
     image_size: canvas,
     seed: opts.seed,
-    no_background: generate.kind === "prop",
+    no_background: generate.kind === "prop" && generate.removeBackground !== false,
     target_palette: { colors: palette.colours, name: palette.name },
   };
   const anchor = styleAnchor(plan);

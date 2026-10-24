@@ -54,7 +54,7 @@ const strip = z
   .transform((s) => ({ service: s.service, frames: s.frames ?? DEFAULT_STRIP_FRAMES[s.service] }));
 
 const generate = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("prop"), brief: z.string().min(1), realSize: size, tags, strip: strip.optional() }),
+  z.strictObject({ kind: z.literal("prop"), brief: z.string().min(1), realSize: size, tags, strip: strip.optional(), removeBackground: z.boolean().optional() }),
   z.strictObject({ kind: z.literal("backdrop"), brief: z.string().min(1), tags }),
 ]);
 

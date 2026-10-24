@@ -25,7 +25,7 @@ These words make the service paint the effect into the still, where it then figh
 
 ## House style
 
-House style comes from the brief, the Palette (`target_palette`), `no_background` for props, the Style anchor (`style_image`) and its `style_options`. `generate-element` sets everything except the brief. Pro Flash rejects outline, shading, detail and view parameters, so style words in the brief are wasted: spend the words on the subject.
+House style comes from the brief, the Palette (`target_palette`), `no_background` for props, the Style anchor (`style_image`) and its `style_options`. `generate-element` sets everything except the brief. A prop that fills its whole canvas with one pale shape, such as a blank sheet of paper, needs `removeBackground: false` in its generate block, or background removal erases it. Pro Flash rejects outline, shading, detail and view parameters, so style words in the brief are wasted: spend the words on the subject.
 
 ## Style anchor
 
