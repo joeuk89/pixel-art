@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { cpSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
+import sharp from "sharp";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
 
@@ -96,6 +97,49 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.ok(pixels.colours > 4, `canvas shows only ${pixels.colours} colours`);
     assert.deepEqual(errors, []);
   });
+
+  test("cold-loading the Scene stub shows the Poster until the Elements decode, then the canvas", async () => {
+    const context = await browser!.newContext({ viewport: { width: 1000, height: 700 } });
+    const page = await context.newPage();
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    await page.route("**/library/elements/*.png", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto(`${site}scenes/${id}/`);
+    const poster = page.getByRole("img", { name: title });
+    await poster.waitFor();
+    assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 192);
+    assert.equal(await page.locator("canvas").count(), 0);
+    release();
+    await page.locator("canvas").waitFor();
+    assert.equal(await poster.count(), 0);
+  });
+
+  for (const size of [
+    { viewport: { width: 1000, height: 700 }, deviceScaleFactor: 1, scale: 5 },
+    { viewport: { width: 500, height: 900 }, deviceScaleFactor: 2, scale: 5 },
+  ]) {
+    test(`at ${size.viewport.width}x${size.viewport.height} @${size.deviceScaleFactor}x the canvas scale is the integer ${size.scale} and the letterbox is Palette index 0`, async () => {
+      const { page, errors } = await open(`scenes/${id}/`, size);
+      const canvas = page.locator("canvas");
+      await canvas.waitFor();
+      const box = (await canvas.boundingBox())!;
+      assert.deepEqual(
+        [box.width * size.deviceScaleFactor, box.height * size.deviceScaleFactor],
+        [192 * size.scale, 120 * size.scale],
+      );
+      const { data, info } = await sharp(await page.screenshot()).raw().toBuffer({ resolveWithObject: true });
+      const at = (x: number, y: number) => {
+        const i = (y * info.width + x) * info.channels;
+        return [data[i], data[i + 1], data[i + 2]];
+      };
+      assert.deepEqual(at(1, 1), rgb(palette[0]));
+      assert.deepEqual(at(info.width - 2, info.height - 2), rgb(palette[0]));
+      assert.deepEqual(errors, []);
+    });
+  }
 });
 
 function rgb(hex: string): number[] {

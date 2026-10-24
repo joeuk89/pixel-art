@@ -1,6 +1,6 @@
 const CSS = `
 html, body { margin: 0; height: 100%; }
-body { background: #120e1a; color: #e8e0d0; font: 15px/1.4 system-ui, sans-serif; }
+body { background: #1d1826; color: #e8e0d0; font: 15px/1.4 system-ui, sans-serif; }
 a { color: inherit; }
 .gallery { padding: 24px 16px; }
 .gallery ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 24px; }
