@@ -7,3 +7,6 @@ node_modules/
 dist/
 scratch/
 /viewer.js
+!/.claude/
+/.claude/*
+!/.claude/skills/
