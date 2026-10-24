@@ -1,5 +1,5 @@
 import { primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
-import type { ElementPixels, Pixels, PrimitiveDraw } from "./compositor.ts";
+import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
 
 export const WEATHER_FPS = 24;
 export const PROP_FPS = 10;
@@ -14,14 +14,6 @@ type Context = {
   anchor(id: string): { placement: Placement; pixels: Pixels; layer: number };
   top: number;
 };
-
-const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
-
-function mix(h: number): number {
-  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  return (h ^ (h >>> 16)) >>> 0;
-}
 
 // Counter-based, so any frame can be drawn from seed and time alone without replaying earlier frames.
 function random(seed: number, a: number, b: number, c: number, d: number): number {
@@ -101,14 +93,8 @@ function plotIn(out: Uint8ClampedArray, c: Colours, region: { x: number; y: numb
   paint(out, c, y * SCENE_WIDTH + x, colour);
 }
 
-
 function eachPlacedPixel(p: Placement, src: Pixels, visit: (pixel: number, source: number) => void): void {
-  const starts: number[] = [];
-  if (p.tileX) {
-    const phase = ((p.x % src.width) + src.width) % src.width;
-    for (let x = phase === 0 ? 0 : phase - src.width; x < SCENE_WIDTH; x += src.width) starts.push(x);
-  } else starts.push(p.x);
-  for (const x0 of starts) {
+  for (const x0 of placedXs(p, src.width)) {
     for (let sy = 0; sy < src.height; sy++) {
       const y = p.y + sy;
       if (y < 0 || y >= SCENE_HEIGHT) continue;
@@ -243,7 +229,7 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
     }
   };
   addOps(disc, cx, cy, colour);
-  if (pool && poolRings) addOps(poolRings, cx, pool.y, pool.colour);
+  if (poolRings) addOps(poolRings, cx, pool.y, pool.colour);
   const slotPixel = Int32Array.from(slotOf.keys());
   const slots = slotPixel.length;
   const base = new Int16Array(slots).fill(-1);
