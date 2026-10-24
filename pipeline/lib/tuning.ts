@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { scenePlanSchema, type Palette, type ScenePlan } from "../../schema/index.ts";
+import { scenePlanSchema, type Palette, type ScenePlan, type Variant } from "../../schema/index.ts";
 
 const VARIANT_FIELDS = ["ambient", "lights", "emissiveOff"] as const;
 
@@ -10,9 +10,9 @@ export const tuningSchema = z.strictObject({
   ),
 });
 
-export type Tuning = z.infer<typeof tuningSchema>;
+export type PlanTuning = { dither: boolean; variants: Pick<Variant, (typeof VARIANT_FIELDS)[number] | "id">[] };
 
-export function tuningOf(plan: ScenePlan): Tuning {
+export function tuningOf(plan: ScenePlan): PlanTuning {
   return {
     dither: plan.dither,
     variants: plan.variants.map((v) => ({ id: v.id, ambient: v.ambient, lights: v.lights, emissiveOff: v.emissiveOff })),

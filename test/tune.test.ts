@@ -4,6 +4,7 @@ import { chmodSync, cpSync, existsSync, readdirSync, readFileSync, statSync, uti
 import { join, relative } from "node:path";
 import { build } from "esbuild";
 import { fixtureScene, readJson, repo, runScript, writeJson } from "./helpers.ts";
+import { tuningOf } from "../pipeline/lib/tuning.ts";
 import { git, startTuner, stopTuners, tunerTree } from "./tuner.ts";
 
 const id = "fixture-rainy-desk-a1b2";
@@ -14,11 +15,6 @@ async function save(url: string, body: unknown): Promise<{ status: number; out: 
   const response = await fetch(new URL("save", url), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   return { status: response.status, out: await response.json() };
 }
-
-const tuningOf = (plan: any) => ({
-  dither: plan.dither,
-  variants: plan.variants.map((v: any) => ({ id: v.id, ambient: v.ambient, lights: v.lights, emissiveOff: v.emissiveOff })),
-});
 
 const between = (text: string, from: string, to: string) => {
   const start = text.indexOf(from);

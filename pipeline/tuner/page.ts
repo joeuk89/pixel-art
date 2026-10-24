@@ -11,15 +11,15 @@ import {
   type ScenePlan,
 } from "../../schema/index.ts";
 import { createCompositor, elementPixelsOf, type ElementPixels, type Pixels } from "../../viewer/compositor.ts";
+import { fetchJson, fetchOk } from "../../viewer/http.ts";
 import { pointOf } from "../../viewer/lighting.ts";
 import { startLoop } from "../../viewer/loop.ts";
 import { createPrimitives } from "../../viewer/primitives.ts";
+import { tuningOf, type PlanTuning } from "../lib/tuning.ts";
 
 type Point = { x: number; y: number };
 type PointLight = Extract<Light, { type: "point" }>;
 type BeamLight = Extract<Light, { type: "beam" }>;
-type VariantTuning = { id: string; ambient: { level: number; layers?: Record<string, number> }; lights: Light[]; emissiveOff: string[] };
-type Tuning = { dither: boolean; variants: VariantTuning[] };
 type Handle = { light: number; corner?: number };
 
 const HIT = 6;
@@ -44,16 +44,10 @@ const STYLE = `
   .error { color: #ff8a80; }
 `;
 
-async function getJson(path: string): Promise<unknown> {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
-  return response.json();
-}
+const getJson = (path: string) => fetchJson(new URL(path, location.href));
 
 async function decode(path: string): Promise<Pixels> {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
-  const bitmap = await createImageBitmap(await response.blob(), { colorSpaceConversion: "none", premultiplyAlpha: "none" });
+  const bitmap = await createImageBitmap(await (await fetchOk(new URL(path, location.href))).blob(), { colorSpaceConversion: "none", premultiplyAlpha: "none" });
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(bitmap, 0, 0);
@@ -71,22 +65,21 @@ async function boot(): Promise<void> {
   document.head.append(el("style", { textContent: STYLE }));
   const plan = scenePlanSchema.parse(await getJson("scene.json"));
   const palette = paletteSchema.parse(await getJson(`library/palettes/${plan.palette}.json`));
-  const companions = new Map<string, Palette>();
-  for (const name of new Set(plan.variants.flatMap((v) => (v.companionPalette ? [v.companionPalette] : [])))) {
-    companions.set(name, paletteSchema.parse(await getJson(`library/palettes/${name}.json`)));
-  }
+  const companionNames = [...new Set(plan.variants.flatMap((v) => (v.companionPalette ? [v.companionPalette] : [])))];
+  const companions = new Map<string, Palette>(
+    await Promise.all(companionNames.map(async (name): Promise<[string, Palette]> => [name, paletteSchema.parse(await getJson(`library/palettes/${name}.json`))])),
+  );
   const records = new Map<string, ElementRecord>();
   const elements = new Map<string, ElementPixels>();
-  for (const id of new Set(allPlacements(plan).map((p) => p.element))) {
-    const record = elementRecordSchema.parse(await getJson(`library/elements/${id}.json`));
-    records.set(id, record);
-    elements.set(id, await elementPixelsOf(record, (suffix) => decode(`library/elements/${id}${suffix}`)));
-  }
+  await Promise.all(
+    [...new Set(allPlacements(plan).map((p) => p.element))].map(async (id) => {
+      const record = elementRecordSchema.parse(await getJson(`library/elements/${id}.json`));
+      records.set(id, record);
+      elements.set(id, await elementPixelsOf(record, (suffix) => decode(`library/elements/${id}${suffix}`)));
+    }),
+  );
 
-  const tuning: Tuning = structuredClone({
-    dither: plan.dither,
-    variants: plan.variants.map((v) => ({ id: v.id, ambient: v.ambient, lights: v.lights, emissiveOff: v.emissiveOff })),
-  });
+  const tuning: PlanTuning = structuredClone(tuningOf(plan));
   let selected = 0;
 
   const canvas = el("canvas", { width: SCENE_WIDTH, height: SCENE_HEIGHT });
