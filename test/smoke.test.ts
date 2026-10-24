@@ -6,9 +6,8 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
-import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
-import { SITE_URL } from "../pipeline/lib/site.ts";
 import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
+import { SITE_URL } from "../pipeline/lib/site.ts";
 import { editJson, fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
