@@ -5,6 +5,7 @@
 node_modules/
 .agent/
 dist/
+dist.next/
 scratch/
 /viewer.js
 !/.claude/

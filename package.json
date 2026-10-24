@@ -7,7 +7,9 @@
   },
   "scripts": {
     "test": "node --test \"test/**/*.test.ts\"",
-    "dev": "esbuild viewer/main.ts --bundle --outfile=viewer.js --watch --servedir=."
+    "dev": "esbuild viewer/main.ts --bundle --outfile=viewer.js --watch --servedir=.",
+    "bundle": "esbuild viewer/main.ts --bundle --outfile=viewer.js",
+    "assemble": "node pipeline/assemble.ts"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
