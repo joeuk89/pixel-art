@@ -9,7 +9,7 @@ main(() => {
     if (plan.styleAnchor) usedElements.add(plan.styleAnchor);
     for (const layer of plan.layers) for (const p of layer.placements ?? []) usedElements.add(p.element);
     for (const { source } of [...plan.soundtrack.ambient, ...plan.soundtrack.oneshots]) {
-      if (source.kind === "curated") usedSounds.add(source.id);
+      if (source.id !== undefined) usedSounds.add(source.id);
     }
   }
   const brief = ({ id, kind, subject }: { id: string; kind: string; subject: string }) => ({ id, kind, subject });
