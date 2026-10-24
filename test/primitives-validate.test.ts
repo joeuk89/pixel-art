@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { fixtures, makeTree, readJson, validate, writeJson } from "./helpers.ts";
+import { primitiveSchema } from "../schema/index.ts";
 
 const SCENE = "scenes/fixture-primitives-c3d4/scene.json";
 const catalogue = () => readJson(join(fixtures, "primitives"), "scene.json");
@@ -83,4 +84,16 @@ test("validate rejects blink longFrames whose minimum exceeds its maximum", () =
   const root = treeWith((plan) => { plan.primitives[4].longFrames = [9, 4]; });
   assert.equal(validate(root).code, 1);
   assert.ok(errorsFor(root).some((e) => e.path === "primitives[4].longFrames"), JSON.stringify(errorsFor(root)));
+});
+
+test("each Primitive type defaults emissive as the spec sets it, and an explicit value overrides it", () => {
+  const expected: Record<string, boolean> = {
+    rain: false, snow: false, steam: true, twinkle: true, blink: true, dust: false, sway: false, birds: false,
+  };
+  for (const primitive of catalogue().primitives) {
+    const { emissive: _, ...bare } = primitive;
+    const want = expected[primitive.type];
+    assert.equal(primitiveSchema.parse(bare).emissive, want, `${primitive.type} default`);
+    assert.equal(primitiveSchema.parse({ ...bare, emissive: !want }).emissive, !want, `${primitive.type} override`);
+  }
 });

@@ -90,12 +90,13 @@ const layer = z.discriminatedUnion("kind", [
 ]);
 
 const colours = z.array(colourIndex).min(1);
-const emissive = z.boolean().optional();
+const litByDefault = z.boolean().default(false);
+const emissiveByDefault = z.boolean().default(true);
 
 export const primitiveSchema = z.discriminatedUnion("type", [
   z.strictObject({
     type: z.literal("rain"),
-    emissive,
+    emissive: litByDefault,
     anchor: slug.optional(),
     region,
     colours,
@@ -104,7 +105,7 @@ export const primitiveSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({
     type: z.literal("snow"),
-    emissive,
+    emissive: litByDefault,
     anchor: slug.optional(),
     region,
     colours,
@@ -112,11 +113,11 @@ export const primitiveSchema = z.discriminatedUnion("type", [
     drift: z.number().min(0).default(1),
     wind: z.number().default(0),
   }),
-  z.strictObject({ type: z.literal("steam"), emissive, anchor: slug, offset: point, colours, count: int.positive().default(14) }),
-  z.strictObject({ type: z.literal("twinkle"), emissive, anchor: slug, colours, count: int.positive().default(6) }),
+  z.strictObject({ type: z.literal("steam"), emissive: emissiveByDefault, anchor: slug, offset: point, colours, count: int.positive().default(14) }),
+  z.strictObject({ type: z.literal("twinkle"), emissive: emissiveByDefault, anchor: slug, colours, count: int.positive().default(6) }),
   z.strictObject({
     type: z.literal("blink"),
-    emissive,
+    emissive: emissiveByDefault,
     anchor: slug,
     swaps: z.array(z.tuple([colourIndex, colourIndex])).min(1),
     rate: z.number().positive().default(0.5),
@@ -127,10 +128,10 @@ export const primitiveSchema = z.discriminatedUnion("type", [
       .default([4, 9]),
   }),
   // A mote fades in and out through colours, so list them dim to bright.
-  z.strictObject({ type: z.literal("dust"), emissive, anchor: slug.optional(), region, colours, count: int.positive().default(12) }),
+  z.strictObject({ type: z.literal("dust"), emissive: litByDefault, anchor: slug.optional(), region, colours, count: int.positive().default(12) }),
   z.strictObject({
     type: z.literal("sway"),
-    emissive,
+    emissive: litByDefault,
     anchor: slug,
     // In Scene coordinates, like every Primitive region; only the anchor's pixels of colours inside it move.
     region,
@@ -140,7 +141,7 @@ export const primitiveSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({
     type: z.literal("birds"),
-    emissive,
+    emissive: litByDefault,
     anchor: slug.optional(),
     region,
     colours,
