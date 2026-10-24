@@ -64,6 +64,21 @@ for (const [realSize, canvas, factor] of [[{ w: 4, h: 2 }, [256, 128], 4], [{ w:
   });
 }
 
+test("a prop in a far Layer with its own scale is generated and gated at that scale", async () => {
+  server.requests.length = 0;
+  const root = tree((plan) => {
+    plan.styleAnchor = null;
+    plan.layers.splice(2, 0, { name: "towers", kind: "placements", plane: "far", scale: 8, placements: [{ id: "tower", element: "tower-glass-tall-01", x: 0, y: 0,
+      generate: { kind: "prop", brief: "glass tower", realSize: { w: 3, h: 10 }, tags: ["tower"] } }] });
+  });
+  pixellabState.images.set("glass tower", handMade(24, 80, [{ x: 0, y: 0, w: 24, h: 80 }]));
+  const result = await run(root, "tower");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.deepEqual(result.json.canvas, { width: 24, height: 80 });
+  assert.deepEqual(sentBodies()[0].image_size, { width: 24, height: 80 });
+  assert.equal(result.json.gate.ok, true);
+});
+
 const placementIn = (plan: any, id: string) => plan.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
 
 test("--accept moves the Attempt into the library, writes the record and rewrites the plan's generate block", async () => {

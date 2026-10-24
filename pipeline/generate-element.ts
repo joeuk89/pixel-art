@@ -2,9 +2,9 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { basename, dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { allPlacements, elementRecordSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
+import { elementRecordSchema, placementsOf, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
 import { budget } from "./lib/budget.ts";
-import { anchorFits, deriveCanvas } from "./lib/canvas.ts";
+import { anchorFits, deriveCanvas, layerScale } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
@@ -29,11 +29,14 @@ function styleAnchor(plan: ScenePlan): { id: string; width: number; height: numb
   return { id: record.id, width: record.width, height: record.height };
 }
 
-function findPlacement(plan: ScenePlan, id: string): Placement {
-  const placement = allPlacements(plan).find((p) => p.id === id);
-  if (!placement) throw new Error(`no Placement ${id} in Scene ${plan.id}`);
+type Found = { placement: Placement; scale: number };
+
+function findPlacement(plan: ScenePlan, id: string): Found {
+  const layer = plan.layers.find((l) => placementsOf(l).some((p) => p.id === id));
+  if (!layer) throw new Error(`no Placement ${id} in Scene ${plan.id}`);
+  const placement = placementsOf(layer).find((p) => p.id === id)!;
   if (!placement.generate) throw new Error(`Placement ${id} has no generate block; its Element ${placement.element} is already in the library`);
-  return placement;
+  return { placement, scale: layerScale(plan.scale, layer) };
 }
 
 const attemptStem = (dir: string, placementId: string, n: number) => `${dir}/${placementId}-a${n}`;
@@ -77,14 +80,14 @@ function checkBudget(plan: ScenePlan, placement: Placement): void {
   if (used >= cap) throw new Error(`Scene budget reached: PixelLab generations: ${used} used of ${cap}`);
 }
 
-async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: number | null; seed: number; brief?: string }) {
+async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { attempt: number | null; seed: number; brief?: string }) {
   const generate = placement.generate!;
   const dir = stillAttemptsDir(plan.id);
   if (opts.attempt !== null && existsSync(dir) && attemptNumbers(dir, placement.id).includes(opts.attempt)) {
     throw new Error(attemptTaken(dir, placement.id, opts.attempt));
   }
   checkBudget(plan, placement);
-  const canvas = deriveCanvas(plan.scale, generate);
+  const canvas = deriveCanvas(scale, generate);
   const palette = loadPalette(process.cwd(), plan.palette);
   const prompt = opts.brief ?? generate.brief;
   const request: ProFlashRequest = {
@@ -121,7 +124,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
   const upscale = upscaleFactor(pixels);
   await sharp(png).resize(pixels.width * upscale, pixels.height * upscale, { kernel: "nearest" }).png().toFile(`${stem}.x${upscale}.png`);
   const gate = gateStill(pixels, generate.kind === "prop"
-    ? { kind: "prop", canvas, palette: palette.colours, targetBox: targetBox(plan.scale, generate.realSize) }
+    ? { kind: "prop", canvas, palette: palette.colours, targetBox: targetBox(scale, generate.realSize) }
     : { kind: "backdrop", canvas, palette: palette.colours });
 
   const sidecar: StillAttempt = {
@@ -233,11 +236,11 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   };
 }
 
-function checkSubstitute(plan: ScenePlan, placement: Placement, id: string): ElementRecord {
+function checkSubstitute(plan: ScenePlan, { placement, scale }: Found, id: string): ElementRecord {
   const record = readElements().find((e) => e.id === id);
   if (!record) throw new Error(`no Element ${id} in the Element library`);
   const generate = placement.generate!;
-  const canvas = deriveCanvas(plan.scale, generate);
+  const canvas = deriveCanvas(scale, generate);
   if (record.kind !== generate.kind) throw new Error(`${id} is a ${record.kind}, ${placement.id} needs a ${generate.kind}`);
   if (record.palette !== plan.palette) throw new Error(`${id} is locked to Palette ${record.palette}, the Scene uses ${plan.palette}`);
   if (record.width !== canvas.width || record.height !== canvas.height) {
@@ -246,8 +249,9 @@ function checkSubstitute(plan: ScenePlan, placement: Placement, id: string): Ele
   return record;
 }
 
-function abandon(file: string, plan: ScenePlan, placement: Placement, substituteId: string | undefined) {
-  const substitute = substituteId === undefined ? undefined : checkSubstitute(plan, placement, substituteId);
+function abandon(file: string, plan: ScenePlan, found: Found, substituteId: string | undefined) {
+  const { placement } = found;
+  const substitute = substituteId === undefined ? undefined : checkSubstitute(plan, found, substituteId);
   const dir = stillAttemptsDir(plan.id);
   const charge = chargeStillAttempts(dir, placement.id);
 
@@ -286,14 +290,14 @@ main(async () => {
   const [file, placementId, ...rest] = positionals;
   if (!file || !placementId || rest.length > 0) throw new Error(USAGE);
   const plan = readScene(file);
-  const placement = findPlacement(plan, placementId);
-  if (values.accept !== undefined) return accept(file, plan, placement, values.accept, values["style-anchor"] === true);
+  const found = findPlacement(plan, placementId);
+  if (values.accept !== undefined) return accept(file, plan, found.placement, values.accept, values["style-anchor"] === true);
   if (values["style-anchor"]) throw new Error("--style-anchor goes with --accept");
-  if (values.abandon) return abandon(file, plan, placement, values.substitute);
+  if (values.abandon) return abandon(file, plan, found, values.substitute);
   if (values.substitute !== undefined) throw new Error("--substitute goes with --abandon");
   const attemptNo = values.attempt === undefined ? null : Number(values.attempt);
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
   if (attemptNo !== null && (!Number.isInteger(attemptNo) || attemptNo < 1)) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);
   if (!Number.isInteger(seed)) throw new Error(`--seed must be an integer, got ${values.seed}`);
-  return attempt(plan, placement, { attempt: attemptNo, seed, brief: values.brief });
+  return attempt(plan, found, { attempt: attemptNo, seed, brief: values.brief });
 });
