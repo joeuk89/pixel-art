@@ -6,6 +6,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
+import { build } from "esbuild";
 import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { SITE_URL } from "../pipeline/lib/site.ts";
 import { editJson, fixturePalette, fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
@@ -13,6 +14,7 @@ import { editJson, fixturePalette, fixtureScene, makeTree, readJson, repo, runSc
 const id = "fixture-rainy-desk-a1b2";
 const title = "Fixture rainy desk";
 const quietId = "fixture-quiet-desk-c3d4";
+const stillId = "fixture-still-desk-e5f6";
 
 let browser: Browser | undefined;
 try {
@@ -68,7 +70,14 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       Object.assign(plan, { id: quietId, title: "Fixture quiet desk" });
       Object.assign(plan.soundtrack, { ambient: [], oneshots: [] });
     });
-    for (const scene of [`${quiet}/scene.json`, fixtureScene]) {
+    const still = `scenes/${stillId}`;
+    cpSync(join(root, `scenes/${id}`), join(root, still), { recursive: true });
+    editJson(root, `${still}/scene.json`, (plan) => {
+      Object.assign(plan, { id: stillId, title: "Fixture still desk", primitives: [], variants: plan.variants.slice(0, 1) });
+      for (const p of plan.layers.flatMap((l: any) => l.placements ?? [])) if (p.animation) p.animation.enabled = false;
+      for (const light of plan.variants[0].lights) delete light.flicker;
+    });
+    for (const scene of [`${quiet}/scene.json`, `${still}/scene.json`, fixtureScene]) {
       const staged = runScript(root, "stub", scene);
       assert.equal(staged.code, 0, staged.stderr);
     }
@@ -240,7 +249,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
   const draws = (page: Page): Promise<number> => page.evaluate(() => (window as any).draws);
   const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  test("with reduced motion the Poster stays and the draw loop never runs", async () => {
+  test("with reduced motion the lit Poster, Halo and all, stays and the draw loop never runs", async () => {
     const { page, errors } = await open(`scenes/${id}/`, { reducedMotion: "reduce" });
     const poster = page.getByRole("img", { name: title });
     await poster.waitFor();
@@ -248,6 +257,51 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.ok(await poster.isVisible());
     assert.equal(await page.locator("canvas").count(), 0);
     assert.equal(await draws(page), 0);
+    const shown = await poster.evaluate(async (img: HTMLImageElement) => {
+      await img.decode();
+      const canvas = new OffscreenCanvas(img.naturalWidth, img.naturalHeight);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      return Array.from(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
+    });
+    const lit = await sharp(join(root, `scenes/${id}/poster.png`)).ensureAlpha().raw().toBuffer();
+    assert.ok(Buffer.from(shown).equals(lit), "the Poster shown is not the lit Poster");
+    const lamp = readJson(root, fixtureScene).variants[0].lights.find((l: any) => l.halo);
+    const onPalette = new Set(palette.map((h) => rgb(h).join()));
+    let glowing = 0;
+    for (let i = 0; i < shown.length; i += 4) if (!onPalette.has(shown.slice(i, i + 3).join())) glowing++;
+    assert.ok(glowing > 0, `the Poster shows no Halo from ${lamp.id}`);
+    assert.deepEqual(errors, []);
+  });
+
+  test("a steady Scene draws once, then nothing, visible or hidden", async () => {
+    const { page, errors } = await open(`scenes/${stillId}/`);
+    await page.locator("canvas").waitFor();
+    await pause(800);
+    assert.equal(await draws(page), 1, "a Scene with nothing moving drew again");
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await pause(500);
+    assert.equal(await draws(page), 1, "a hidden steady Scene drew");
+    assert.deepEqual(errors, []);
+  });
+
+  test("24 lit frames with rain and a flickering Halo average under 20 ms each in Chromium", async () => {
+    const plan = readJson(root, fixtureScene);
+    assert.ok(plan.primitives.some((p: any) => p.type === "rain"), "the fixture Scene has no rain");
+    assert.ok(plan.variants[0].lights.some((l: any) => l.halo && l.flicker), "the fixture Scene has no flickering Halo");
+    writeFileSync(join(root, "frame-time.ts"), FRAME_TIME);
+    await build({ entryPoints: [join(root, "frame-time.ts")], bundle: true, format: "esm", outfile: join(root, "frame-time.js"), logLevel: "silent" });
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const mean = await page.evaluate(async (scene) => {
+      const { frameTime } = await import("/frame-time.js" as string);
+      return frameTime(scene) as Promise<number>;
+    }, id);
+    assert.ok(mean < 20, `mean frame time ${mean.toFixed(2)} ms`);
     assert.deepEqual(errors, []);
   });
 
@@ -733,3 +787,35 @@ function rgb(hex: string): number[] {
   const n = parseInt(hex.slice(1), 16);
   return [n >> 16, (n >> 8) & 255, n & 255];
 }
+
+const FRAME_TIME = `
+import { elementRecordSchema, paletteSchema, scenePlanSchema, allPlacements, SCENE_WIDTH, SCENE_HEIGHT } from "./schema/index.ts";
+import { createCompositor, elementPixelsOf } from "./viewer/compositor.ts";
+import { createPrimitives } from "./viewer/primitives.ts";
+
+async function decode(url) {
+  const bitmap = await createImageBitmap(await (await fetch(url)).blob(), { colorSpaceConversion: "none", premultiplyAlpha: "none" });
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0);
+  return { width: bitmap.width, height: bitmap.height, data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data };
+}
+
+export async function frameTime(id) {
+  const json = async (path) => (await fetch("/" + path)).json();
+  const plan = scenePlanSchema.parse(await json("scenes/" + id + "/scene.json"));
+  const palette = paletteSchema.parse(await json("library/palettes/" + plan.palette + ".json"));
+  const elements = new Map();
+  for (const element of new Set(allPlacements(plan).map((p) => p.element))) {
+    const record = elementRecordSchema.parse(await json("library/elements/" + element + ".json"));
+    elements.set(element, await elementPixelsOf(record, (suffix) => decode("/library/elements/" + element + suffix)));
+  }
+  const compositor = createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
+  const ctx = new OffscreenCanvas(SCENE_WIDTH, SCENE_HEIGHT).getContext("2d");
+  const draw = (t) => ctx.putImageData(new ImageData(compositor.render(t), SCENE_WIDTH, SCENE_HEIGHT), 0, 0);
+  for (let k = 0; k < 6; k++) draw(k * 1000 / 24);
+  const start = performance.now();
+  for (let k = 0; k < 24; k++) draw(10_000 + k * 1000 / 24);
+  return (performance.now() - start) / 24;
+}
+`;

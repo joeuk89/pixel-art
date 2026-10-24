@@ -1,5 +1,6 @@
 import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
-import { createRampPass, NONE, UNLIT, type Planes } from "./lighting.ts";
+import { FLICKER_FPS } from "./flicker.ts";
+import { createLighting, NONE, UNLIT, type LightField, type Planes } from "./lighting.ts";
 
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
@@ -39,6 +40,7 @@ export type CompositorInput = {
 export type Compositor = {
   render(timeMs: number): Uint8ClampedArray;
   tick(timeMs: number): boolean;
+  lightField(timeMs: number): LightField;
   nextTick(timeMs: number): number;
 };
 
@@ -144,11 +146,15 @@ export function mix(h: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-// FNV-1a then the murmur3 finaliser, so near-identical ids still land on unrelated offsets.
-function hash(text: string): number {
+export function fnv1a(text: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
-  return mix(h);
+  return h;
+}
+
+// The murmur3 finaliser on top, so near-identical ids still land on unrelated offsets.
+function hash(text: string): number {
+  return mix(fnv1a(text));
 }
 
 function animatedOf(pixels: ElementPixels, p: Placement, seed: number, layer: number, source: (frame: Pixels) => Source): Animated | undefined {
@@ -237,6 +243,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   });
   if (drawn) ops.push({ overlay: current });
 
+  const lighting = createLighting({ plan, palette, variant, seed, companion });
   type Clock = { fps: number; state(timeMs: number): number };
   const clocks: Clock[] = ops.flatMap((op): Clock[] => {
     if ("animated" in op) return [{ fps: op.animated.fps, state: (t) => step(t, op.animated.fps) }];
@@ -244,12 +251,12 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
     const { fps, state } = op.primitive;
     return [{ fps, state: state ? (t) => state(t) : (t) => step(t, fps) }];
   });
+  if (lighting.flickers) clocks.push({ fps: FLICKER_FPS, state: lighting.state });
   const lastStates = clocks.map(() => -1);
   let rendered = false;
   const frame = emptyPlanes();
   const words = new Uint32Array(frame.rgba.buffer);
   const before = new Uint32Array(PIXELS);
-  const light = createRampPass({ plan, palette, variant, companion });
   const out = new Uint8ClampedArray(SIZE);
 
   // Primitives paint RGBA only, so the pixels one changed are read back to Palette indices.
@@ -276,7 +283,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
           draw(frame, a.frames[f], a.placement, a.layer);
         }
       }
-      light(frame, out);
+      lighting.apply(frame, out, timeMs);
       clocks.forEach((clock, i) => (lastStates[i] = clock.state(timeMs)));
       rendered = true;
       return out;
@@ -284,6 +291,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
     tick(timeMs) {
       return !rendered || clocks.some((clock, i) => clock.state(timeMs) !== lastStates[i]);
     },
+    lightField: lighting.field,
     nextTick(timeMs) {
       return clocks.reduce((next, { fps }) => Math.min(next, ((step(timeMs, fps) + 1) * 1000) / fps), Infinity);
     },

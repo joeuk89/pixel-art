@@ -432,6 +432,7 @@ test("a Placement with animation overrides on the accepted Element passes valida
   editJson(root, fixtureScene, (plan) => {
     for (const p of allPlacements(plan)) if (p.element === "cat-tabby-asleep-01") p.element = ELEMENT;
     plan.primitives = [];
+    for (const light of plan.variants[0].lights) delete light.flicker;
   });
   const plan = scenePlanSchema.parse(readJson(root, fixtureScene));
   const cat = allPlacements(plan).find((p) => p.id === "cat")!;
