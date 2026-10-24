@@ -9,6 +9,8 @@ export type PrimitiveDraw = {
   after: number;
   fps: number;
   draw(out: Uint8ClampedArray, timeMs: number): void;
+  // Equal states at two times promise identical pixels, so tick can skip a step that changes nothing.
+  state?(timeMs: number): number;
 };
 
 export type CompositorInput = {
@@ -60,12 +62,16 @@ function blit(out: Uint8ClampedArray, src: Pixels, x0: number, y0: number, flipX
   }
 }
 
+export function placedXs(p: Placement, width: number): number[] {
+  if (!p.tileX) return [p.x];
+  const phase = ((p.x % width) + width) % width;
+  const xs: number[] = [];
+  for (let x = phase === 0 ? 0 : phase - width; x < SCENE_WIDTH; x += width) xs.push(x);
+  return xs;
+}
+
 function draw(out: Uint8ClampedArray, src: Pixels, p: Placement): void {
-  const flipX = p.flipX === true;
-  if (!p.tileX) return blit(out, src, p.x, p.y, flipX);
-  const phase = ((p.x % src.width) + src.width) % src.width;
-  const first = phase === 0 ? 0 : phase - src.width;
-  for (let x = first; x < SCENE_WIDTH; x += src.width) blit(out, src, x, p.y, flipX);
+  for (const x of placedXs(p, src.width)) blit(out, src, x, p.y, p.flipX === true);
 }
 
 function overlay(out: Uint8ClampedArray, layer: Uint8ClampedArray): void {
@@ -98,13 +104,17 @@ function splitFrames(strip: FrameStrip, placement: Placement): Pixels[] {
   });
 }
 
+export function mix(h: number): number {
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
 // FNV-1a then the murmur3 finaliser, so near-identical ids still land on unrelated offsets.
 function hash(text: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
-  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  return (h ^ (h >>> 16)) >>> 0;
+  return mix(h);
 }
 
 function animatedOf(pixels: ElementPixels, p: Placement, seed: number): Animated | undefined {
@@ -115,7 +125,7 @@ function animatedOf(pixels: ElementPixels, p: Placement, seed: number): Animated
   return { placement: p, frames: splitFrames(strip, p), sequence, fps: p.animation?.fps ?? strip.fps, offset };
 }
 
-const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
+export const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
 
 export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [] }: CompositorInput): Compositor {
   const colours = paletteRgba(palette);
@@ -151,8 +161,14 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   });
   if (drawn) ops.push({ overlay: current });
 
-  const clocks = ops.flatMap((op) => ("animated" in op ? [op.animated.fps] : "primitive" in op ? [op.primitive.fps] : []));
-  const lastSteps = clocks.map(() => -1);
+  type Clock = { fps: number; state(timeMs: number): number };
+  const clocks: Clock[] = ops.flatMap((op): Clock[] => {
+    if ("animated" in op) return [{ fps: op.animated.fps, state: (t) => step(t, op.animated.fps) }];
+    if (!("primitive" in op)) return [];
+    const { fps, state } = op.primitive;
+    return [{ fps, state: state ? (t) => state(t) : (t) => step(t, fps) }];
+  });
+  const lastStates = clocks.map(() => -1);
   let rendered = false;
   const out = new Uint8ClampedArray(SIZE);
 
@@ -167,15 +183,15 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
           draw(out, a.frames[frame], a.placement);
         }
       }
-      clocks.forEach((fps, i) => (lastSteps[i] = step(timeMs, fps)));
+      clocks.forEach((clock, i) => (lastStates[i] = clock.state(timeMs)));
       rendered = true;
       return out;
     },
     tick(timeMs) {
-      return !rendered || clocks.some((fps, i) => step(timeMs, fps) !== lastSteps[i]);
+      return !rendered || clocks.some((clock, i) => clock.state(timeMs) !== lastStates[i]);
     },
     nextTick(timeMs) {
-      return clocks.reduce((next, fps) => Math.min(next, ((step(timeMs, fps) + 1) * 1000) / fps), Infinity);
+      return clocks.reduce((next, { fps }) => Math.min(next, ((step(timeMs, fps) + 1) * 1000) / fps), Infinity);
     },
   };
 }

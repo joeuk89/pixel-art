@@ -65,14 +65,22 @@ const layer = z
 const colours = z.array(colourIndex).min(1);
 
 export const primitiveSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("rain"), region, colours, density: int.positive().default(34), drift: z.number().default(0.25) }),
   z.strictObject({
-    type: z.literal("snow"),
+    type: z.literal("rain"),
+    anchor: slug.optional(),
     region,
     colours,
-    density: int.positive().optional(),
-    drift: z.number().optional(),
-    wind: z.number().optional(),
+    density: int.positive().default(34),
+    drift: z.number().default(0.25),
+  }),
+  z.strictObject({
+    type: z.literal("snow"),
+    anchor: slug.optional(),
+    region,
+    colours,
+    density: int.positive().default(40),
+    drift: z.number().min(0).default(1),
+    wind: z.number().default(0),
   }),
   z.strictObject({
     type: z.literal("glow"),
@@ -91,7 +99,10 @@ export const primitiveSchema = z.discriminatedUnion("type", [
     swaps: z.array(z.tuple([colourIndex, colourIndex])).min(1),
     rate: z.number().positive().default(0.5),
     longShare: z.number().min(0).max(1).default(0.3),
-    longFrames: z.tuple([int.positive(), int.positive()]).default([4, 9]),
+    longFrames: z
+      .tuple([int.positive(), int.positive()])
+      .refine(([min, max]) => min <= max, "min must not exceed max")
+      .default([4, 9]),
   }),
 ]);
 
