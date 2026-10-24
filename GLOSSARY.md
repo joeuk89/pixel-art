@@ -68,6 +68,26 @@ _Avoid_: Thumbnail, screenshot, cover
 The named, ordered set of colours a Scene and its Elements are locked to.
 _Avoid_: Colour scheme, theme, swatch
 
+**Ramp**:
+The darker and lighter steps each Palette colour moves to under light, with separate lighter steps for warm and cool light.
+_Avoid_: Shade, gradient, colour ramp
+
+**Light**:
+A source of illumination the Viewer applies over a Scene: the ambient level, a point such as a lamp, or a beam such as a sun shaft.
+_Avoid_: Lamp, glow, lighting effect
+
+**Halo**:
+The smooth, full-colour glow a point Light may add around itself; the only lit pixels allowed off the Palette.
+_Avoid_: Bloom, glow, aura
+
+**Variant**:
+One named lighting of a Scene, such as dusk, night or rain, over the same Elements and Placements; the first is the default.
+_Avoid_: Mode, preset, version, theme
+
+**Emissive colour**:
+A colour in one Element that lights itself and is never darkened by its Ramp.
+_Avoid_: Glowing colour, self-lit, unlit
+
 **Element record**:
 The metadata kept beside an Element: what it is, how it was made and which Palette it is locked to.
 _Avoid_: Sidecar, metadata file, manifest
