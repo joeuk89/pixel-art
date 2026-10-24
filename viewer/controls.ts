@@ -26,13 +26,14 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
   return el;
 }
 
-function levelSlider(name: string, channel: Channel, audio: Audio): { label: HTMLLabelElement; input: HTMLInputElement } {
+function levelSlider(name: string, channel: Channel, audio: Audio, enabled = true): HTMLLabelElement {
   const input = document.createElement("input");
   input.type = "range";
   input.min = "0";
   input.max = "1";
   input.step = "0.05";
   input.value = String(audio.level(channel));
+  input.disabled = !enabled;
   input.setAttribute("aria-label", name);
   input.addEventListener("input", () => {
     audio.setLevel(channel, input.valueAsNumber);
@@ -41,7 +42,7 @@ function levelSlider(name: string, channel: Channel, audio: Audio): { label: HTM
   const label = document.createElement("label");
   label.className = "level";
   label.append(name, input);
-  return { label, input };
+  return label;
 }
 
 function fullscreenSupported(): boolean {
@@ -105,9 +106,8 @@ export function mountControls(host: HTMLElement, { plan, root, mute, audio, cred
   const sound = button("Sound", () => mute.toggle());
   const canFullscreen = fullscreenSupported();
   const music = levelSlider("Music", "music", audio);
-  const ambient = levelSlider("Ambient", "ambient", audio);
-  ambient.input.disabled = !hasAmbientSound(plan);
-  overlay.append(back, title, sound, music.label, ambient.label);
+  const ambient = levelSlider("Ambient", "ambient", audio, hasAmbientSound(plan));
+  overlay.append(back, title, sound, music, ambient);
   if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
   const copy = button("Copy link", () => {
     navigator.clipboard.writeText(sceneUrl(root, plan.id).href).then(
