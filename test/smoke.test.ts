@@ -8,6 +8,7 @@ import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { SITE_URL } from "../pipeline/lib/site.ts";
+import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
@@ -309,6 +310,23 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.getByRole("link", { name: title }).waitFor();
     assert.equal(page.url(), site);
     assert.equal(await page.evaluate(() => (window as any).sameDocument), true);
+    assert.deepEqual(errors, []);
+  });
+
+  test("on an iPhone the fullscreen button is absent, F does nothing and the Scene fills the viewport", async () => {
+    const { page, errors } = await open(`scenes/${id}/`, devices["iPhone 13"]);
+    await page.locator("canvas").waitFor();
+    await page.touchscreen.tap(100, 100);
+    await page.getByRole("button", { name: "Sound" }).waitFor({ state: "visible" });
+    assert.equal(await page.getByRole("button", { name: "Fullscreen", includeHidden: true }).count(), 0);
+    await page.keyboard.press("f");
+    assert.equal(await fullscreenRequests(page), 0);
+    const viewport = page.viewportSize()!;
+    const scene = (await page.locator("main").boundingBox())!;
+    assert.deepEqual([scene.x, scene.y, scene.width, scene.height], [0, 0, viewport.width, viewport.height]);
+    const canvas = (await page.locator("canvas").boundingBox())!;
+    assert.ok(canvas.width <= viewport.width && canvas.height <= viewport.height);
+    assert.ok(canvas.width >= viewport.width / 2, `canvas is ${canvas.width}px wide in a ${viewport.width}px viewport`);
     assert.deepEqual(errors, []);
   });
 

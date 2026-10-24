@@ -19,6 +19,10 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
   return el;
 }
 
+export function fullscreenSupported(): boolean {
+  return document.fullscreenEnabled && !/iPhone|iPod/.test(navigator.userAgent);
+}
+
 function toggleFullscreen(mute: MuteState): void {
   mute.set(false);
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -37,8 +41,10 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
   title.className = "title";
   title.textContent = plan.title;
   const sound = button("Sound", () => mute.toggle());
-  const fullscreen = button("Fullscreen", () => toggleFullscreen(mute));
-  overlay.append(back, title, sound, fullscreen, button("Copy link", () => {}), button("Info", () => {}));
+  const canFullscreen = fullscreenSupported();
+  overlay.append(back, title, sound);
+  if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
+  overlay.append(button("Copy link", () => {}), button("Info", () => {}));
 
   const hint = document.createElement("p");
   hint.className = "hint";
@@ -70,6 +76,7 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
           mute.toggle();
           break;
         case "f":
+          if (!canFullscreen) return;
           toggleFullscreen(mute);
           break;
         case "escape":
