@@ -51,7 +51,7 @@ function mono(w: Wav, i: number): number {
   return s / w.ch;
 }
 
-function envelope(w: Wav): { env: Float32Array; hop: number } {
+export function envelope(w: Wav): { env: Float32Array; hop: number } {
   const hop = Math.round(w.rate * 0.05), n = Math.floor(w.data[0].length / hop), env = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     let s = 0;
