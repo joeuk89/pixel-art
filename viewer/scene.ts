@@ -10,25 +10,13 @@ import {
 import { mountControls } from "./controls.ts";
 import { loadCredits } from "./credits.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
+import { fetchJson, fetchOk, NotFound } from "./http.ts";
 import { startLoop } from "./loop.ts";
 import { createPrimitives } from "./primitives.ts";
 import type { MuteState } from "./mute.ts";
 import { sceneUrl } from "./site.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-
-class NotFound extends Error {}
-
-async function fetchOk(url: URL): Promise<Response> {
-  const response = await fetch(url);
-  if (response.status === 404) throw new NotFound(url.href);
-  if (!response.ok) throw new Error(`${url.href}: HTTP ${response.status}`);
-  return response;
-}
-
-async function fetchJson(url: URL): Promise<unknown> {
-  return (await fetchOk(url)).json();
-}
 
 async function decode(url: URL): Promise<Pixels> {
   const blob = await (await fetchOk(url)).blob();

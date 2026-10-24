@@ -1,4 +1,5 @@
 import { ambientLoopRecordSchema, elementRecordSchema, type AmbientLoopRecord, type ScenePlan } from "../schema/index.ts";
+import { fetchJson } from "./http.ts";
 
 const SERVICE_NAMES: Record<string, string> = {
   pixellab: "PixelLab",
@@ -14,13 +15,7 @@ export const AI_NOTICE = "Artwork, music and sound effects generated with AI.";
 export type Attribution = Pick<AmbientLoopRecord, "attribution" | "licence" | "licenceUrl" | "sourceUrl">;
 export type Credits = { services: string[]; attributions: Attribution[] };
 
-async function fetchJson(url: URL): Promise<unknown> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${url.href}: HTTP ${response.status}`);
-  return response.json();
-}
-
-export function serviceName(service: string): string {
+function serviceName(service: string): string {
   return SERVICE_NAMES[service] ?? service;
 }
 

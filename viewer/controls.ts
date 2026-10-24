@@ -3,7 +3,7 @@ import { aiNotice, type Credits } from "./credits.ts";
 import type { MuteState } from "./mute.ts";
 import { sceneUrl } from "./site.ts";
 
-export const OVERLAY_HIDE_MS = 3000;
+const OVERLAY_HIDE_MS = 3000;
 const COPIED_MS = 2000;
 
 export type ControlsOptions = {
@@ -23,7 +23,7 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
   return el;
 }
 
-export function fullscreenSupported(): boolean {
+function fullscreenSupported(): boolean {
   return document.fullscreenEnabled && !/iPhone|iPod/.test(navigator.userAgent);
 }
 

@@ -13,14 +13,13 @@ footer { padding: 16px; opacity: 0.7; font-size: 13px; }
   background: linear-gradient(#000a, #0000); visibility: hidden; opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
 .controls-shown .overlay { visibility: visible; opacity: 1; }
 .overlay .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.overlay button, .overlay a { font: inherit; color: inherit; background: #0008; border: 1px solid #fff4; border-radius: 6px; padding: 6px 10px; cursor: pointer; text-decoration: none; }
+.overlay button, .overlay a, .info button { font: inherit; color: inherit; background: #0008; border: 1px solid #fff4; border-radius: 6px; padding: 6px 10px; cursor: pointer; text-decoration: none; }
 .info { position: absolute; left: 16px; right: 16px; bottom: 16px; max-width: 560px; max-height: calc(100% - 96px); overflow: auto;
   box-sizing: border-box; padding: 16px; border-radius: 8px; background: #000c; }
 .info h2 { margin: 0 0 8px; font-size: 17px; }
 .info blockquote { margin: 0 0 12px; font-style: italic; }
 .info p { margin: 0 0 8px; }
 .info ul { margin: 0 0 12px; padding-left: 20px; font-size: 13px; }
-.info button { font: inherit; color: inherit; background: #0008; border: 1px solid #fff4; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
 .hint { position: absolute; right: 16px; bottom: 12px; margin: 0; padding: 4px 10px; border-radius: 6px; background: #0008; font-size: 13px; pointer-events: none; }
 .scene:not(.controls-shown) { cursor: none; }
 .missing { padding: 24px 16px; }
