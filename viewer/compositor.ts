@@ -61,10 +61,11 @@ function blit(out: Uint8ClampedArray, src: Pixels, x0: number, y0: number, flipX
 }
 
 function draw(out: Uint8ClampedArray, src: Pixels, p: Placement): void {
-  if (!p.tileX) return blit(out, src, p.x, p.y, p.flipX === true);
+  const flipX = p.flipX === true;
+  if (!p.tileX) return blit(out, src, p.x, p.y, flipX);
   const phase = ((p.x % src.width) + src.width) % src.width;
   const first = phase === 0 ? 0 : phase - src.width;
-  for (let x = first; x < SCENE_WIDTH; x += src.width) blit(out, src, x, p.y, p.flipX === true);
+  for (let x = first; x < SCENE_WIDTH; x += src.width) blit(out, src, x, p.y, flipX);
 }
 
 function overlay(out: Uint8ClampedArray, layer: Uint8ClampedArray): void {

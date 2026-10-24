@@ -15,8 +15,9 @@ async function main(arg: string | undefined) {
   const frame = createCompositor({ plan, elements: await loadElementPixels(root, plan), palette: loadPalette(root, plan.palette) }).render(0);
 
   const raw = { raw: { width: SCENE_WIDTH, height: SCENE_HEIGHT, channels: 4 as const } };
-  const posterPath = join(dirname(planPath), POSTER_FILE);
-  const ogPath = join(dirname(planPath), POSTER_OG_FILE);
+  const dir = dirname(planPath);
+  const posterPath = join(dir, POSTER_FILE);
+  const ogPath = join(dir, POSTER_OG_FILE);
   await sharp(frame, raw).png().toFile(posterPath);
   await sharp(frame, raw)
     .resize(SCENE_WIDTH * OG_SCALE, SCENE_HEIGHT * OG_SCALE, { kernel: "nearest" })
