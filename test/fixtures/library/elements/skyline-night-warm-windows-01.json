@@ -17,5 +17,7 @@
   "createdAt": "2026-10-24T20:05:00Z",
   "firstScene": "fixture-rainy-desk-a1b2",
   "cost": { "pixellabGenerations": 1, "meteredUsd": 0 },
-  "checks": { "attempt": 1, "passed": ["dimensions", "alpha", "palette"], "warnings": [] }
+  "checks": { "attempt": 1, "passed": ["dimensions", "alpha", "palette"], "warnings": [] },
+  "emissive": [8],
+  "emissiveMask": true
 }

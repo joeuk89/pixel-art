@@ -4,7 +4,8 @@ import { createCompositor, type ElementPixels, type Pixels } from "../viewer/com
 
 const W = 384;
 const H = 240;
-const palette = { name: "test", mood: "test", colours: ["#100000", "#200000", "#300000", "#400000", "#500000", "#600000", "#700000", "#800000"] };
+const colours = ["#100000", "#200000", "#300000", "#400000", "#500000", "#600000", "#700000", "#800000"];
+const palette = { name: "test", mood: "test", colours, ramps: colours.map((_, i) => ({ dark: i, warm: i, cool: i })) };
 const rgb = (i: number) => [(i + 1) * 16, 0, 0, 255];
 
 function plan(layers: unknown[], seed = 1337): any {

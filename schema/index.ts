@@ -199,11 +199,55 @@ const soundtrack = z
     }
   });
 
+export const tintSchema = z.enum(["warm", "cool"]);
+
+const pointLight = z
+  .strictObject({
+    type: z.literal("point"),
+    id: slug,
+    anchor: slug.optional(),
+    offset: point.optional(),
+    at: point.optional(),
+    radius: z.number().positive(),
+    strength: z.number(),
+    tint: tintSchema,
+    flicker: z.strictObject({ depth: z.number().min(0).max(1), rate: z.number().positive() }).optional(),
+    halo: z.strictObject({ colour: colourIndex, radius: z.number().positive(), strength: z.number().min(0) }).optional(),
+  })
+  .superRefine((light, ctx) => {
+    if ((light.anchor === undefined) === (light.at === undefined)) {
+      ctx.addIssue({ code: "custom", path: [], message: "a point Light needs exactly one of anchor or at" });
+    } else if (light.offset !== undefined && light.anchor === undefined) {
+      ctx.addIssue({ code: "custom", path: ["offset"], message: "offset applies only to a Light with an anchor" });
+    }
+  });
+
+const cross = (o: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) =>
+  (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+const beamLight = z
+  .strictObject({
+    type: z.literal("beam"),
+    id: slug,
+    corners: z.tuple([point, point, point, point]),
+    strength: z.number(),
+    tint: tintSchema,
+    softness: z.number().min(0),
+  })
+  .superRefine((beam, ctx) => {
+    const turns = beam.corners.map((c, i, all) => Math.sign(cross(c, all[(i + 1) % 4], all[(i + 2) % 4])));
+    if (turns.some((t) => t === 0) || !turns.every((t) => t === turns[0])) {
+      ctx.addIssue({ code: "custom", path: ["corners"], message: "beam corners must go round a convex quad in order" });
+    }
+  });
+
+export const lightSchema = z.discriminatedUnion("type", [pointLight, beamLight]);
+
 const variant = z.strictObject({
   id: slug,
   title: z.string().min(1),
   ambient: z.strictObject({ level: z.number(), layers: z.record(z.string(), z.number()).optional() }),
-  lights: z.array(z.unknown()),
+  lights: z.array(lightSchema),
   companionPalette: slug.optional(),
   primitives: z.array(primitiveSchema).optional(),
   soundtrack: z.strictObject({ ambient: z.array(ambientEntry).optional(), oneshots: z.array(oneshotEntry).optional() }).optional(),
@@ -265,6 +309,17 @@ export const scenePlanSchema = z
       for (const name of Object.keys(v.ambient.layers ?? {})) {
         if (!names.has(name)) issue(["variants", vi, "ambient", "layers", name], `no Layer ${name} in this plan to offset`);
       }
+      const lightIds = new Set<string>();
+      v.lights.forEach((light, li) => {
+        if (lightIds.has(light.id)) issue(["variants", vi, "lights", li, "id"], `duplicate Light id ${light.id}`);
+        lightIds.add(light.id);
+        if (light.type === "point" && light.anchor !== undefined && !seen.has(light.anchor)) {
+          issue(["variants", vi, "lights", li, "anchor"], `no Placement ${light.anchor} in this plan to anchor to`);
+        }
+      });
+      v.emissiveOff.forEach((id, ei) => {
+        if (!seen.has(id)) issue(["variants", vi, "emissiveOff", ei], `no Placement ${id} in this plan to switch off`);
+      });
     });
   });
 
@@ -303,6 +358,7 @@ const elementBase = {
   cost: elementCost,
   checks,
   emissive: z.array(colourIndex).optional(),
+  emissiveMask: z.literal(true).optional(),
 };
 
 const propSide = int.min(MIN_PROP_SIDE).max(MAX_PROP_SIDE).multipleOf(SIDE_STEP);
@@ -387,6 +443,8 @@ export const ambientLoopRecordSchema = z.strictObject({
 export type ScenePlan = z.infer<typeof scenePlanSchema>;
 export type Layer = z.infer<typeof layer>;
 export type Variant = z.infer<typeof variant>;
+export type Light = z.infer<typeof lightSchema>;
+export type Tint = z.infer<typeof tintSchema>;
 export type Placement = z.infer<typeof placement>;
 export type Primitive = z.infer<typeof primitiveSchema>;
 export type ElementRecord = z.infer<typeof elementRecordSchema>;

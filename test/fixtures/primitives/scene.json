@@ -32,7 +32,7 @@
     { "type": "birds", "emissive": false, "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 140, "h": 60 }, "colours": [0], "count": 3, "every": [6, 8] }
   ],
   "variants": [
-    { "id": "night", "title": "Night", "ambient": { "level": -2.5 }, "lights": [], "emissiveOff": [] }
+    { "id": "night", "title": "Night", "ambient": { "level": 0, "layers": { "sky": 0, "stars": 0, "city": 0 } }, "lights": [], "emissiveOff": [] }
   ],
   "soundtrack": {
     "music": { "brief": "slow piano, warm and sparse", "service": "stable-audio-3", "gain": 0.6 },

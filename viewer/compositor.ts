@@ -1,13 +1,26 @@
-import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type ScenePlan } from "../schema/index.ts";
+import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
+import { createRampPass, NONE, UNLIT, type Planes } from "./lighting.ts";
 
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
 export type FrameStrip = { image: Pixels; frames: number; fps: number; order: FrameOrder };
-export type ElementPixels = { still: Pixels; strip?: FrameStrip };
+export type ElementPixels = { still: Pixels; strip?: FrameStrip; emissive?: readonly number[]; mask?: Pixels };
+
+export async function elementPixelsOf(record: ElementRecord, decode: (suffix: string) => Promise<Pixels>): Promise<ElementPixels> {
+  const pixels: ElementPixels = { still: await decode(".png") };
+  if (record.kind === "prop" && record.animation) {
+    const { frames, fps, order } = record.animation;
+    pixels.strip = { image: await decode(".strip.png"), frames, fps, order };
+  }
+  if (record.emissive) pixels.emissive = record.emissive;
+  if (record.emissiveMask) pixels.mask = await decode(".emissive.png");
+  return pixels;
+}
 
 export type PrimitiveDraw = {
   after: number;
   fps: number;
+  emissive?: boolean;
   draw(out: Uint8ClampedArray, timeMs: number): void;
   // Equal states at two times promise identical pixels, so tick can skip a step that changes nothing.
   state?(timeMs: number): number;
@@ -19,6 +32,8 @@ export type CompositorInput = {
   palette: Palette;
   seed?: number;
   primitives?: readonly PrimitiveDraw[];
+  variant?: Variant;
+  companion?: Palette;
 };
 
 export type Compositor = {
@@ -28,10 +43,12 @@ export type Compositor = {
 };
 
 type Rgba = readonly [number, number, number, number];
-type Animated = { placement: Placement; frames: Pixels[]; sequence: readonly number[]; fps: number; offset: number };
-type Op = { overlay: Uint8ClampedArray } | { animated: Animated } | { primitive: PrimitiveDraw };
+type Source = { pixels: Pixels; index: Uint8Array; emissive?: Uint8Array };
+type Animated = { placement: Placement; layer: number; frames: Source[]; sequence: readonly number[]; fps: number; offset: number };
+type Op = { overlay: Planes } | { animated: Animated } | { primitive: PrimitiveDraw; layer: number };
 
-const SIZE = SCENE_WIDTH * SCENE_HEIGHT * 4;
+const PIXELS = SCENE_WIDTH * SCENE_HEIGHT;
+const SIZE = PIXELS * 4;
 
 function paletteRgba(palette: Palette): Rgba[] {
   return palette.colours.map((hex) => {
@@ -40,24 +57,37 @@ function paletteRgba(palette: Palette): Rgba[] {
   });
 }
 
-function fill(out: Uint8ClampedArray, colour: Rgba): void {
-  for (let i = 0; i < out.length; i += 4) out.set(colour, i);
+function emptyPlanes(): Planes {
+  return { rgba: new Uint8ClampedArray(SIZE), index: new Uint8Array(PIXELS).fill(NONE), layer: new Uint8Array(PIXELS).fill(NONE), emissive: new Uint8Array(PIXELS) };
 }
 
-function blit(out: Uint8ClampedArray, src: Pixels, x0: number, y0: number, flipX: boolean): void {
-  for (let sy = 0; sy < src.height; sy++) {
+function fill(planes: Planes, colour: Rgba, index: number, layer: number): void {
+  for (let i = 0; i < SIZE; i += 4) planes.rgba.set(colour, i);
+  planes.index.fill(index);
+  planes.layer.fill(layer);
+  planes.emissive.fill(0);
+}
+
+function blit(planes: Planes, src: Source, x0: number, y0: number, flipX: boolean, layer: number): void {
+  const { pixels, index, emissive } = src;
+  for (let sy = 0; sy < pixels.height; sy++) {
     const y = y0 + sy;
     if (y < 0 || y >= SCENE_HEIGHT) continue;
-    for (let sx = 0; sx < src.width; sx++) {
+    for (let sx = 0; sx < pixels.width; sx++) {
       const x = x0 + sx;
       if (x < 0 || x >= SCENE_WIDTH) continue;
-      const s = (sy * src.width + (flipX ? src.width - 1 - sx : sx)) * 4;
-      if (src.data[s + 3] < 128) continue;
-      const d = (y * SCENE_WIDTH + x) * 4;
-      out[d] = src.data[s];
-      out[d + 1] = src.data[s + 1];
-      out[d + 2] = src.data[s + 2];
-      out[d + 3] = 255;
+      const k = sy * pixels.width + (flipX ? pixels.width - 1 - sx : sx);
+      const s = k * 4;
+      if (pixels.data[s + 3] < 128) continue;
+      const p = y * SCENE_WIDTH + x;
+      const d = p * 4;
+      planes.rgba[d] = pixels.data[s];
+      planes.rgba[d + 1] = pixels.data[s + 1];
+      planes.rgba[d + 2] = pixels.data[s + 2];
+      planes.rgba[d + 3] = 255;
+      planes.index[p] = index[k];
+      planes.layer[p] = layer;
+      planes.emissive[p] = emissive ? emissive[k] : 0;
     }
   }
 }
@@ -70,17 +100,21 @@ export function placedXs(p: Placement, width: number): number[] {
   return xs;
 }
 
-function draw(out: Uint8ClampedArray, src: Pixels, p: Placement): void {
-  for (const x of placedXs(p, src.width)) blit(out, src, x, p.y, p.flipX === true);
+function draw(planes: Planes, src: Source, p: Placement, layer: number): void {
+  for (const x of placedXs(p, src.pixels.width)) blit(planes, src, x, p.y, p.flipX === true, layer);
 }
 
-function overlay(out: Uint8ClampedArray, layer: Uint8ClampedArray): void {
-  for (let i = 0; i < SIZE; i += 4) {
-    if (layer[i + 3] === 0) continue;
-    out[i] = layer[i];
-    out[i + 1] = layer[i + 1];
-    out[i + 2] = layer[i + 2];
-    out[i + 3] = 255;
+function overlay(out: Planes, top: Planes): void {
+  for (let p = 0; p < PIXELS; p++) {
+    if (top.layer[p] === NONE) continue;
+    const i = p * 4;
+    out.rgba[i] = top.rgba[i];
+    out.rgba[i + 1] = top.rgba[i + 1];
+    out.rgba[i + 2] = top.rgba[i + 2];
+    out.rgba[i + 3] = 255;
+    out.index[p] = top.index[p];
+    out.layer[p] = top.layer[p];
+    out.emissive[p] = top.emissive[p];
   }
 }
 
@@ -117,47 +151,89 @@ function hash(text: string): number {
   return mix(h);
 }
 
-function animatedOf(pixels: ElementPixels, p: Placement, seed: number): Animated | undefined {
+function animatedOf(pixels: ElementPixels, p: Placement, seed: number, layer: number, source: (frame: Pixels) => Source): Animated | undefined {
   const { strip } = pixels;
   if (!strip || p.animation?.enabled === false) return undefined;
   const sequence = sequenceOf(p.animation?.order ?? strip.order, strip.frames);
   const offset = hash(`${seed}:${p.id}`) % sequence.length;
-  return { placement: p, frames: splitFrames(strip, p), sequence, fps: p.animation?.fps ?? strip.fps, offset };
+  return { placement: p, layer, frames: splitFrames(strip, p).map(source), sequence, fps: p.animation?.fps ?? strip.fps, offset };
+}
+
+function lookupOf(palette: Palette): Map<number, number> {
+  const lookup = new Map<number, number>();
+  palette.colours.forEach((hex, i) => {
+    const n = parseInt(hex.slice(1), 16);
+    if (!lookup.has(n)) lookup.set(n, i);
+  });
+  return lookup;
+}
+
+function indexAt(data: Pixels["data"], s: number, lookup: Map<number, number>): number {
+  return lookup.get((data[s] << 16) | (data[s + 1] << 8) | data[s + 2]) ?? NONE;
+}
+
+function indexOf(pixels: Pixels, lookup: Map<number, number>): Uint8Array {
+  const index = new Uint8Array(pixels.width * pixels.height);
+  for (let k = 0; k < index.length; k++) index[k] = indexAt(pixels.data, k * 4, lookup);
+  return index;
+}
+
+function emissiveOf(pixels: Pixels, index: Uint8Array, colours: readonly number[] | undefined, mask: Pixels | undefined): Uint8Array | undefined {
+  if (!colours?.length) return undefined;
+  const lit = new Set(colours);
+  const masked = mask && mask.width === pixels.width && mask.height === pixels.height ? mask : undefined;
+  const emissive = new Uint8Array(index.length);
+  for (let k = 0; k < index.length; k++) {
+    if (!lit.has(index[k])) continue;
+    if (masked && (masked.data[k * 4 + 3] < 128 || masked.data[k * 4] < 128)) continue;
+    emissive[k] = 1;
+  }
+  return emissive;
 }
 
 export const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
 
-export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [] }: CompositorInput): Compositor {
+export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [], variant = plan.variants[0], companion }: CompositorInput): Compositor {
   const colours = paletteRgba(palette);
+  const lookup = lookupOf(palette);
+  const switchedOff = new Set(variant.emissiveOff);
+  const indexed = new Map<Pixels, Uint8Array>();
+  const sourceOf = (pixels: ElementPixels, frame: Pixels, p: Placement): Source => {
+    let index = indexed.get(frame);
+    if (!index) indexed.set(frame, (index = indexOf(frame, lookup)));
+    const emissive = switchedOff.has(p.id) ? undefined : emissiveOf(frame, index, pixels.emissive, pixels.mask);
+    return { pixels: frame, index, emissive };
+  };
+
   let ops: Op[] = [];
-  let current = new Uint8ClampedArray(SIZE);
+  let current = emptyPlanes();
   let drawn = true;
-  fill(current, colours[0]);
+  fill(current, colours[0], 0, UNLIT);
 
   const push = (op: Op) => {
     if (drawn) ops.push({ overlay: current });
     ops.push(op);
-    current = new Uint8ClampedArray(SIZE);
+    current = emptyPlanes();
     drawn = false;
   };
 
   plan.layers.forEach((layer, li) => {
     if (layer.kind === "fill") {
       ops = [];
-      fill(current, colours[layer.colour]);
+      fill(current, colours[layer.colour], layer.colour, li);
       drawn = true;
     }
     for (const p of placementsOf(layer)) {
       const pixels = elements.get(p.element);
       if (!pixels) throw new Error(`Placement ${p.id}: Element ${p.element} has no pixels`);
-      const animated = animatedOf(pixels, p, seed);
+      const animated = animatedOf(pixels, p, seed, li, (frame) => sourceOf(pixels, frame, p));
       if (animated) push({ animated });
       else {
-        draw(current, pixels.still, p);
+        draw(current, sourceOf(pixels, pixels.still, p), p, li);
         drawn = true;
       }
     }
-    for (const primitive of primitives) if (primitive.after === li) push({ primitive });
+    for (const primitive of primitives) if (primitive.after === li) push({ primitive, layer: li });
   });
   if (drawn) ops.push({ overlay: current });
 
@@ -170,19 +246,37 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   });
   const lastStates = clocks.map(() => -1);
   let rendered = false;
+  const frame = emptyPlanes();
+  const words = new Uint32Array(frame.rgba.buffer);
+  const before = new Uint32Array(PIXELS);
+  const light = createRampPass({ plan, palette, variant, companion });
   const out = new Uint8ClampedArray(SIZE);
+
+  // Primitives paint RGBA only, so the pixels one changed are read back to Palette indices.
+  const drawPrimitive = (primitive: PrimitiveDraw, layer: number, timeMs: number) => {
+    before.set(words);
+    primitive.draw(frame.rgba, timeMs);
+    const emissive = primitive.emissive ? 1 : 0;
+    for (let p = 0; p < PIXELS; p++) {
+      if (words[p] === before[p]) continue;
+      frame.index[p] = indexAt(frame.rgba, p * 4, lookup);
+      frame.layer[p] = layer;
+      frame.emissive[p] = emissive;
+    }
+  };
 
   return {
     render(timeMs) {
       for (const op of ops) {
-        if ("overlay" in op) overlay(out, op.overlay);
-        else if ("primitive" in op) op.primitive.draw(out, timeMs);
+        if ("overlay" in op) overlay(frame, op.overlay);
+        else if ("primitive" in op) drawPrimitive(op.primitive, op.layer, timeMs);
         else {
           const a = op.animated;
-          const frame = a.sequence[(a.offset + step(timeMs, a.fps)) % a.sequence.length];
-          draw(out, a.frames[frame], a.placement);
+          const f = a.sequence[(a.offset + step(timeMs, a.fps)) % a.sequence.length];
+          draw(frame, a.frames[f], a.placement, a.layer);
         }
       }
+      light(frame, out);
       clocks.forEach((clock, i) => (lastStates[i] = clock.state(timeMs)));
       rendered = true;
       return out;

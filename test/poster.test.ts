@@ -4,8 +4,9 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
+import { scenePlanSchema } from "../schema/index.ts";
 import { createCompositor, type ElementPixels } from "../viewer/compositor.ts";
-import { editJson, fixtureScene, fixtures, makeTree, readJson, repo } from "./helpers.ts";
+import { editJson, fixtureScene, fixtures, makeTree, readJson, repo, writeJson } from "./helpers.ts";
 
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
 
@@ -19,8 +20,8 @@ async function rgba(path: string) {
   return { width: info.width, height: info.height, data: new Uint8Array(data) };
 }
 
-async function fixtureFrameZero(root: string): Promise<Uint8ClampedArray> {
-  const plan = readJson(root, fixtureScene);
+async function fixtureFrameZero(root: string, variant = 0): Promise<Uint8ClampedArray> {
+  const plan = scenePlanSchema.parse(readJson(root, fixtureScene));
   const palette = readJson(root, `library/palettes/${plan.palette}.json`);
   const elements = new Map<string, ElementPixels>();
   for (const id of ["sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"]) {
@@ -32,9 +33,10 @@ async function fixtureFrameZero(root: string): Promise<Uint8ClampedArray> {
       fps: record.animation.fps,
       order: record.animation.order,
     };
-    elements.set(id, strip ? { still, strip } : { still });
+    const mask = record.emissiveMask && await rgba(join(root, `library/elements/${id}.emissive.png`));
+    elements.set(id, { still, ...(strip && { strip }), ...(record.emissive && { emissive: record.emissive }), ...(mask && { mask }) });
   }
-  return createCompositor({ plan, elements, palette }).render(0);
+  return createCompositor({ plan, elements, palette, variant: plan.variants[variant] }).render(0);
 }
 
 test("poster run against the fixture Scene prints one JSON object, exits 0 and writes both PNGs beside the plan", async () => {
@@ -55,11 +57,49 @@ test("poster run against the fixture Scene prints one JSON object, exits 0 and w
   assert.deepEqual([og.format, og.width, og.height], ["png", 768, 480]);
 });
 
-test("the 384x240 Poster equals the compositor's frame 0 with Primitives off", async () => {
+test("the 384x240 Poster equals lit frame 0 of the default Variant with Primitives off", async () => {
   const root = makeTree();
   assert.equal(poster(root, fixtureScene).code, 0);
-  const written = await rgba(join(root, sceneDir, "poster.png"));
-  assert.deepEqual(Buffer.from(written.data), Buffer.from(await fixtureFrameZero(root)));
+  const written = Buffer.from((await rgba(join(root, sceneDir, "poster.png"))).data);
+  assert.deepEqual(written, Buffer.from(await fixtureFrameZero(root, 0)));
+  assert.notDeepEqual(written, Buffer.from(await fixtureFrameZero(root, 1)), "the second Variant lights the Scene differently");
+});
+
+test("the Poster keeps the skyline's emissive windows inside the mask and darkens those outside it", async () => {
+  const root = makeTree();
+  assert.equal(poster(root, fixtureScene).code, 0);
+  const { data } = await rgba(join(root, sceneDir, "poster.png"));
+  const mask = await rgba(join(root, "library/elements/skyline-night-warm-windows-01.emissive.png"));
+  const windows = await rgba(join(root, "library/elements/skyline-night-warm-windows-01.png"));
+  const yellow = [0xf7, 0xd3, 0x5c];
+  let kept = 0;
+  let darkened = 0;
+  for (let y = 0; y < windows.height; y++) for (let x = 0; x < windows.width; x++) {
+    const k = (y * windows.width + x) * 4;
+    if (windows.data[k] !== yellow[0] || windows.data[k + 1] !== yellow[1] || windows.data[k + 2] !== yellow[2]) continue;
+    const p = ((40 + y) * 384 + 64 + x) * 4;
+    const same = data[p] === yellow[0] && data[p + 1] === yellow[1] && data[p + 2] === yellow[2];
+    if (mask.data[k] === 255) assert.ok(same, `masked window pixel ${x},${y} is not kept`), kept++;
+    else if (!same) darkened++;
+  }
+  assert.ok(kept > 0, "no window pixel sits inside the mask");
+  assert.ok(darkened > 0, "every window pixel outside the mask stayed yellow");
+});
+
+test("a default Variant with a companion Palette renders a Poster in the companion's colours", async () => {
+  const root = makeTree();
+  writeJson(root, "library/palettes/fixture-dusk-v2.json", {
+    ...readJson(root, "library/palettes/fixture-night-v2.json"),
+    name: "fixture-dusk-v2",
+    colours: readJson(root, "library/palettes/fixture-night-v2.json").colours.map((_: string, i: number) => `#${(i * 8).toString(16).padStart(2, "0")}0040`),
+  });
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].companionPalette = "fixture-dusk-v2"; });
+  const { code, stderr } = poster(root, fixtureScene);
+  assert.equal(code, 0, stderr);
+  const { data } = await rgba(join(root, sceneDir, "poster.png"));
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 1] !== 0 || data[i + 2] !== 0x40) assert.fail(`pixel ${(i / 4) % 384},${Math.floor(i / 4 / 384)} is not a dusk colour`);
+  }
 });
 
 test("the Open Graph copy is the Poster at 2x, every 2x2 block one Poster pixel", async () => {
