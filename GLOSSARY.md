@@ -36,6 +36,14 @@ _Avoid_: Asset, sprite, object, part
 The tagged collection of Elements that new Scenes shop from before anything is generated.
 _Avoid_: Asset store, sprite sheet, catalogue
 
+**Backdrop**:
+An opaque Element that fills the back of a Scene, or the opening it shows through, made at the size it covers and placed once.
+_Avoid_: Background, bg, panorama
+
+**Seamless texture**:
+An Element with no landmarks whose left and right edges join, so it may repeat across a Scene's width.
+_Avoid_: Tile, tileable, pattern
+
 **Gallery**:
 The Viewer's list of generated Scenes.
 _Avoid_: Library (for Scenes), feed, index
