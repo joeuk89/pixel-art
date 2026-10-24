@@ -44,3 +44,10 @@ export function validate(root: string, ...args: string[]): ValidateResult {
   const run = spawnSync(process.execPath, [join(repo, "pipeline/validate.ts"), ...args], { cwd: root, encoding: "utf8" });
   return { code: run.status, report: JSON.parse(run.stdout), stderr: run.stderr };
 }
+
+export type ScriptResult = { code: number | null; out: any; stderr: string };
+
+export function runScript(root: string, script: string, ...args: string[]): ScriptResult {
+  const run = spawnSync(process.execPath, [join(repo, "pipeline", `${script}.ts`), ...args], { cwd: root, encoding: "utf8" });
+  return { code: run.status, out: JSON.parse(run.stdout), stderr: run.stderr };
+}
