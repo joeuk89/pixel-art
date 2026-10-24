@@ -209,6 +209,57 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  test("the overlay appears on pointer move and hides itself after a few seconds", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const back = page.getByRole("link", { name: "Back to the Gallery" });
+    assert.equal(await back.isVisible(), false);
+    await page.mouse.move(300, 300);
+    await page.mouse.move(310, 305);
+    await back.waitFor({ state: "visible" });
+    assert.equal(await page.getByText(title, { exact: true }).isVisible(), true);
+    for (const name of ["Sound", "Copy link", "Info"]) assert.ok(await page.getByRole("button", { name }).isVisible(), name);
+    await back.waitFor({ state: "hidden", timeout: 6000 });
+    assert.deepEqual(errors, []);
+  });
+
+  test("a tap shows the overlay", async () => {
+    const { page, errors } = await open(`scenes/${id}/`, { hasTouch: true });
+    await page.locator("canvas").waitFor();
+    await page.touchscreen.tap(500, 350);
+    await page.getByRole("link", { name: "Back to the Gallery" }).waitFor({ state: "visible" });
+    assert.deepEqual(errors, []);
+  });
+
+  const soundOn = (page: Page) => page.getByRole("button", { name: "Sound", includeHidden: true }).getAttribute("aria-pressed");
+
+  test("M toggles the muted flag and the click-for-sound hint goes after the first unmute", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const hint = page.getByText("Click for sound");
+    assert.equal(await hint.isVisible(), true);
+    assert.equal(await soundOn(page), "false");
+    await page.keyboard.press("m");
+    assert.equal(await soundOn(page), "true");
+    assert.equal(await hint.isVisible(), false);
+    await page.keyboard.press("M");
+    assert.equal(await soundOn(page), "false");
+    assert.equal(await hint.isVisible(), false);
+    assert.deepEqual(errors, []);
+  });
+
+  test("the first click anywhere unmutes and the sound toggle mutes again", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.click(500, 400);
+    assert.equal(await soundOn(page), "true");
+    assert.equal(await page.getByText("Click for sound").isVisible(), false);
+    await page.getByRole("button", { name: "Sound" }).click();
+    assert.equal(await soundOn(page), "false");
+    assert.equal(await page.evaluate(() => document.fullscreenElement), null);
+    assert.deepEqual(errors, []);
+  });
+
   test("an unknown Scene id shows No such Scene with a link back to the Gallery", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();

@@ -7,9 +7,11 @@ import {
   scenePlanSchema,
   type ScenePlan,
 } from "../schema/index.ts";
+import { mountControls } from "./controls.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
 import { startLoop } from "./loop.ts";
 import { createPrimitives } from "./primitives.ts";
+import type { MuteState } from "./mute.ts";
 import { sceneUrl } from "./site.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -83,7 +85,15 @@ export function renderMissing(host: HTMLElement, root: URL): void {
   document.title = "No such Scene";
 }
 
-export async function renderScene(host: HTMLElement, root: URL, id: string, signal: AbortSignal): Promise<void> {
+export type SceneSession = { mute: MuteState; navigate: (url: URL) => void };
+
+export async function renderScene(
+  host: HTMLElement,
+  root: URL,
+  id: string,
+  signal: AbortSignal,
+  { mute, navigate }: SceneSession,
+): Promise<void> {
   const base = sceneUrl(root, id);
   let plan: ScenePlan;
   try {
@@ -104,6 +114,7 @@ export async function renderScene(host: HTMLElement, root: URL, id: string, sign
   host.replaceChildren(main);
   document.title = plan.title;
   fitToViewport([poster], signal);
+  mountControls(main, { plan, root, mute, navigate, signal });
 
   const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;
