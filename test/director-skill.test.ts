@@ -117,3 +117,14 @@ test("no file in the skill folder holds a Scene plan template", () => {
     assert.doesNotMatch(text, /"schemaVersion"|"layers"\s*:/, `${name} holds a Scene plan skeleton`);
   }
 });
+
+test("a proposed new Palette blocks reuse and forces colours to be re-picked once approved", () => {
+  const shop = steps(skill()).find((s) => s.title === "Shop");
+  const gate = steps(skill()).find((s) => s.title === "Plan gate");
+  assert.ok(shop && gate);
+  assert.match(shop.text, /new Palette is proposed, no library Element qualifies for reuse/);
+  const done = gate.text.slice(gate.text.indexOf("**Done when**"));
+  assert.match(done, /re-pick every `fill` and Primitive colour index against the new Palette/);
+  assert.match(done, /new Palette[\s\S]*pipeline\/validate\.ts/);
+  assert.match(done, /rejects the new Palette[\s\S]*step 5[\s\S]*house Palette/);
+});

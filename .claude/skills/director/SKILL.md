@@ -54,6 +54,8 @@ For each Element run `node pipeline/library-search.ts <subject words> --palette 
 
 For each sound run `node pipeline/library-search.ts <words> --sounds` and read the record of any candidate before choosing it.
 
+While a new Palette is proposed, no library Element qualifies for reuse: the stand-in house Palette is not the Scene's Palette. Every Element stays generated, and the Plan gate says so.
+
 To reuse, set the Placement's `element` to the library id and delete its `generate` block. Every other Element stays generated.
 
 **Done when** every Element is marked reused (with the PNG viewed and subject, Palette and canvas size matching) or generated, every sound is curated (by record id) or generated (with a brief), and `node pipeline/validate.ts scenes/<id>` exits 0.
@@ -75,4 +77,4 @@ Call out, each on its own line: budget overage with the amount and the reason; e
 
 Wait for the owner. Apply any edits to the plan, run validate, and show the brief again.
 
-**Done when** the owner has said yes to the brief as shown. Record an approved overage in `cost.approvedOverage` with its reason, and write an approved new Palette to `library/palettes/` and point the plan at it. Then stop: generation is not part of this skill yet.
+**Done when** the owner has said yes to the brief as shown. Record an approved overage in `cost.approvedOverage` with its reason. If the owner approves the new Palette, write it to `library/palettes/`, point the plan at it, re-pick every `fill` and Primitive colour index against the new Palette, and run `node pipeline/validate.ts scenes/<id>` again until it exits 0. If the owner rejects the new Palette, set the plan to a house Palette, rerun step 5 against that house Palette, and show the brief again. Then stop: generation is not part of this skill yet.
