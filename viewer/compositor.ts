@@ -3,9 +3,9 @@ import { SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type ScenePlan
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
 export type FrameStrip = { image: Pixels; frames: number; fps: number; order: FrameOrder };
-export type ElementSprite = { still: Pixels; strip?: FrameStrip };
+export type ElementPixels = { still: Pixels; strip?: FrameStrip };
 
-export type Effect = {
+export type PrimitiveDraw = {
   after: number;
   fps: number;
   draw(out: Uint8ClampedArray, timeMs: number): void;
@@ -13,10 +13,10 @@ export type Effect = {
 
 export type CompositorInput = {
   plan: ScenePlan;
-  elements: ReadonlyMap<string, ElementSprite>;
+  elements: ReadonlyMap<string, ElementPixels>;
   palette: Palette;
   seed?: number;
-  effects?: readonly Effect[];
+  primitives?: readonly PrimitiveDraw[];
 };
 
 export type Compositor = {
@@ -27,7 +27,7 @@ export type Compositor = {
 
 type Rgba = readonly [number, number, number, number];
 type Animated = { placement: Placement; frames: Pixels[]; sequence: readonly number[]; fps: number; offset: number };
-type Op = { overlay: Uint8ClampedArray } | { animated: Animated } | { effect: Effect };
+type Op = { overlay: Uint8ClampedArray } | { animated: Animated } | { primitive: PrimitiveDraw };
 
 const SIZE = SCENE_WIDTH * SCENE_HEIGHT * 4;
 
@@ -106,8 +106,8 @@ function hash(text: string): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-function animatedOf(sprite: ElementSprite, p: Placement, seed: number): Animated | undefined {
-  const { strip } = sprite;
+function animatedOf(pixels: ElementPixels, p: Placement, seed: number): Animated | undefined {
+  const { strip } = pixels;
   if (!strip || p.animation?.enabled === false) return undefined;
   const sequence = sequenceOf(p.animation?.order ?? strip.order, strip.frames);
   const offset = hash(`${seed}:${p.id}`) % sequence.length;
@@ -116,7 +116,7 @@ function animatedOf(sprite: ElementSprite, p: Placement, seed: number): Animated
 
 const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
 
-export function createCompositor({ plan, elements, palette, seed = plan.seed, effects = [] }: CompositorInput): Compositor {
+export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [] }: CompositorInput): Compositor {
   const colours = paletteRgba(palette);
   let ops: Op[] = [];
   let current = new Uint8ClampedArray(SIZE);
@@ -137,20 +137,20 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, ef
       drawn = true;
     }
     for (const p of layer.placements ?? []) {
-      const sprite = elements.get(p.element);
-      if (!sprite) throw new Error(`Placement ${p.id}: Element ${p.element} has no pixels`);
-      const animated = animatedOf(sprite, p, seed);
+      const pixels = elements.get(p.element);
+      if (!pixels) throw new Error(`Placement ${p.id}: Element ${p.element} has no pixels`);
+      const animated = animatedOf(pixels, p, seed);
       if (animated) push({ animated });
       else {
-        draw(current, sprite.still, p);
+        draw(current, pixels.still, p);
         drawn = true;
       }
     }
-    for (const effect of effects) if (effect.after === li) push({ effect });
+    for (const primitive of primitives) if (primitive.after === li) push({ primitive });
   });
   if (drawn) ops.push({ overlay: current });
 
-  const clocks = ops.flatMap((op) => ("animated" in op ? [op.animated.fps] : "effect" in op ? [op.effect.fps] : []));
+  const clocks = ops.flatMap((op) => ("animated" in op ? [op.animated.fps] : "primitive" in op ? [op.primitive.fps] : []));
   const lastSteps = clocks.map(() => -1);
   let rendered = false;
   const out = new Uint8ClampedArray(SIZE);
@@ -159,7 +159,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, ef
     render(timeMs) {
       for (const op of ops) {
         if ("overlay" in op) overlay(out, op.overlay);
-        else if ("effect" in op) op.effect.draw(out, timeMs);
+        else if ("primitive" in op) op.primitive.draw(out, timeMs);
         else {
           const a = op.animated;
           const frame = a.sequence[(a.offset + step(timeMs, a.fps)) % a.sequence.length];

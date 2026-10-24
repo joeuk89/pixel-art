@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { createCompositor, type ElementSprite } from "../viewer/compositor.ts";
+import { createCompositor, type ElementPixels } from "../viewer/compositor.ts";
 import { fixtureScene, makeTree, readJson, repo } from "./helpers.ts";
 
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
@@ -22,7 +22,7 @@ async function rgba(path: string) {
 async function fixtureFrameZero(root: string): Promise<Uint8ClampedArray> {
   const plan = readJson(root, fixtureScene);
   const palette = readJson(root, `library/palettes/${plan.palette}.json`);
-  const elements = new Map<string, ElementSprite>();
+  const elements = new Map<string, ElementPixels>();
   for (const id of ["skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"]) {
     const record = readJson(root, `library/elements/${id}.json`);
     const still = await rgba(join(root, `library/elements/${id}.png`));
