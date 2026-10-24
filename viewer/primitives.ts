@@ -1,5 +1,6 @@
 import { primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
 import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
+import { random } from "./random.ts";
 
 export const WEATHER_FPS = 24;
 export const PROP_FPS = 10;
@@ -14,16 +15,6 @@ type Context = {
   anchor(id: string): { placement: Placement; pixels: Pixels; layer: number };
   top: number;
 };
-
-// Counter-based, so any frame can be drawn from seed and time alone without replaying earlier frames.
-function random(seed: number, a: number, b: number, c: number, d: number): number {
-  let h = mix(seed ^ 0x9e3779b9);
-  h = mix(h ^ Math.imul(a | 0, 0x27d4eb2f));
-  h = mix(h ^ Math.imul(b | 0, 0x165667b1));
-  h = mix(h ^ Math.imul(c | 0, 0x85ebca77));
-  h = mix(h ^ Math.imul(d | 0, 0xc2b2ae3d));
-  return h / 4294967296;
-}
 
 type Colours = { r: Uint8Array; g: Uint8Array; b: Uint8Array; lab: Float64Array; indexOf: Map<number, number> };
 
