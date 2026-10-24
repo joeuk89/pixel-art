@@ -155,13 +155,11 @@ export function createLighting({ plan, palette, variant, seed, companion }: Ligh
   const lut = rampTable(shown);
   const k = shown.colours.length;
   const base = plan.layers.map((l) => variant.ambient.level + (variant.ambient.layers?.[l.name] ?? PLANE_RAMP_OFFSETS[l.plane]));
-  const sources: Source[] = variant.lights.map((light) => {
-    return {
-      tint: light.tint === "cool" ? COOL : WARM,
-      flicker: light.type === "point" && light.flicker ? createFlicker(light.flicker, seed, light.id) : undefined,
-      at: light.type === "point" ? pointContribution(light, plan) : beamContribution(light),
-    };
-  });
+  const sources: Source[] = variant.lights.map((light) => ({
+    tint: light.tint === "cool" ? COOL : WARM,
+    flicker: light.type === "point" && light.flicker ? createFlicker(light.flicker, seed, light.id) : undefined,
+    at: light.type === "point" ? pointContribution(light, plan) : beamContribution(light),
+  }));
   const flickers = sources.some((s) => s.flicker);
   const halos = halosOf(plan, variant.lights, shown, sources);
   const haloFlickers = halos.some((h) => h.flicker);

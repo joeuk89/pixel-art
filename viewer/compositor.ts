@@ -146,11 +146,15 @@ export function mix(h: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-// FNV-1a then the murmur3 finaliser, so near-identical ids still land on unrelated offsets.
-function hash(text: string): number {
+export function fnv1a(text: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
-  return mix(h);
+  return h;
+}
+
+// The murmur3 finaliser on top, so near-identical ids still land on unrelated offsets.
+function hash(text: string): number {
+  return mix(fnv1a(text));
 }
 
 function animatedOf(pixels: ElementPixels, p: Placement, seed: number, layer: number, source: (frame: Pixels) => Source): Animated | undefined {
