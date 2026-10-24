@@ -70,18 +70,29 @@ export async function decodePng(png: Buffer): Promise<Rgba> {
 export const MOTION_COLOURS = ["#f7d35c", "#e2883a"];
 
 // Frame k recolours its own 3% slice of the opaque pixels, so every step moves, drift stays small and the seam is one step.
-export function breathingFrames(still: Rgba, count: number): Buffer[] {
+export function breathingRgba(still: Rgba, count: number): Uint8Array[] {
   const opaque: number[] = [];
   for (let p = 0; p < still.width * still.height; p++) if (still.data[p * 4 + 3] !== 0) opaque.push(p);
   const slice = Math.max(1, Math.round(opaque.length * 0.03));
   const [a, b] = MOTION_COLOURS.map(hex);
   return Array.from({ length: count }, (_, k) => {
     const data = new Uint8Array(still.data);
-    for (const p of opaque.slice(k * slice, (k + 1) * slice)) {
+    if (k === 0) return data;
+    for (const p of opaque.slice((k - 1) * slice, k * slice)) {
       const same = data[p * 4] === a[0] && data[p * 4 + 1] === a[1] && data[p * 4 + 2] === a[2];
       data.set(same ? b : a, p * 4);
     }
-    return encodePng(still.width, still.height, data);
+    return data;
+  });
+}
+
+export const OFF_PALETTE_ACTION = "an animation whose colours drift off the Palette";
+
+// Every opaque colour after frame 0 is nudged two steps of red away from the Palette.
+function offPaletteRgba(still: Rgba, count: number): Uint8Array[] {
+  return breathingRgba(still, count).map((frame, k) => {
+    if (k > 0) for (let p = 0; p < frame.length; p += 4) if (frame[p + 3] !== 0) frame[p] = frame[p] > 253 ? frame[p] - 2 : frame[p] + 2;
+    return frame;
   });
 }
 
@@ -154,7 +165,9 @@ export const pixellab: ServiceFixture = {
       const queued = pixellabState.animateQueue.shift();
       if (queued) return queued;
       const still = Buffer.from(body.first_frame.base64, "base64");
-      const pngs = pixellabState.animations.get(body.action) ?? [still, ...breathingFrames(await decodePng(still), body.frame_count + 1).slice(1)];
+      const decoded = await decodePng(still);
+      const frames = (body.action === OFF_PALETTE_ACTION ? offPaletteRgba : breathingRgba)(decoded, body.frame_count + 1);
+      const pngs = pixellabState.animations.get(body.action) ?? [still, ...frames.slice(1).map((f) => encodePng(decoded.width, decoded.height, f))];
       const id = `job-${++pixellabState.created}`;
       pixellabState.jobs.set(id, { id, pngs, generations: ANIMATE_GENERATIONS, doneAt: now + JOB_MS, finished: false });
       return { json: { background_job_id: id, status: "processing" } };
