@@ -71,3 +71,66 @@ test("curated records pass validate, carry their licence chain and are normalise
   const oneshot = levels(join(root, `library/ambient/${thunder.id}.ogg`), readJson(root, `library/ambient/${thunder.id}.json`).channels);
   assert.ok(Math.abs(oneshot.peakDb - -6) < 0.5, `one-shot peak ${oneshot.peakDb} dBFS`);
 });
+
+test("a source that is not CC0 fails and writes nothing for that entry", async () => {
+  const entry = { ...vent, id: "freesound-rain-attribution-100001", sourceId: 100001 };
+  const root = tree([entry]);
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.equal(run.json.ok, false);
+  assert.match(run.json.error, /freesound-rain-attribution-100001: licence is https:\/\/creativecommons.org\/licenses\/by\/4.0\/, not CC0/);
+  assert.equal(existsSync(join(root, `library/ambient/${entry.id}.ogg`)), false);
+  assert.equal(existsSync(join(root, `library/ambient/${entry.id}.json`)), false);
+});
+
+test("an unknown Freesound id fails with the HTTP status and keeps entries already written", async () => {
+  const root = tree([vent, { ...vent, id: "freesound-gone-999999", sourceId: 999999 }]);
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.equal(run.json.error, "freesound 999999: HTTP 404");
+  assert.deepEqual(run.json.written.map((w: any) => w.id), [vent.id]);
+});
+
+test("requests go to the base URL from the environment and carry the key from the environment", async () => {
+  const root = tree([vent]);
+  const before = server.requests.length;
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(run.code, 0, run.stderr);
+  const sent = server.requests.slice(before);
+  assert.deepEqual(sent.map((r) => `${r.service} ${r.path}`), ["freesound /apiv2/sounds/753540/", "freesound /previews/753540/bed.ogg"]);
+  assert.equal(sent[0].query.get("token"), "fixture-freesound-key");
+});
+
+test("a missing base URL fails, naming the variable, before any request", async () => {
+  const root = tree([vent]);
+  const before = server.requests.length;
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: { ...server.env, FREESOUND_BASE_URL: undefined } });
+  assert.equal(run.code, 1);
+  assert.match(run.json.error, /FREESOUND_BASE_URL not set/);
+  assert.equal(server.requests.length, before);
+});
+
+test("an invalid spec entry fails with the entry and field named", async () => {
+  const root = tree([{ ...vent, method: "stretch" }]);
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.match(run.json.error, /\[0\]\.method/);
+});
+
+test("an entry already in the Sound library is skipped without a request, unless --force", async () => {
+  const root = tree([vent]);
+  assert.equal((await runScript(script, ["spec.json"], { cwd: root, env: server.env })).code, 0);
+  writeJson(root, "spec.json", [vent, thunder]);
+
+  const before = server.requests.length;
+  const rerun = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(rerun.code, 0, rerun.stderr);
+  assert.deepEqual(rerun.json.skipped, [vent.id]);
+  assert.deepEqual(rerun.json.written.map((w: any) => w.id), [thunder.id]);
+  assert.ok(server.requests.slice(before).every((r) => !r.path.includes("753540")));
+
+  const forced = await runScript(script, ["spec.json", "--force"], { cwd: root, env: server.env });
+  assert.equal(forced.code, 0, forced.stderr);
+  assert.deepEqual(forced.json.skipped, []);
+  assert.deepEqual(forced.json.written.map((w: any) => w.id), [vent.id, thunder.id]);
+});

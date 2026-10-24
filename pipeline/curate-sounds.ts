@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -76,13 +76,24 @@ const written: Awaited<ReturnType<typeof curate>>[] = [];
 const skipped: string[] = [];
 const work = mkdtempSync(join(tmpdir(), "curate-sounds-"));
 try {
-  const [specPath] = process.argv.slice(2);
-  if (!specPath) throw new Error("usage: curate-sounds <spec.json>");
-  const entries = z.array(entrySchema).parse(JSON.parse(readFileSync(specPath, "utf8")));
+  const args = process.argv.slice(2);
+  const force = args.includes("--force");
+  const [specPath] = args.filter((a) => a !== "--force");
+  if (!specPath) throw new Error("usage: curate-sounds <spec.json> [--force]");
+  const parsed = z.array(entrySchema).safeParse(JSON.parse(readFileSync(specPath, "utf8")));
+  if (!parsed.success) {
+    const where = (path: PropertyKey[]) => path.map((p) => (typeof p === "number" ? `[${p}]` : `.${String(p)}`)).join("");
+    throw new Error(parsed.error.issues.map((i) => `${specPath}: ${where(i.path)}: ${i.message}`).join("; "));
+  }
+  const entries = parsed.data;
   mkdirSync(OUT_DIR, { recursive: true });
   const today = new Date().toISOString().slice(0, 10);
-  for (const [i, entry] of entries.entries()) {
-    if (i > 0) await new Promise((r) => setTimeout(r, PAUSE_MS));
+  for (const entry of entries) {
+    if (!force && existsSync(join(OUT_DIR, `${entry.id}.ogg`)) && existsSync(join(OUT_DIR, `${entry.id}.json`))) {
+      skipped.push(entry.id);
+      continue;
+    }
+    if (written.length > 0) await new Promise((r) => setTimeout(r, PAUSE_MS));
     written.push(await curate(entry, work, today));
   }
   process.stdout.write(JSON.stringify({ ok: true, written, skipped }, null, 2) + "\n");
