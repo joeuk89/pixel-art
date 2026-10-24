@@ -12,7 +12,7 @@ function box(stage: Stage) {
 }
 
 const magnification = (f: number, depth: number) => f / (f - depth);
-const depthOf = (f: number, s: number) => f * (1 - 1 / s);
+export const depthOf = (f: number, s: number) => f * (1 - 1 / s);
 
 export function project(stage: Stage, surface: Surface, along: number, across: number): Point {
   const { x0, y0, x1, y1, vx, vy, f } = box(stage);

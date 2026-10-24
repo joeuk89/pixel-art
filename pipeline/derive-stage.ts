@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 import { DEFAULT_STAGE_F, SCENE_HEIGHT, SCENE_WIDTH, type Stage } from "../schema/index.ts";
 import { main } from "./lib/cli.ts";
-import { floorPolygon } from "./lib/perspective.ts";
+import { depthOf, floorPolygon } from "./lib/perspective.ts";
 
 const USAGE = "usage: derive-stage --room <w>x<h>x<d> --eye <m> [--zoom <z>] [--f <px>] [--outdoors]";
 const FLOOR_BAND = SCENE_HEIGHT / 4;
@@ -55,7 +55,7 @@ main(() => {
   const stage: Stage = { back: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, vanishingPoint: vp, f };
 
   const nearest = (SCENE_HEIGHT - vp.y) / (y1 - vp.y);
-  const floorDepthShown = round2((f * (1 - 1 / nearest)) / scale);
+  const floorDepthShown = round2(depthOf(f, nearest) / scale);
   return {
     room: { w, h, d },
     eye,
