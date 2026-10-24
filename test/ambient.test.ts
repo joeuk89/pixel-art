@@ -193,3 +193,45 @@ test("a generated source naming a service other than elevenlabs-fal fails before
   assert.equal(run.json.error, `${fixtureScene}: soundtrack.ambient[0].source.service: stable-audio-3 is not supported; use elevenlabs-fal`);
   assert.equal(server.requests.length, before);
 });
+
+test("a Variant's curated loop is copied and its generated gap is filled, with the id written to the Variant's slot", async () => {
+  const root = tree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[1].soundtrack = {
+      ambient: [{ source: { kind: "curated", id: "freesound-vent-hum-753540" }, file: "vent.ogg", distance: "far" }],
+      oneshots: [{ source: { kind: "generated", service: "elevenlabs-fal", brief: "an owl hoots once, far off" }, file: "owl.ogg", distance: "far", every: [60, 150] }],
+    };
+    plan.soundtrack.oneshots = [];
+  });
+  const before = server.requests.length;
+  const run = await runScript(script, [fixtureScene], { cwd: root, env: server.env });
+  assert.equal(run.code, 0, run.stderr);
+  const variantEntries = run.json.entries.filter((e: any) => e.slot.startsWith("variants"));
+  assert.deepEqual(variantEntries.map((e: any) => [e.slot, e.file, e.action]), [
+    ["variants[1].soundtrack.ambient[0]", "vent.ogg", "copied"],
+    ["variants[1].soundtrack.oneshots[0]", "owl.ogg", "generated"],
+  ]);
+  assert.deepEqual(readFileSync(join(root, sceneDir, "vent.ogg")), readFileSync(join(repo, "library/ambient/freesound-vent-hum-753540.ogg")));
+
+  const submit = server.requests.slice(before).find((r) => r.method === "POST");
+  assert.deepEqual(JSON.parse(submit!.body.toString()), { text: "an owl hoots once, far off", loop: false, output_format: "opus_48000_128" });
+  const plan = readJson(root, fixtureScene);
+  const id = plan.variants[1].soundtrack.oneshots[0].source.id;
+  assert.equal(id, "elevenlabs-owl-01");
+  assert.equal(readJson(root, `library/ambient/${id}.json`).kind, "oneshot");
+  assert.deepEqual(readFileSync(join(root, sceneDir, "owl.ogg")), readFileSync(join(root, "library/ambient", `${id}.ogg`)));
+  const check = validate(root);
+  assert.equal(check.code, 0, check.stderr);
+  assert.equal(check.report.scenes[0].status, "resolved");
+});
+
+test("a Variant's curated One-shot naming a loop fails with the Variant's slot named", async () => {
+  const root = tree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[1].soundtrack = { oneshots: [{ source: { kind: "curated", id: "freesound-room-tone-641306" }, file: "x.ogg", distance: "far", every: [60, 150] }] };
+    plan.soundtrack.oneshots = [];
+  });
+  const run = await runScript(script, [fixtureScene], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.equal(run.json.error, `${fixtureScene}: variants[1].soundtrack.oneshots[0].source.id: freesound-room-tone-641306 is a loop, not a oneshot`);
+});
