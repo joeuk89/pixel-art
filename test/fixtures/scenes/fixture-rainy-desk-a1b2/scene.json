@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-rainy-desk-a1b2",
+  "title": "Fixture rainy desk",
+  "prompt": "a cosy desk by a rainy window at night, cat asleep",
+  "createdAt": "2026-10-24T20:00:00Z",
+  "seed": 1337,
+  "status": "resolved",
+  "palette": "cosy-night",
+  "scale": 48,
+  "styleAnchor": "window-wood-transparent-panes-01",
+  "layers": [
+    { "name": "sky", "fill": 1 },
+    { "name": "city", "placements": [
+      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 0, "y": 30, "tileX": true } ] },
+    { "name": "room", "placements": [
+      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 72, "y": 14 },
+      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 140, "y": 96, "flipX": true,
+        "animation": { "fps": 4, "order": "pingpong" } },
+      { "id": "cat-2", "element": "cat-tabby-asleep-01", "x": 20, "y": 96,
+        "animation": { "order": [0, 1, 2, 1] } } ] }
+  ],
+  "primitives": [
+    { "type": "rain", "region": { "x": 75, "y": 17, "w": 42, "h": 42 }, "colours": [6, 7] },
+    { "type": "glow", "anchor": "window", "offset": { "x": 24, "y": 24 }, "colour": 8 },
+    { "type": "twinkle", "anchor": "skyline", "colours": [8, 9] }
+  ],
+  "soundtrack": {
+    "music": { "brief": "slow piano, rain on a window, warm and sparse", "service": "stable-audio-3", "file": "music.mp3", "loopStart": 0, "loopEnd": 2, "seam": { "seamJump": 0.0044, "maxInnerJump": 0.0095 }, "gain": 0.6 },
+    "ambient": [
+      { "source": { "kind": "curated", "id": "freesound-room-tone-641306" }, "file": "room.ogg", "distance": "mid" } ],
+    "oneshots": [
+      { "source": { "kind": "curated", "id": "freesound-thunder-distant-195522" }, "file": "thunder.ogg", "distance": "far", "every": [90, 240] } ]
+  },
+  "cost": { "pixellabGenerations": 4, "meteredUsd": { "stability": 0.2 }, "attemptsAbandoned": 0, "approvedOverage": null }
+}

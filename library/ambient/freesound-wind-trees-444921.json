@@ -1,0 +1,43 @@
+{
+  "id": "freesound-wind-trees-444921",
+  "kind": "loop",
+  "distance": [
+    "mid",
+    "far"
+  ],
+  "subject": "wind",
+  "tags": [
+    "wind",
+    "trees",
+    "leaves",
+    "outdoor",
+    "weather",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 444921,
+  "sourceUrl": "https://freesound.org/people/NomadApe/sounds/444921/",
+  "sourceName": "Wind through trees (loop)",
+  "author": "NomadApe",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Wind through trees (loop)\" by NomadApe on Freesound, CC0",
+  "file": "freesound-wind-trees-444921.ogg",
+  "durationSec": 70.473,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 70.5,
+    "sourceType": "m4a",
+    "method": "whole",
+    "seamJump": 0.0001,
+    "maxInnerJump": 0.0135,
+    "target": "-20 dBFS RMS",
+    "gainDb": 13.9,
+    "rmsDbfs": -29.9,
+    "peakDbfs": -0.2,
+    "limitedBy": "peak"
+  },
+  "fetchedAt": "2026-10-24"
+}

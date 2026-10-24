@@ -1,0 +1,42 @@
+{
+  "id": "freesound-fire-crackle-813328",
+  "kind": "loop",
+  "distance": [
+    "near"
+  ],
+  "subject": "fire crackle",
+  "tags": [
+    "fire",
+    "flames",
+    "crackle",
+    "fireplace",
+    "campfire",
+    "feature"
+  ],
+  "source": "freesound",
+  "sourceId": 813328,
+  "sourceUrl": "https://freesound.org/people/NickTayloe/sounds/813328/",
+  "sourceName": "Crackling Flames (loop)",
+  "author": "NickTayloe",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Crackling Flames (loop)\" by NickTayloe on Freesound, CC0",
+  "file": "freesound-fire-crackle-813328.ogg",
+  "durationSec": 35,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 35,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0,
+    "maxInnerJump": 0.288,
+    "target": "-20 dBFS RMS",
+    "gainDb": 5.1,
+    "rmsDbfs": -29,
+    "peakDbfs": -0.2,
+    "limitedBy": "peak"
+  },
+  "fetchedAt": "2026-10-24"
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "rainy-desk-night-k7f2",
+  "title": "Rainy desk at night",
+  "prompt": "a cosy desk by a rainy window at night, lamp on, cat asleep",
+  "createdAt": "2026-10-24T20:00:00Z",
+  "seed": 1337,
+  "status": "draft",
+  "palette": "cosy-night",
+  "scale": 48,
+  "styleAnchor": "window-wood-transparent-panes-01",
+  "layers": [
+    { "name": "sky", "fill": 1 },
+    { "name": "city", "placements": [
+      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 0, "y": 30, "tileX": true,
+        "generate": { "brief": "distant city skyline at night, a few warm lit windows", "kind": "backdrop", "tags": ["skyline", "night", "city"] } } ] },
+    { "name": "room", "placements": [
+      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 64, "y": 10 },
+      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 140, "y": 90, "flipX": true,
+        "animation": { "fps": 4, "order": "cycle" },
+        "generate": { "brief": "tabby cat asleep, curled up", "kind": "prop", "realSize": { "w": 0.5, "h": 0.25 }, "tags": ["cat", "asleep"], "strip": { "service": "pixellab", "frames": 5 } } } ] }
+  ],
+  "primitives": [
+    { "type": "rain", "region": { "x": 70, "y": 16, "w": 52, "h": 60 }, "colours": [4, 5] },
+    { "type": "glow", "anchor": "lamp", "offset": { "x": 12, "y": 6 }, "colour": 6, "pool": { "y": 100, "colour": 7 } },
+    { "type": "blink", "anchor": "sign", "swaps": [[6, 2]], "rate": 0.5, "longShare": 0.3, "longFrames": [4, 9] }
+  ],
+  "soundtrack": {
+    "music": { "brief": "slow piano, rain on a window, warm and sparse", "service": "stable-audio-3", "file": "music.mp3", "loopStart": 0, "loopEnd": 110.4, "gain": 0.6 },
+    "ambient": [
+      { "source": { "kind": "curated", "id": "freesound-rain-window-242889" }, "file": "rain.ogg", "distance": "near" },
+      { "source": { "kind": "curated", "id": "freesound-room-tone-641306" }, "file": "room.ogg", "distance": "mid" } ],
+    "oneshots": [
+      { "source": { "kind": "curated", "id": "freesound-thunder-distant-195522" }, "file": "thunder.ogg", "distance": "far", "every": [90, 240] } ]
+  },
+  "cost": { "pixellabGenerations": 0, "meteredUsd": {}, "attemptsAbandoned": 0, "approvedOverage": null }
+}

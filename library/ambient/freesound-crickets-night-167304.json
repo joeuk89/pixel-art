@@ -1,0 +1,45 @@
+{
+  "id": "freesound-crickets-night-167304",
+  "kind": "loop",
+  "distance": [
+    "mid",
+    "far"
+  ],
+  "subject": "crickets",
+  "tags": [
+    "crickets",
+    "insects",
+    "night",
+    "summer",
+    "countryside",
+    "garden",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 167304,
+  "sourceUrl": "https://freesound.org/people/2887679652/sounds/167304/",
+  "sourceName": "Night_crickets_Loopable.wav",
+  "author": "2887679652",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Night_crickets_Loopable.wav\" by 2887679652 on Freesound, CC0",
+  "file": "freesound-crickets-night-167304.ogg",
+  "durationSec": 30,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 30,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.1109,
+    "maxInnerJump": 0.2865,
+    "target": "-20 dBFS RMS",
+    "gainDb": -3.3,
+    "rmsDbfs": -20,
+    "peakDbfs": -3.7,
+    "limitedBy": null
+  },
+  "fetchedAt": "2026-10-24",
+  "note": "From the research bench; stands in for the ticking clock, which is already curated."
+}

@@ -3,3 +3,13 @@
 !.env.example
 .playwright-mcp/
 node_modules/
+.agent/
+dist/
+dist.next/
+scratch/
+/viewer.js
+!/.claude/
+/.claude/*
+!/.claude/skills/
+/scenes/*/scene.json.lock
+/scenes/*/scene.json.*.tmp
