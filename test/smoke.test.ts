@@ -70,6 +70,12 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
         (window as any).draws++;
         return (put as any).apply(this, args);
       };
+      const request = Element.prototype.requestFullscreen;
+      (window as any).fullscreenRequests = 0;
+      Element.prototype.requestFullscreen = function (this: Element, ...args: any[]) {
+        (window as any).fullscreenRequests++;
+        return (request as any).apply(this, args);
+      };
     });
     const page = await context.newPage();
     const errors: string[] = [];
@@ -257,6 +263,52 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.getByRole("button", { name: "Sound" }).click();
     assert.equal(await soundOn(page), "false");
     assert.equal(await page.evaluate(() => document.fullscreenElement), null);
+    assert.deepEqual(errors, []);
+  });
+
+  const fullscreenRequests = (page: Page): Promise<number> => page.evaluate(() => (window as any).fullscreenRequests);
+  const isFullscreen = (page: Page) => page.evaluate(() => document.fullscreenElement !== null);
+
+  test("F requests fullscreen and unmutes, F again leaves fullscreen", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.keyboard.press("f");
+    assert.equal(await fullscreenRequests(page), 1);
+    assert.equal(await soundOn(page), "true");
+    await page.waitForFunction(() => document.fullscreenElement !== null);
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.fullscreenElement === null);
+    assert.equal(await fullscreenRequests(page), 1);
+    assert.deepEqual(errors, []);
+  });
+
+  test("the fullscreen button requests fullscreen and unmutes", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    await page.getByRole("button", { name: "Fullscreen" }).click();
+    assert.equal(await fullscreenRequests(page), 1);
+    assert.equal(await soundOn(page), "true");
+    assert.deepEqual(errors, []);
+  });
+
+  test("Esc does nothing while fullscreen and returns to the Gallery with pushState otherwise", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.evaluate(() => { (window as any).sameDocument = true; });
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.fullscreenElement !== null);
+    await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    await pause(200);
+    assert.equal(page.url(), `${site}scenes/${id}/`);
+    assert.equal(await page.locator("canvas").count(), 1);
+    await page.evaluate(() => document.exitFullscreen());
+    await page.waitForFunction(() => document.fullscreenElement === null);
+    assert.equal(await isFullscreen(page), false);
+    await page.keyboard.press("Escape");
+    await page.getByRole("link", { name: title }).waitFor();
+    assert.equal(page.url(), site);
+    assert.equal(await page.evaluate(() => (window as any).sameDocument), true);
     assert.deepEqual(errors, []);
   });
 

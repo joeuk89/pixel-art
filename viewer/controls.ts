@@ -19,7 +19,13 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
   return el;
 }
 
-export function mountControls(host: HTMLElement, { plan, root, mute, signal }: ControlsOptions): void {
+function toggleFullscreen(mute: MuteState): void {
+  mute.set(false);
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else document.documentElement.requestFullscreen().catch(() => {});
+}
+
+export function mountControls(host: HTMLElement, { plan, root, mute, navigate, signal }: ControlsOptions): void {
   const overlay = document.createElement("nav");
   overlay.className = "overlay";
   overlay.setAttribute("aria-label", "Scene controls");
@@ -31,7 +37,8 @@ export function mountControls(host: HTMLElement, { plan, root, mute, signal }: C
   title.className = "title";
   title.textContent = plan.title;
   const sound = button("Sound", () => mute.toggle());
-  overlay.append(back, title, sound, button("Copy link", () => {}), button("Info", () => {}));
+  const fullscreen = button("Fullscreen", () => toggleFullscreen(mute));
+  overlay.append(back, title, sound, fullscreen, button("Copy link", () => {}), button("Info", () => {}));
 
   const hint = document.createElement("p");
   hint.className = "hint";
@@ -61,6 +68,13 @@ export function mountControls(host: HTMLElement, { plan, root, mute, signal }: C
       switch (e.key.toLowerCase()) {
         case "m":
           mute.toggle();
+          break;
+        case "f":
+          toggleFullscreen(mute);
+          break;
+        case "escape":
+          if (document.fullscreenElement) return;
+          navigate(root);
           break;
         default:
           return;
