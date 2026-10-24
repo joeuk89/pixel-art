@@ -2,8 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import sharp from "sharp";
 import { POSTER_FILE, POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema } from "../schema/index.ts";
-import { createCompositor } from "../viewer/compositor.ts";
-import { loadPalette, loadElementPixels } from "./lib/element-pixels.ts";
+import { posterFrame } from "./lib/poster.ts";
 
 const OG_SCALE = 4;
 const root = process.cwd();
@@ -12,7 +11,7 @@ async function main(arg: string | undefined) {
   if (!arg) throw new Error("usage: poster <scene.json>");
   const planPath = resolve(root, arg);
   const plan = scenePlanSchema.parse(JSON.parse(readFileSync(planPath, "utf8")));
-  const frame = createCompositor({ plan, elements: await loadElementPixels(root, plan), palette: loadPalette(root, plan.palette) }).render(0);
+  const frame = await posterFrame(root, plan);
 
   const raw = { raw: { width: SCENE_WIDTH, height: SCENE_HEIGHT, channels: 4 as const } };
   const dir = dirname(planPath);
