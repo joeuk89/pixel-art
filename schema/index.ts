@@ -36,10 +36,22 @@ const placementAnimation = z.strictObject({
   enabled: z.boolean().optional(),
 });
 
-const strip = z.strictObject({
-  service: stripServiceSchema.default("pixellab"),
-  frames: int.min(2).max(16).default(4),
-});
+export type StripService = z.infer<typeof stripServiceSchema>;
+export const DEFAULT_STRIP_FRAMES: Record<StripService, number> = { pixellab: 5, "retro-diffusion": 8 };
+// PixelLab animate v3 takes an even frame_count from 4 to 16 and returns frame_count + 1 images.
+export const isPixelLabFrames = (frames: number) => Number.isInteger(frames) && frames % 2 === 1 && frames >= 5 && frames <= 15;
+
+const strip = z
+  .strictObject({
+    service: stripServiceSchema.default("pixellab"),
+    frames: int.min(2).max(16).optional(),
+  })
+  .superRefine((s, ctx) => {
+    if (s.service === "pixellab" && s.frames !== undefined && !isPixelLabFrames(s.frames)) {
+      ctx.addIssue({ code: "custom", path: ["frames"], message: `frames for pixellab must be an odd number from 5 to 15, got ${s.frames}` });
+    }
+  })
+  .transform((s) => ({ service: s.service, frames: s.frames ?? DEFAULT_STRIP_FRAMES[s.service] }));
 
 const generate = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("prop"), brief: z.string().min(1), realSize: size, tags, strip: strip.optional() }),

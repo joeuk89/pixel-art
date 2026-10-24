@@ -18,7 +18,7 @@
       { "id": "window", "element": "window-wood-transparent-panes-01", "x": 64, "y": 10 },
       { "id": "cat", "element": "cat-tabby-asleep-01", "x": 140, "y": 90, "flipX": true,
         "animation": { "fps": 4, "order": "cycle" },
-        "generate": { "brief": "tabby cat asleep, curled up", "kind": "prop", "realSize": { "w": 0.5, "h": 0.25 }, "tags": ["cat", "asleep"], "strip": { "service": "pixellab", "frames": 4 } } } ] }
+        "generate": { "brief": "tabby cat asleep, curled up", "kind": "prop", "realSize": { "w": 0.5, "h": 0.25 }, "tags": ["cat", "asleep"], "strip": { "service": "pixellab", "frames": 5 } } } ] }
   ],
   "primitives": [
     { "type": "rain", "region": { "x": 70, "y": 16, "w": 52, "h": 60 }, "colours": [4, 5] },

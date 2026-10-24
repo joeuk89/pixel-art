@@ -84,10 +84,19 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   assert.equal(plan.cost.pixellabGenerations, 5);
   assert.deepEqual(cat.animation, { fps: 4, order: "cycle" });
   assert.equal("animationRemoved" in accepted.json, false);
-  assert.deepEqual(accepted.json.stripRequested, { service: "pixellab", frames: 4 });
+  assert.deepEqual(accepted.json.stripRequested, { service: "pixellab", frames: 5 });
 
   const check = validate(root);
   assert.equal(check.code, 0, check.stderr);
+});
+
+test("--accept reports a planned strip with no frames at the PixelLab default of 5", async () => {
+  const root = tree((plan) => { placementIn(plan, "cat").generate.strip = { service: "pixellab" }; });
+  const first = await run(root, "cat");
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  const accepted = await run(root, "cat", "--accept", first.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.deepEqual(accepted.json.stripRequested, { service: "pixellab", frames: 5 });
 });
 
 test("--accept bumps the id suffix when the proposed id is already in the library", async () => {

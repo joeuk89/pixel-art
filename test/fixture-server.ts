@@ -5,6 +5,7 @@ import { fal } from "./fixtures/services/fal.ts";
 import { freesound } from "./fixtures/services/freesound.ts";
 import { gemini } from "./fixtures/services/gemini.ts";
 import { pixellab } from "./fixtures/services/pixellab.ts";
+import { retroDiffusion } from "./fixtures/services/retro-diffusion.ts";
 import { stability } from "./fixtures/services/stability.ts";
 
 export type FixtureRequest = {
@@ -21,10 +22,10 @@ export type FixtureReply = { status?: number; json?: unknown; body?: Buffer; typ
 export type ServiceFixture = {
   name: string;
   env: (base: string) => Record<string, string>;
-  handle: (req: FixtureRequest, base: string) => FixtureReply | undefined;
+  handle: (req: FixtureRequest, base: string) => FixtureReply | undefined | Promise<FixtureReply | undefined>;
 };
 
-export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal, pixellab];
+export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal, pixellab, retroDiffusion];
 
 export type FixtureServer = {
   url: string;
@@ -46,7 +47,7 @@ export async function startFixtureServer(): Promise<FixtureServer> {
       headers: req.headers, body: Buffer.concat(chunks),
     };
     requests.push(request);
-    const reply = fixture?.handle(request, `${base}/${name}`) ?? { status: 404, json: { error: `no fixture for ${url.pathname}` } };
+    const reply = (await fixture?.handle(request, `${base}/${name}`)) ?? { status: 404, json: { error: `no fixture for ${url.pathname}` } };
     const body = reply.json !== undefined ? Buffer.from(JSON.stringify(reply.json)) : (reply.body ?? Buffer.alloc(0));
     res.writeHead(reply.status ?? 200, {
       "content-type": reply.json !== undefined ? "application/json" : (reply.type ?? "application/octet-stream"),

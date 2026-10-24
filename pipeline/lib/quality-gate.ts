@@ -23,7 +23,7 @@ export const TRIM_MIN = 0.7;
 export const TRIM_MAX = 1.5;
 export const MAX_ISLANDS = 2;
 
-function paletteSet(palette: string[]): Set<number> {
+export function paletteSet(palette: string[]): Set<number> {
   return new Set(palette.map((hex) => parseInt(hex.slice(1), 16)));
 }
 

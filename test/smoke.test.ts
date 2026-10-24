@@ -248,6 +248,21 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  test("the cat's Frame strip animates at its Placement on the canvas", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    const canvas = page.locator("canvas");
+    await canvas.waitFor();
+    const cat = () => canvas.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(140, 96, 24, 16).data).join(","));
+    const first = await cat();
+    let changed = false;
+    for (let k = 0; k < 10 && !changed; k++) {
+      await pause(100);
+      changed = (await cat()) !== first;
+    }
+    assert.ok(changed, "the cat never moved");
+    assert.deepEqual(errors, []);
+  });
+
   test("the overlay appears on pointer move and hides itself after a few seconds", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();
