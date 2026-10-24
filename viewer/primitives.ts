@@ -227,9 +227,26 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
         poolRy,
       )
     : undefined;
-  const ringAlphas = Float64Array.from(new Set([...disc.alpha, ...(poolRings?.alpha ?? [])]));
   const n = c.r.length;
   const lut = new Int16Array(n * n * (GLOW_LEVELS + 1)).fill(-1);
+  const slotOf = new Map<number, number>();
+  const opSlot: number[] = [], opAlpha: number[] = [], opLight: number[] = [];
+  const addOps = (r: Rings, x0: number, y0: number, light: number) => {
+    for (let k = 0; k < r.dx.length; k++) {
+      const x = x0 + r.dx[k], y = y0 + r.dy[k];
+      if (x < 0 || x >= SCENE_WIDTH || y < 0 || y >= SCENE_HEIGHT) continue;
+      const pixel = y * SCENE_WIDTH + x;
+      if (!slotOf.has(pixel)) slotOf.set(pixel, slotOf.size);
+      opSlot.push(slotOf.get(pixel)!);
+      opAlpha.push(r.alpha[k]);
+      opLight.push(light);
+    }
+  };
+  addOps(disc, cx, cy, colour);
+  if (pool && poolRings) addOps(poolRings, cx, pool.y, pool.colour);
+  const slotPixel = Int32Array.from(slotOf.keys());
+  const slots = slotPixel.length;
+  const base = new Int16Array(slots).fill(-1);
 
   const changesAt = (j: number) => random(seed, salt, j, 0, 0) < FLICKER_CHANCE;
   const targetAt = (j: number) => {
@@ -248,38 +265,62 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
     return Math.round(alpha * GLOW_LEVELS);
   };
 
-  const add = (out: Uint8ClampedArray, r: Rings, x0: number, y0: number, light: number, strength: number) => {
-    for (let k = 0; k < r.dx.length; k++) {
-      const x = x0 + r.dx[k], y = y0 + r.dy[k];
-      if (x < 0 || x >= SCENE_WIDTH || y < 0 || y >= SCENE_HEIGHT) continue;
-      const q = Math.round(r.alpha[k] * strength * GLOW_LEVELS);
+  // Flicker levels that snap to the same Palette colours share one state, so tick skips them.
+  const groups: Int16Array[] = [];
+  let groupCount = 0;
+  let epoch = 0;
+  const groupOfLevel = new Int16Array(GLOW_LEVELS + 1).fill(-1);
+  const lit = (into: Int16Array, strength: number) => {
+    into.fill(-1);
+    for (let k = 0; k < opSlot.length; k++) {
+      const q = Math.round(opAlpha[k] * strength * GLOW_LEVELS);
       if (q === 0) continue;
-      const pixel = y * SCENE_WIDTH + x;
-      const base = indexAt(c, out, pixel * 4);
-      const key = (base * n + light) * (GLOW_LEVELS + 1) + q;
+      const slot = opSlot[k];
+      const under = into[slot] >= 0 ? into[slot] : base[slot];
+      const key = (under * n + opLight[k]) * (GLOW_LEVELS + 1) + q;
       if (lut[key] < 0) {
         const a = q / GLOW_LEVELS;
-        lut[key] = nearest(c, Math.min(255, c.r[base] + c.r[light] * a), Math.min(255, c.g[base] + c.g[light] * a), Math.min(255, c.b[base] + c.b[light] * a));
+        lut[key] = nearest(c, Math.min(255, c.r[under] + c.r[opLight[k]] * a), Math.min(255, c.g[under] + c.g[opLight[k]] * a), Math.min(255, c.b[under] + c.b[opLight[k]] * a));
       }
-      paint(out, c, pixel, lut[key]);
+      into[slot] = lut[key];
     }
+  };
+  const groupAt = (timeMs: number) => {
+    const L = level(step(timeMs, PROP_FPS));
+    if (groupOfLevel[L] >= 0) return groupOfLevel[L];
+    if (groups.length === groupCount) groups.push(new Int16Array(slots));
+    const fresh = groups[groupCount];
+    lit(fresh, L / GLOW_LEVELS);
+    let g = 0;
+    while (g < groupCount && !equal(groups[g], fresh)) g++;
+    if (g === groupCount) groupCount++;
+    return (groupOfLevel[L] = g);
   };
 
   return {
     after: layer,
     fps: PROP_FPS,
-    state(timeMs) {
-      const strength = level(step(timeMs, PROP_FPS)) / GLOW_LEVELS;
-      let signature = 0;
-      for (let k = 0; k < ringAlphas.length; k++) signature = signature * (GLOW_LEVELS + 1) + Math.round(ringAlphas[k] * strength * GLOW_LEVELS);
-      return signature;
-    },
+    state: (timeMs) => epoch * (GLOW_LEVELS + 1) + groupAt(timeMs),
     draw(out, timeMs) {
-      const strength = level(step(timeMs, PROP_FPS)) / GLOW_LEVELS;
-      add(out, disc, cx, cy, colour, strength);
-      if (pool && poolRings) add(out, poolRings, cx, pool.y, pool.colour, strength);
+      let moved = false;
+      for (let k = 0; k < slots; k++) {
+        const under = indexAt(c, out, slotPixel[k] * 4);
+        if (under !== base[k]) (base[k] = under), (moved = true);
+      }
+      if (moved) {
+        epoch++;
+        groupCount = 0;
+        groupOfLevel.fill(-1);
+      }
+      const colours = groups[groupAt(timeMs)];
+      for (let k = 0; k < slots; k++) if (colours[k] >= 0) paint(out, c, slotPixel[k], colours[k]);
     },
   };
+}
+
+function equal(a: Int16Array, b: Int16Array): boolean {
+  for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return false;
+  return true;
 }
 
 const STEAM_LIFE = 23;
@@ -341,17 +382,31 @@ function twinkle(p: Of<"twinkle">, ctx: Context): PrimitiveDraw {
   const { count } = p;
   const phase = new Uint32Array(count);
   for (let k = 0; k < count; k++) phase[k] = Math.floor(random(seed, salt, k, 0, 0) * TWINKLE_HOLD_STEPS);
+  const picks = new Int32Array(count);
+  const pickAll = (timeMs: number) => {
+    const s = step(timeMs, PROP_FPS);
+    for (let k = 0; k < count; k++) picks[k] = Math.floor(random(seed, salt, k, Math.floor((s + phase[k]) / TWINKLE_HOLD_STEPS), 1) * positions.length);
+  };
   return {
     after: layer,
     fps: PROP_FPS,
+    state(timeMs) {
+      if (positions.length === 0) return 0;
+      pickAll(timeMs);
+      picks.sort();
+      // Hashes the set of dimmed lights, so slots that roll onto the same lights cost no redraw.
+      let h = 0x2545f491, l = 0x6a09e667;
+      for (let k = 0; k < count; k++) {
+        if (k > 0 && picks[k] === picks[k - 1]) continue;
+        h = mix(h ^ picks[k]);
+        l = mix(l ^ Math.imul(picks[k], 0x9e3779b1));
+      }
+      return (h & 0x1fffff) * 4294967296 + l;
+    },
     draw(out, timeMs) {
       if (positions.length === 0) return;
-      const s = step(timeMs, PROP_FPS);
-      for (let k = 0; k < count; k++) {
-        const gen = Math.floor((s + phase[k]) / TWINKLE_HOLD_STEPS);
-        const pick = Math.floor(random(seed, salt, k, gen, 1) * positions.length);
-        if (isColour(out, c, positions[pick], original[pick])) paint(out, c, positions[pick], dark);
-      }
+      pickAll(timeMs);
+      for (let k = 0; k < count; k++) if (isColour(out, c, positions[picks[k]], original[picks[k]])) paint(out, c, positions[picks[k]], dark);
     },
   };
 }
@@ -383,7 +438,7 @@ function blink(p: Of<"blink">, ctx: Context): PrimitiveDraw {
   return {
     after: layer,
     fps: PROP_FPS,
-    state: (timeMs) => dropped(step(timeMs, PROP_FPS)),
+    state: (timeMs) => (positions.length === 0 ? 0 : dropped(step(timeMs, PROP_FPS))),
     draw(out, timeMs) {
       if (!dropped(step(timeMs, PROP_FPS))) return;
       for (let k = 0; k < positions.length; k++) if (isColour(out, c, positions[k], from[k])) paint(out, c, positions[k], into[k]);

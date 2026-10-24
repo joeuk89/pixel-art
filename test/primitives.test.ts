@@ -109,19 +109,27 @@ for (const type of ["rain", "snow"]) {
   });
 }
 
-for (const type of ["steam", "twinkle"]) {
-  test(`${type} makes a redraw due every 1/10 s and not in between`, () => {
-    const c = stillScene(only(type));
-    c.render(0);
-    assert.equal(c.nextTick(0), 100);
-    assert.equal(c.tick(99), false);
-    assert.equal(c.tick(100), true);
-  });
-}
+test("steam makes a redraw due every 1/10 s and not in between", () => {
+  const c = stillScene(only("steam"));
+  c.render(0);
+  assert.equal(c.nextTick(0), 100);
+  assert.equal(c.tick(99), false);
+  assert.equal(c.tick(100), true);
+});
 
-for (const [type, exact] of [["glow", false], ["blink", true]] as const) {
-  test(`${type} makes a redraw due at a 1/10 s step whenever its pixels change${exact ? ", and only then" : ""}, and stays idle while they hold`, () => {
-    const c = stillScene(only(type));
+const [twinkleOf, blinkOf] = [only("twinkle")[0], only("blink")[0]];
+const exactCases: [string, Primitive, boolean][] = [
+  ["glow", only("glow")[0], true],
+  ["blink", blinkOf, true],
+  ["twinkle", twinkleOf, true],
+  ["twinkle with one light at a time", { ...twinkleOf, count: 1 } as Primitive, true],
+  ["twinkle whose anchor has none of its light colours", { ...twinkleOf, colours: [3] } as Primitive, false],
+  ["blink whose anchor has none of its from colours", { ...blinkOf, swaps: [[4, 5]] } as Primitive, false],
+];
+
+for (const [name, primitive, moves] of exactCases) {
+  test(`${name} makes a redraw due at a 1/10 s step exactly when its pixels change`, () => {
+    const c = stillScene([primitive]);
     let due = 0;
     let idle = 0;
     c.render(0);
@@ -130,11 +138,12 @@ for (const [type, exact] of [["glow", false], ["blink", true]] as const) {
       const before = Buffer.from(c.render((k - 1) * 100));
       const tick = c.tick(k * 100);
       const changed = !before.equals(Buffer.from(c.render(k * 100)));
-      if (changed || exact) assert.equal(tick, changed, `step ${k}: tick ${tick}, pixels changed ${changed}`);
+      assert.equal(tick, changed, `step ${k}: tick ${tick}, pixels changed ${changed}`);
       if (tick) due++;
       else idle++;
     }
-    assert.ok(due > 0 && idle > 0, `due ${due}, idle ${idle}`);
+    if (moves) assert.ok(due > 0 && idle > 0, `due ${due}, idle ${idle}`);
+    else assert.equal(due, 0);
   });
 }
 
