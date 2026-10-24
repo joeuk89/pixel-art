@@ -1,6 +1,8 @@
 export async function main(run: () => object | Promise<object>): Promise<void> {
   try {
-    process.stdout.write(JSON.stringify({ ok: true, ...(await run()) }, null, 2) + "\n");
+    const result = await run();
+    process.stdout.write(JSON.stringify({ ok: true, ...result }, null, 2) + "\n");
+    if ("ok" in result && result.ok === false) process.exitCode = 1;
   } catch (e) {
     const error = (e as Error).message;
     process.stderr.write(error + "\n");

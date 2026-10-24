@@ -417,3 +417,113 @@ test("a Placement with animation overrides on the accepted Element passes valida
   }
   assert.equal(seen.size, 5, "a 5-frame pingpong strip shows all five frames over one cycle");
 });
+
+// The fixture Scene plans no generated Element, so an approved overage gives its strips a generation budget.
+function placeIn(root: string, ids: string[]): void {
+  editJson(root, fixtureScene, (plan) => {
+    plan.primitives = [];
+    plan.cost.approvedOverage = { reason: "strips for library Elements", pixellabGenerations: 20 };
+    const room = plan.layers.find((l: any) => l.name === "room") ?? plan.layers[plan.layers.length - 1];
+    room.placements = room.placements.filter((p: any) => p.element !== "cat-tabby-asleep-01");
+    room.placements.push(...ids.map((id, k) => ({ id: `prop-${k}`, element: id, x: 10 + k * 30, y: 90, animation: { fps: 4 } })));
+  });
+}
+
+function copyProp(root: string, id: string): void {
+  const record = readJson(root, `${ELEMENTS}/${ELEMENT}.json`);
+  writeJson(root, `${ELEMENTS}/${id}.json`, { ...record, id });
+  copyFileSync(join(root, `${ELEMENTS}/${ELEMENT}.png`), join(root, `${ELEMENTS}/${id}.png`));
+}
+
+const runFor = (root: string, id: string, ...args: string[]) => runScript(script, [id, ...args], { cwd: root, env: server.env });
+const budgetOf = async (root: string) => (await runScript(join(repo, "pipeline/budget.ts"), [fixtureScene], { cwd: root, env: server.env })).json;
+
+test("with --scene, a third Retro Diffusion Attempt on one prop is refused before the service is called", async () => {
+  const root = tree();
+  placeIn(root, [ELEMENT]);
+  for (let k = 0; k < 2; k++) { const r = await run(root, "--service", "retro-diffusion", "--scene", fixtureScene); assert.equal(r.code, 0, r.stdout + r.stderr); }
+  const third = await run(root, "--service", "retro-diffusion", "--scene", fixtureScene);
+  assert.equal(third.code, 1);
+  assert.match(third.json.error, /Retro Diffusion: cat-tabby-twitching-01 has had 2 of 2 charged Attempts/);
+  assert.equal(retroDiffusionState.submits.length, 2);
+  assert.equal((await run(root, "--scene", fixtureScene)).code, 0, "PixelLab is still allowed");
+});
+
+test("with --scene, a Retro Diffusion strip on a fifth prop is refused", async () => {
+  const root = tree();
+  const ids = ["cat-tabby-a-01", "cat-tabby-b-01", "cat-tabby-c-01", "cat-tabby-d-01", "cat-tabby-e-01"];
+  ids.forEach((id) => copyProp(root, id));
+  placeIn(root, ids);
+  editJson(root, fixtureScene, (plan) => { plan.cost.approvedOverage.meteredUsd = 1; });
+  for (const id of ids.slice(0, 4)) assert.equal((await runFor(root, id, "--service", "retro-diffusion", "--scene", fixtureScene)).code, 0);
+  const fifth = await runFor(root, ids[4], "--service", "retro-diffusion", "--scene", fixtureScene);
+  assert.equal(fifth.code, 1);
+  assert.match(fifth.json.error, /Retro Diffusion: 4 of 4 props/);
+});
+
+test("with --scene, any strip is refused once the Scene's metered budget is spent", async () => {
+  const root = tree();
+  placeIn(root, [ELEMENT]);
+  editJson(root, fixtureScene, (plan) => { plan.cost.meteredUsd = { "stable-audio-3": 0.9, "retro-diffusion": 0.1 }; });
+  const result = await run(root, "--service", "retro-diffusion", "--scene", fixtureScene);
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /Scene budget reached: metered: \$1 used of \$1/);
+});
+
+test("accepting with --scene charges the strip Attempts once, so the budget shows nothing pending", async () => {
+  const root = tree();
+  placeIn(root, [ELEMENT]);
+  await run(root, "--service", "retro-diffusion", "--scene", fixtureScene);
+  assert.equal((await budgetOf(root)).meteredUsd.used, 0.45);
+  const second = await run(root, "--scene", fixtureScene);
+  assert.equal((await run(root, "--accept", second.json.scratch.strip, "--scene", fixtureScene)).code, 0);
+  const report = await budgetOf(root);
+  assert.equal(report.pixellabGenerations.pending, 0);
+  assert.equal(report.pixellabGenerations.charged, 5);
+  assert.equal(report.meteredUsd.used, 0.45);
+});
+
+test("--abandon --scene falls back to the still: it charges the strip Attempts, drops the animation overrides and logs it", async () => {
+  const root = tree();
+  placeIn(root, [ELEMENT]);
+  await run(root, "--scene", fixtureScene);
+  await run(root, "--service", "retro-diffusion", "--scene", fixtureScene);
+  const result = await run(root, "--abandon", "--scene", fixtureScene);
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.outcome, "still");
+  assert.equal(result.json.attempts, 2);
+
+  const plan = readJson(root, fixtureScene);
+  const prop = plan.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === "prop-0");
+  assert.equal(prop.element, ELEMENT);
+  assert.equal(prop.animation, undefined);
+  assert.equal(plan.cost.pixellabGenerations, 4 + 1);
+  assert.deepEqual(plan.cost.meteredUsd, { stability: 0.2, "retro-diffusion": 0.25 });
+  assert.equal(plan.cost.attemptsAbandoned, 2);
+  assert.equal(readJson(root, `${ELEMENTS}/${ELEMENT}.json`).animation, undefined);
+  assert.deepEqual(readJson(root, "scratch/attempts/fixture-rainy-desk-a1b2/abandoned.json"),
+    [{ placement: "prop-0", element: ELEMENT, attempts: 2, outcome: "still" }]);
+  assert.equal((await budgetOf(root)).pixellabGenerations.pending, 0);
+  assert.equal(validate(root).code, 0);
+});
+
+test("strip Attempts left from an earlier Scene on reused props count toward neither this Scene's Retro Diffusion caps nor its spend", async () => {
+  const root = tree();
+  const reused = ["cat-tabby-a-01", "cat-tabby-b-01", "cat-tabby-c-01", "cat-tabby-d-01"];
+  for (const id of reused) {
+    copyProp(root, id);
+    editJson(root, `${ELEMENTS}/${id}.json`, (record) => { record.firstScene = "earlier-scene-0000"; });
+    assert.equal((await runFor(root, id, "--service", "retro-diffusion")).code, 0);
+  }
+  placeIn(root, [...reused, ELEMENT]);
+  let report = await budgetOf(root);
+  assert.deepEqual(report.retroDiffusion.props, []);
+  assert.deepEqual(report.capsHit, []);
+  assert.equal(report.pixellabGenerations.pending, 0);
+  assert.equal(report.meteredUsd.used, 0.2);
+
+  const mine = await run(root, "--service", "retro-diffusion", "--scene", fixtureScene);
+  assert.equal(mine.code, 0, mine.stdout + mine.stderr);
+  report = await budgetOf(root);
+  assert.deepEqual(report.retroDiffusion.props, [{ element: ELEMENT, attempts: 1 }]);
+});

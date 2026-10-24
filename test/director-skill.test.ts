@@ -144,3 +144,44 @@ test("an owner edit to scale, a realSize or an Element re-derives canvases and r
   assert.match(edits, /reused Element's size[\s\S]*canvas/);
   assert.match(edits, /pipeline\/validate\.ts[\s\S]*show the brief again/);
 });
+
+test("after the Plan gate the skill runs Generate, Hard checks, Preview and Rejection, in that order", () => {
+  const titles = steps(skill()).map((s) => s.title);
+  const gate = titles.indexOf("Plan gate");
+  assert.deepEqual(titles.slice(gate + 1), ["Generate", "Hard checks", "Preview", "Rejection"]);
+  assert.doesNotMatch(step("Plan gate").text, /generation is not part of this skill/);
+});
+
+test("Generate runs unattended in the agreed order and never asks the owner", () => {
+  const text = step("Generate").text;
+  assert.match(text, /never ask the owner/i);
+  const order = ["pipeline/music.ts", "--style-anchor", "up to 8", "generate-strip"].map((s) => text.indexOf(s));
+  for (const at of order) assert.ok(at >= 0);
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "music and the Style anchor, then batches of up to 8, then strips");
+  for (const needle of ["pipeline/budget.ts", "--abandon", "--substitute", "--scene", "rubric.md", "8x"]) assert.ok(text.includes(needle), `Generate names ${needle}`);
+});
+
+test("Hard checks render the Poster and stage before check-scene, and a failure stops with the Scene draft", () => {
+  const text = step("Hard checks").text;
+  const order = ["pipeline/poster.ts", "pipeline/stage.ts", "pipeline/check-scene.ts"].map((s) => text.indexOf(s));
+  for (const at of order) assert.ok(at >= 0);
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
+  assert.match(text, /draft/);
+  assert.match(text, /stop/i);
+});
+
+test("Preview starts the dev server, runs preview and never commits", () => {
+  const text = step("Preview").text;
+  assert.match(text, /npm run dev/);
+  assert.match(text, /pipeline\/preview\.ts/);
+  for (const item of ["preview URL", "staged files", "cost block", "ledger", "commit message"]) assert.ok(text.includes(item), `Preview prints ${item}`);
+  assert.match(text, /never commit/i);
+});
+
+test("Rejection reopens only the changed Placements under the same Scene id", () => {
+  const text = step("Rejection").text;
+  assert.match(text, /pipeline\/reopen\.ts/);
+  assert.match(text, /same Scene id/);
+  assert.match(text, /only/);
+  assert.match(text, /step 7[\s\S]*step 8[\s\S]*step 9/);
+});

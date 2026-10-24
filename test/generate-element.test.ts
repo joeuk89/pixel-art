@@ -387,3 +387,142 @@ test("--attempt n refuses an Attempt number already in scratch before calling Pi
   assert.match(again.json.error, /Attempt 3 of rainy-desk-night-k7f2\/cat is already in scratch/);
   assert.equal(pixellabState.created, 1);
 });
+
+const withLamp = (plan: any) => {
+  plan.styleAnchor = null;
+  placementIn(plan, "window").x = 64;
+  plan.layers[2].placements.push({ id: "lamp", element: "lamp-brass-desk-01", x: 20, y: 60,
+    generate: { brief: "brass desk lamp", kind: "prop", realSize: { w: 1, h: 1 }, tags: ["lamp"] } });
+};
+
+test("--accept --style-anchor makes the accepted prop the plan's Style anchor", async () => {
+  const root = tree(withLamp);
+  const first = await run(root, "lamp");
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  const accepted = await run(root, "lamp", "--accept", first.json.scratch.png, "--style-anchor");
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(accepted.json.styleAnchor, "lamp-brass-desk-01");
+  assert.equal(readJson(root, PLAN).styleAnchor, "lamp-brass-desk-01");
+
+  server.requests.length = 0;
+  const skyline = await run(root, "skyline");
+  assert.deepEqual(skyline.json.styleImage, { sent: true, anchor: "lamp-brass-desk-01" });
+  assert.equal(validate(root).code, 0);
+});
+
+test("--style-anchor refuses a backdrop and a prop under 48 px on its longer side", async () => {
+  const root = tree(withLamp);
+  const skyline = await run(root, "skyline");
+  const backdrop = await run(root, "skyline", "--accept", skyline.json.scratch.png, "--style-anchor");
+  assert.equal(backdrop.code, 1);
+  assert.match(backdrop.json.error, /Style anchor must be a prop, not a backdrop/);
+  const cat = await run(root, "cat");
+  const small = await run(root, "cat", "--accept", cat.json.scratch.png, "--style-anchor");
+  assert.equal(small.code, 1);
+  assert.match(small.json.error, /Style anchor must be at least 48 px on its longer side; cat is 24x16/);
+  const plan = readJson(root, PLAN);
+  assert.equal(plan.styleAnchor, null);
+  assert.ok(placementIn(plan, "cat").generate);
+});
+
+test("regenerating an accepted Placement charges only its new Attempts", async () => {
+  const root = tree((plan) => { placementIn(plan, "cat").element = "cat-tabby-curled-01"; });
+  await run(root, "cat");
+  const second = await run(root, "cat");
+  await run(root, "cat", "--accept", second.json.scratch.png);
+  const plan = readJson(root, PLAN);
+  const generate = readJson(root, "library/elements/cat-tabby-curled-01.json");
+  placementIn(plan, "cat").generate = { brief: "tabby cat asleep, tail over nose", kind: "prop", realSize: generate.realSize, tags: generate.tags };
+  writeJson(root, PLAN, plan);
+
+  const again = await run(root, "cat");
+  assert.equal(again.json.attempt, 3);
+  const accepted = await run(root, "cat", "--accept", again.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(accepted.json.element, "cat-tabby-curled-02");
+  assert.equal(accepted.json.generationsAdded, 5);
+  assert.equal(readJson(root, PLAN).cost.pixellabGenerations, 15);
+});
+
+async function failedAttempts(root: string, placement: string, count: number) {
+  pixellabState.images.set("off palette", handMade(24, 16, [{ ...CAT_FULL, colour: "#ff00ff" }]));
+  for (let k = 0; k < count; k++) {
+    const r = await run(root, placement, "--brief", "off palette");
+    assert.equal(r.json.gate.ok, false);
+  }
+}
+
+const abandonLog = (root: string) => readJson(root, "scratch/attempts/rainy-desk-night-k7f2/abandoned.json");
+
+test("--abandon with no substitute drops the Placement and the Primitives anchored to it, and charges its Attempts", async () => {
+  const root = tree((plan) => {
+    plan.primitives = [{ type: "twinkle", anchor: "cat", colours: [6] }, { type: "rain", region: { x: 0, y: 0, w: 10, h: 10 }, colours: [4] }];
+  });
+  await failedAttempts(root, "cat", 2);
+  const result = await run(root, "cat", "--abandon");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.outcome, "dropped");
+  assert.equal(result.json.element, "cat-tabby-asleep-01");
+  assert.deepEqual(result.json.droppedPrimitives, ["twinkle anchored to cat"]);
+
+  const plan = readJson(root, PLAN);
+  assert.equal(placementIn(plan, "cat"), undefined);
+  assert.deepEqual(plan.primitives.map((p: any) => p.type), ["rain"]);
+  assert.equal(plan.cost.pixellabGenerations, 10);
+  assert.equal(plan.cost.attemptsAbandoned, 2);
+  assert.deepEqual(abandonLog(root), [{ placement: "cat", element: "cat-tabby-asleep-01", attempts: 2, outcome: "dropped", droppedPrimitives: ["twinkle anchored to cat"] }]);
+  assert.equal(validate(root).code, 0);
+});
+
+test("--abandon --substitute swaps the Placement to a matching library Element", async () => {
+  const root = tree((plan) => { placementIn(plan, "cat").element = "cat-tabby-curled-01"; });
+  await failedAttempts(root, "cat", 4);
+  const result = await run(root, "cat", "--abandon", "--substitute", "cat-tabby-asleep-01");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.outcome, "substituted");
+  assert.equal(result.json.substitute, "cat-tabby-asleep-01");
+  const cat = placementIn(readJson(root, PLAN), "cat");
+  assert.equal(cat.element, "cat-tabby-asleep-01");
+  assert.equal(cat.generate, undefined);
+  assert.deepEqual(cat.animation, { fps: 4, order: "cycle" });
+  assert.equal(readJson(root, PLAN).cost.attemptsAbandoned, 4);
+  assert.deepEqual(abandonLog(root), [{ placement: "cat", element: "cat-tabby-curled-01", attempts: 4, outcome: "substituted", substitute: "cat-tabby-asleep-01" }]);
+  assert.equal(validate(root).code, 0);
+});
+
+test("--abandon --substitute refuses an Element of another size and changes nothing", async () => {
+  const root = tree();
+  await failedAttempts(root, "cat", 1);
+  const before = readFileSync(join(root, PLAN), "utf8");
+  const result = await run(root, "cat", "--abandon", "--substitute", "window-wood-transparent-panes-01");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /window-wood-transparent-panes-01 is 48x48, the derived canvas for cat is 24x16/);
+  assert.equal(readFileSync(join(root, PLAN), "utf8"), before);
+  assert.equal(existsSync(join(root, "scratch/attempts/rainy-desk-night-k7f2/abandoned.json")), false);
+});
+
+test("eight parallel abandons into one Scene all land in the abandoned log", async () => {
+  const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
+  const root = tree((plan) => {
+    plan.layers[2].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
+      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
+  });
+  const abandoned = await Promise.all(ids.map((id) => run(root, id, "--abandon")));
+  for (const a of abandoned) assert.equal(a.code, 0, a.stdout + a.stderr);
+  assert.deepEqual(abandonLog(root).map((entry: any) => entry.placement).sort(), ids);
+});
+
+test("eight parallel accepts into one plan all land in it", async () => {
+  const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
+  const root = tree((plan) => {
+    plan.layers[2].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
+      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
+    plan.cost.approvedOverage = { reason: "eight mugs", pixellabGenerations: 40 };
+  });
+  const attempts = await Promise.all(ids.map((id) => run(root, id)));
+  const accepted = await Promise.all(ids.map((id, k) => run(root, id, "--accept", attempts[k].json.scratch.png)));
+  for (const a of accepted) assert.equal(a.code, 0, a.stdout + a.stderr);
+  const plan = readJson(root, PLAN);
+  for (const id of ids) assert.equal(placementIn(plan, id).generate, undefined, `${id} is resolved in the plan`);
+  assert.equal(plan.cost.pixellabGenerations, 40);
+});

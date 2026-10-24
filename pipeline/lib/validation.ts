@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export type SceneStatus = { id: string; file: string; status: string };
+export type SceneStatus = { id: string; file: string; status: string; pending: { path: string; message: string }[] };
 export type ValidationReport = {
   ok: boolean;
   errors: { file: string; path: string; message: string }[];
