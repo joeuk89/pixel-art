@@ -57,6 +57,14 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
 
   async function open(path: string, options: BrowserContextOptions = {}): Promise<Watched> {
     const context = await browser!.newContext({ viewport: { width: 1000, height: 700 }, ...options });
+    await context.addInitScript(() => {
+      const put = CanvasRenderingContext2D.prototype.putImageData;
+      (window as any).draws = 0;
+      CanvasRenderingContext2D.prototype.putImageData = function (this: CanvasRenderingContext2D, ...args: any[]) {
+        (window as any).draws++;
+        return (put as any).apply(this, args);
+      };
+    });
     const page = await context.newPage();
     const errors: string[] = [];
     page.on("console", (m) => { if (m.type() === "error") errors.push(`${m.text()} at ${m.location().url}`); });
@@ -140,6 +148,58 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       assert.deepEqual(errors, []);
     });
   }
+
+  const draws = (page: Page): Promise<number> => page.evaluate(() => (window as any).draws);
+  const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  test("with reduced motion the Poster stays and the draw loop never runs", async () => {
+    const { page, errors } = await open(`scenes/${id}/`, { reducedMotion: "reduce" });
+    const poster = page.getByRole("img", { name: title });
+    await poster.waitFor();
+    await pause(800);
+    assert.ok(await poster.isVisible());
+    assert.equal(await page.locator("canvas").count(), 0);
+    assert.equal(await draws(page), 0);
+    assert.deepEqual(errors, []);
+  });
+
+  test("drawing stops while the tab is hidden and resumes when it is visible again", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await pause(600);
+    assert.ok((await draws(page)) > 1, "the Scene is not animating");
+
+    const setVisibility = (hidden: boolean) =>
+      page.evaluate((hidden) => {
+        Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (hidden ? "hidden" : "visible") });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }, hidden);
+
+    await setVisibility(true);
+    const hiddenAt = await draws(page);
+    await pause(800);
+    assert.equal(await draws(page), hiddenAt);
+
+    await setVisibility(false);
+    await pause(800);
+    assert.ok((await draws(page)) > hiddenAt + 1, "drawing did not resume");
+    assert.deepEqual(errors, []);
+  });
+
+  test("an unknown Scene id shows No such Scene with a link back to the Gallery", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.evaluate(() => history.pushState(null, "", "../no-such-scene/"));
+    await page.goBack();
+    await page.goForward();
+    await page.getByRole("heading", { name: "No such Scene" }).waitFor();
+    assert.equal(page.url(), `${site}scenes/no-such-scene/`);
+    await page.getByRole("link", { name: /Gallery/ }).click();
+    await page.getByRole("link", { name: title }).waitFor();
+    assert.equal(page.url(), site);
+    assert.deepEqual(errors.filter((e) => !e.endsWith(`at ${site}scenes/no-such-scene/scene.json`)), []);
+  });
 });
 
 function rgb(hex: string): number[] {
