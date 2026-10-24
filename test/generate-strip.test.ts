@@ -79,6 +79,41 @@ test("PixelLab --frames outside the odd numbers 5 to 15 is refused before any ca
   assert.equal(pixellabState.animateRequests.length, 0);
 });
 
+function planWithStrip(strip: Record<string, unknown>): unknown {
+  const plan = JSON.parse(readFileSync(join(repo, "test/fixtures/spec-example-scene.json"), "utf8"));
+  plan.layers[2].placements[1].generate.strip = strip;
+  return plan;
+}
+
+const stripOf = (plan: any) => plan.layers[2].placements[1].generate.strip;
+
+test("a planned strip with no frames defaults per service to a count generate-strip accepts", async () => {
+  const pixellab = stripOf(scenePlanSchema.parse(planWithStrip({ service: "pixellab" })));
+  assert.deepEqual(pixellab, { service: "pixellab", frames: 5 });
+  assert.deepEqual(stripOf(scenePlanSchema.parse(planWithStrip({}))), { service: "pixellab", frames: 5 });
+  assert.deepEqual(stripOf(scenePlanSchema.parse(planWithStrip({ service: "retro-diffusion" }))), { service: "retro-diffusion", frames: 8 });
+
+  const result = await run(tree(), "--service", pixellab.service, "--frames", String(pixellab.frames));
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.frames, 5);
+});
+
+test("a planned PixelLab strip outside the odd numbers 5 to 15 fails validate", () => {
+  for (const frames of [4, 6, 3, 17]) {
+    const root = makeTree();
+    writeJson(root, "scenes/rainy-desk-night-k7f2/scene.json", planWithStrip({ service: "pixellab", frames }));
+    const check = validate(root);
+    assert.equal(check.code, 1, String(frames));
+    assert.ok(
+      check.report.errors.some((e: any) => e.path === "layers[2].placements[1].generate.strip.frames" && /odd number from 5 to 15/.test(e.message)),
+      JSON.stringify(check.report.errors),
+    );
+  }
+  const root = makeTree();
+  writeJson(root, "scenes/rainy-desk-night-k7f2/scene.json", planWithStrip({ service: "retro-diffusion", frames: 4 }));
+  assert.equal(validate(root).code, 0);
+});
+
 const COSY = JSON.parse(readFileSync(join(repo, "library/palettes/cosy-night.json"), "utf8")).colours as string[];
 const MOVED: [number, number, number] = [0xf7, 0xd3, 0x5c];
 

@@ -25,7 +25,7 @@ An abandoned Element is replaced by a library substitute (same subject, same Pal
 
 - A 5xx or `inference_failed` is retried at once with a fresh idempotency key, up to 3 times.
 - Identical frames or a drift failure: retry once with a new seed.
-- A second drift failure on PixelLab: halve the frames once.
+- A second drift failure on PixelLab: if the strip has more than 5 frames, retry once at 5 (PixelLab takes odd counts from 5 to 15).
 - Then the Element falls back to its still.
 - Retro Diffusion: at most 2 charged Attempts per prop and 4 props per Scene.
 

@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { elementRecordSchema, scenePlanSchema, type ElementRecord } from "../schema/index.ts";
+import { DEFAULT_STRIP_FRAMES, elementRecordSchema, isPixelLabFrames, scenePlanSchema, type ElementRecord, type StripService } from "../schema/index.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { animateWithTextV3 } from "./lib/pixellab.ts";
@@ -14,9 +14,7 @@ import { buildStrip, gateStrip, snapToPalette, type StripGateReport } from "./li
 const UPSCALE = 8;
 const ELEMENTS = "library/elements";
 const SCRATCH = "scratch/strips";
-const SERVICES = ["pixellab", "retro-diffusion"] as const;
-type StripService = (typeof SERVICES)[number];
-const DEFAULT_FRAMES: Record<StripService, number> = { pixellab: 5, "retro-diffusion": 8 };
+const SERVICES: readonly StripService[] = ["pixellab", "retro-diffusion"];
 const MODELS: Record<StripService, string> = { pixellab: "animate-with-text-v3", "retro-diffusion": SUBTLE_MOTION };
 const USAGE = "usage: generate-strip <elementId> [--service pixellab|retro-diffusion] [--frames n] [--motion text] [--seed n] | --accept <attempt.strip.png> [--scene scene.json]";
 
@@ -212,9 +210,8 @@ main(async () => {
   if (values.scene !== undefined) throw new Error("--scene goes with --accept");
   const service = (values.service ?? "pixellab") as StripService;
   if (!SERVICES.includes(service)) throw new Error(`--service must be pixellab or retro-diffusion, got ${values.service}`);
-  const frames = values.frames === undefined ? DEFAULT_FRAMES[service] : Number(values.frames);
-  // animate v3 takes an even frame_count from 4 to 16 and returns frame_count + 1 images.
-  if (service === "pixellab" && !(Number.isInteger(frames) && frames % 2 === 1 && frames >= 5 && frames <= 15)) {
+  const frames = values.frames === undefined ? DEFAULT_STRIP_FRAMES[service] : Number(values.frames);
+  if (service === "pixellab" && !isPixelLabFrames(frames)) {
     throw new Error(`--frames for pixellab must be an odd number from 5 to 15, got ${values.frames}`);
   }
   if (!Number.isInteger(frames) || frames < 2 || frames > 16) throw new Error(`--frames must be an integer from 2 to 16, got ${values.frames}`);
