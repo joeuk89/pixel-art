@@ -58,11 +58,35 @@ _Avoid_: Manifest, config, spec, scene file
 
 **Layer**:
 One draw-ordered slice of a Scene; a Scene is drawn layer by layer, first to last.
-_Avoid_: Depth, plane, z-index
+_Avoid_: Depth, z-index, plane (that is how far away a Layer sits)
+
+**Plane**:
+How far from the viewer a Layer sits: far, mid or near. Far Planes fade toward the sky or the dark; near Planes frame the Scene.
+_Avoid_: Depth, layer, distance (that is for sound)
 
 **Placement**:
 One Element put at a position in a Layer.
 _Avoid_: Instance, sprite, object
+
+**Stage**:
+The forced-perspective geometry of a Scene: a back rectangle, a vanishing point and a viewing distance, which give the floor its depth. Indoors and outdoors alike.
+_Avoid_: Camera, room, perspective, set
+
+**Room shell**:
+The walls, floor and ceiling of an interior, drawn from the Stage in perspective with flat colour and a few lines.
+_Avoid_: Room, box, background, walls
+
+**Surface**:
+One face of a Room shell: the back wall, floor, ceiling, left or right wall.
+_Avoid_: Wall (for any face), face, plane, side
+
+**Opening**:
+A window or door cut from a Surface, through which far Layers show, with an optional frame.
+_Avoid_: Hole, cut-out, window (for any opening)
+
+**Feature**:
+A Placement fixed to a Surface, such as a painting, wall light or rug, generated square-on and fitted to the Surface's perspective.
+_Avoid_: Decoration, decal, wall prop
 
 **Primitive**:
 One code-driven animation effect the Viewer runs on a Scene, such as rain, lamp glow, steam or twinkle.
@@ -133,7 +157,7 @@ A single ambient sound event, such as thunder or an owl, that a Scene fires now 
 _Avoid_: Trigger, event, sample, stinger
 
 **Scale**:
-The pixels-per-metre of one Scene, set once per Scene, that fixes how large every prop is drawn.
+The pixels-per-metre that fixes how large a prop is drawn: set at the back of the Stage, and separately for a far Layer beyond it; a prop standing on the floor takes the Scale of its depth.
 _Avoid_: Zoom, resolution, pixel density (that is the house tier), size (for the Scene-wide value)
 
 **Concept**:
