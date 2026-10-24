@@ -18,6 +18,7 @@ const ELEMENTS = "library/elements";
 const SERVICE = "pixellab";
 const MODEL = "pro-flash";
 const ANCHOR_MIN_SIDE = 48;
+const FILLS_CANVAS = "fills its canvas";
 const USAGE = "usage: generate-element <scene.json> <placementId> [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor] | --abandon [--substitute elementId]";
 
 const targetBox = (scale: number, realSize: { w: number; h: number }) => ({ width: scale * realSize.w, height: scale * realSize.h });
@@ -143,6 +144,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     styleImage: { sent: sendStyle, anchor: anchor?.id ?? null },
     generations,
     gate,
+    ...(gate.failed.some((f) => f.startsWith("trimmed box:")) ? { retryBrief: `${generate.brief}, ${FILLS_CANVAS}` } : {}),
     scratch: { png: `${stem}.png`, upscale: `${stem}.x8.png`, attempt: `${stem}.json` },
   };
 }

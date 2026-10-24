@@ -36,7 +36,7 @@ test("one run writes the raw PNG and an 8x upscale to scratch and prints a gate 
   assert.equal(result.json.attempt, 1);
   assert.deepEqual(result.json.canvas, { width: 24, height: 16 });
   assert.deepEqual(result.json.gate.failed, []);
-  assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette"]);
+  assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette", "trimmed box"]);
   assert.equal(result.json.gate.ok, true);
 
   const { png, upscale } = result.json.scratch;
@@ -74,7 +74,7 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   assert.equal(record.styleAnchor, null);
   assert.equal(record.firstScene, "rainy-desk-night-k7f2");
   assert.deepEqual(record.cost, { pixellabGenerations: 5, meteredUsd: 0 });
-  assert.deepEqual(record.checks, { attempt: 1, passed: ["dimensions", "alpha", "palette"], warnings: [] });
+  assert.deepEqual(record.checks, { attempt: 1, passed: ["dimensions", "alpha", "palette", "trimmed box"], warnings: [] });
 
   const plan = readJson(root, PLAN);
   const cat = placementIn(plan, "cat");
@@ -137,7 +137,7 @@ const CAT_FULL = { x: 0, y: 2, w: 24, h: 12 };
 test("a canvas of the wrong size is a hard fail", async () => {
   const gate = await gateOf(tree(), "cat", handMade(20, 16, [{ x: 0, y: 2, w: 20, h: 12 }]));
   assert.equal(gate.ok, false);
-  assert.deepEqual(gate.passed, ["alpha", "palette"]);
+  assert.deepEqual(gate.passed, ["alpha", "palette", "trimmed box"]);
   assert.deepEqual(gate.failed, ["dimensions: 20x16, derived canvas is 24x16"]);
 });
 
@@ -159,22 +159,51 @@ test("a transparent pixel's colour is ignored by the Palette check", async () =>
   assert.deepEqual(gate.warnings, []);
 });
 
-test("a trimmed box under 0.7x the target box warns", async () => {
-  const gate = await gateOf(tree(), "cat", handMade(24, 16, [{ x: 7, y: 5, w: 10, h: 6 }]));
-  assert.equal(gate.ok, true);
-  assert.deepEqual(gate.warnings, ["trimmed box 10x6 is outside 0.7x to 1.5x the target box 24x12"]);
+const smallProp = (w: number, h: number) => (plan: any) => {
+  plan.scale = 50;
+  placementIn(plan, "cat").generate.realSize = { w, h };
+};
+
+test("a trimmed box at 0.6x the target box is a hard fail that offers the fills-its-canvas brief", async () => {
+  const root = tree(smallProp(0.4, 0.2));
+  pixellabState.images.set("small", handMade(20, 16, [{ x: 4, y: 5, w: 12, h: 6 }]));
+  const result = await run(root, "cat", "--brief", "small");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const { gate } = result.json;
+  assert.equal(gate.ok, false);
+  assert.deepEqual(gate.passed, ["dimensions", "alpha", "palette"]);
+  assert.deepEqual(gate.failed, ["trimmed box: 12x6 is outside 0.7x to 1.5x the target box 20x10"]);
+  assert.equal(result.json.retryBrief, "tabby cat asleep, curled up, fills its canvas");
 });
 
-test("a trimmed box over 1.5x the target box warns", async () => {
-  const root = tree((plan) => { placementIn(plan, "cat").generate.realSize = { w: 0.2, h: 0.2 }; });
-  const gate = await gateOf(root, "cat", handMade(16, 16, [{ x: 0, y: 0, w: 16, h: 16 }]));
-  assert.equal(gate.ok, true);
-  assert.deepEqual(gate.warnings, ["trimmed box 16x16 is outside 0.7x to 1.5x the target box 9.6x9.6"]);
+test("a trimmed box at 1.6x the target box is a hard fail", async () => {
+  const gate = await gateOf(tree(smallProp(0.2, 0.2)), "cat", handMade(16, 16, [{ x: 0, y: 0, w: 16, h: 16 }]));
+  assert.equal(gate.ok, false);
+  assert.deepEqual(gate.failed, ["trimmed box: 16x16 is outside 0.7x to 1.5x the target box 10x10"]);
 });
 
-test("a trimmed box at the edges of the band does not warn", async () => {
-  const gate = await gateOf(tree(), "cat", handMade(24, 16, [{ x: 0, y: 0, w: 17, h: 16 }]));
+test("a trimmed box at the edges of the band passes, and a passing Attempt offers no retry brief", async () => {
+  const root = tree();
+  pixellabState.images.set("edges", handMade(24, 16, [{ x: 0, y: 0, w: 17, h: 16 }]));
+  const result = await run(root, "cat", "--brief", "edges");
+  assert.equal(result.json.gate.ok, true);
+  assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette", "trimmed box"]);
+  assert.deepEqual(result.json.gate.warnings, []);
+  assert.equal("retryBrief" in result.json, false);
+});
+
+test("the gate report carries the Orphan pixel count and share and the 2x2 checkerboard count, without gating them", async () => {
+  const gate = await gateOf(tree(), "cat", handMade(24, 16, [
+    CAT_FULL,
+    { x: 2, y: 4, w: 1, h: 1, colour: PALETTE[8] },
+    { x: 10, y: 6, w: 1, h: 1, colour: PALETTE[8] }, { x: 11, y: 7, w: 1, h: 1, colour: PALETTE[8] },
+    { x: 11, y: 6, w: 1, h: 1, colour: PALETTE[9] }, { x: 10, y: 7, w: 1, h: 1, colour: PALETTE[9] },
+  ]));
+  assert.equal(gate.ok, true);
   assert.deepEqual(gate.warnings, []);
+  assert.equal(gate.measurements.orphans, 5);
+  assert.equal(gate.measurements.orphanShare, 5 / 288);
+  assert.equal(gate.measurements.checkerboards, 1);
 });
 
 test("more than 2 disconnected opaque islands warns", async () => {
@@ -192,15 +221,16 @@ test("pixels touching only at a corner are separate islands", async () => {
   assert.deepEqual(gate.warnings, ["3 disconnected opaque islands"]);
 });
 
-test("a backdrop with transparent pixels warns", async () => {
-  const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }, { x: 10, y: 10, w: 4, h: 2, alpha: 0 }]));
-  assert.equal(gate.ok, true);
-  assert.deepEqual(gate.warnings, ["backdrop has 8 transparent pixels"]);
+test("one transparent pixel in a Backdrop is a hard fail", async () => {
+  const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }, { x: 10, y: 10, w: 1, h: 1, alpha: 0 }]));
+  assert.equal(gate.ok, false);
+  assert.deepEqual(gate.failed, ["opaque: a Backdrop has no transparent pixels; this one has 1"]);
 });
 
 test("a fully opaque backdrop passes with no warnings", async () => {
   const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }]));
   assert.equal(gate.ok, true);
+  assert.deepEqual(gate.passed, ["dimensions", "alpha", "palette", "opaque"]);
   assert.deepEqual(gate.warnings, []);
 });
 
@@ -526,7 +556,7 @@ test("eight parallel accepts into one plan all land in it", async () => {
   const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
   const root = tree((plan) => {
     plan.layers[3].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
-      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
+      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.3, h: 0.3 }, tags: ["mug"] } })));
     plan.cost.approvedOverage = { reason: "eight mugs", pixellabGenerations: 40 };
   });
   const attempts = await Promise.all(ids.map((id) => run(root, id)));
