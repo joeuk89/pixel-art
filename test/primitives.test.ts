@@ -27,6 +27,18 @@ function scene(primitives: Primitive[], seed = catalogue.seed): Compositor {
 
 const bare = createCompositor({ plan: catalogue, elements, palette });
 
+function effectOf(primitives: Primitive[], seed: number): (t: number) => Buffer {
+  const withPrimitives = scene(primitives, seed);
+  const without = createCompositor({ plan: { ...catalogue, seed }, elements, palette });
+  return (t) => {
+    const a = withPrimitives.render(t);
+    const b = without.render(t);
+    const changed = Buffer.alloc(a.length);
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) changed[i] = a[i];
+    return changed;
+  };
+}
+
 function offPalette(out: Uint8ClampedArray): string | undefined {
   for (let i = 0; i < out.length; i += 4) {
     const rgb = (out[i] << 16) | (out[i + 1] << 8) | out[i + 2];
@@ -48,5 +60,22 @@ for (const type of TYPES) {
       if (!Buffer.from(out).equals(Buffer.from(bare.render(t)))) changed++;
     }
     assert.ok(changed > 0, `${type} never changed a pixel`);
+  });
+}
+
+test("the same seed and time give byte-identical frames from two compositors, in any render order", () => {
+  const a = scene(catalogue.primitives);
+  const b = scene(catalogue.primitives);
+  const forward = TIMES.map((t) => Buffer.from(a.render(t)));
+  const backward = [...TIMES].reverse().map((t) => Buffer.from(b.render(t))).reverse();
+  forward.forEach((frame, k) => assert.ok(frame.equals(backward[k]), `frames differ at ${TIMES[k]} ms`));
+  assert.ok(Buffer.from(scene(catalogue.primitives).render(3_600_000)).equals(Buffer.from(scene(catalogue.primitives).render(3_600_000))));
+});
+
+for (const type of TYPES) {
+  test(`${type} draws differently under a different seed`, () => {
+    const a = effectOf(only(type), 1);
+    const b = effectOf(only(type), 2);
+    assert.ok(TIMES.some((t) => !a(t).equals(b(t))), `${type} ignores the seed`);
   });
 }
