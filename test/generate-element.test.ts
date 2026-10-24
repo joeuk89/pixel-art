@@ -500,3 +500,18 @@ test("--abandon --substitute refuses an Element of another size and changes noth
   assert.equal(readFileSync(join(root, PLAN), "utf8"), before);
   assert.equal(existsSync(join(root, "scratch/attempts/rainy-desk-night-k7f2/abandoned.json")), false);
 });
+
+test("eight parallel accepts into one plan all land in it", async () => {
+  const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
+  const root = tree((plan) => {
+    plan.layers[2].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
+      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
+    plan.cost.approvedOverage = { reason: "eight mugs", pixellabGenerations: 40 };
+  });
+  const attempts = await Promise.all(ids.map((id) => run(root, id)));
+  const accepted = await Promise.all(ids.map((id, k) => run(root, id, "--accept", attempts[k].json.scratch.png)));
+  for (const a of accepted) assert.equal(a.code, 0, a.stdout + a.stderr);
+  const plan = readJson(root, PLAN);
+  for (const id of ids) assert.equal(placementIn(plan, id).generate, undefined, `${id} is resolved in the plan`);
+  assert.equal(plan.cost.pixellabGenerations, 40);
+});

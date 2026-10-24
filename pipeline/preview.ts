@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAbandoned, type Abandoned } from "./lib/attempts.ts";
 import { hardChecks } from "./lib/hard-checks.ts";
 import { readElements, readScene } from "./lib/library.ts";
+import { editPlan } from "./lib/plan-file.ts";
 import { DEV_URL } from "./lib/site.ts";
 import type { ScenePlan } from "../schema/index.ts";
 
@@ -69,11 +69,7 @@ async function preview(file: string) {
   const report = await hardChecks(root, file, plan);
   if (!report.ok) return { ok: false, scene: plan.id, error: "a hard check failed; nothing is staged and the Scene stays draft", checks: report.checks };
 
-  const raw = JSON.parse(readFileSync(planPath, "utf8"));
-  if (raw.status !== "resolved") {
-    raw.status = "resolved";
-    writeFileSync(planPath, JSON.stringify(raw, null, 2) + "\n");
-  }
+  if (plan.status !== "resolved") editPlan(planPath, (raw) => { raw.status = "resolved"; });
   git("add", "--", relative(root, dirname(planPath)), "library", "gallery.json");
   const staged = git("diff", "--cached", "--name-only").split("\n").filter(Boolean).sort();
 

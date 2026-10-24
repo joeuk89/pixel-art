@@ -5,6 +5,7 @@ import type { AmbientLoopRecord, ScenePlan } from "../schema/index.ts";
 import { decodeToWav, encodeOgg, normalise, normaliseTarget, readWav, writeWav, type SoundKind } from "./lib/audio.ts";
 import { generateSoundEffect, MAX_LOOP_SEC, SOUND_EFFECTS_MODEL, USD_PER_SECOND } from "./lib/fal.ts";
 import { readScene, readSounds } from "./lib/library.ts";
+import { editPlan } from "./lib/plan-file.ts";
 
 const AMBIENT = "library/ambient";
 const SERVICE = "elevenlabs-fal";
@@ -27,12 +28,6 @@ function newRecordId(subject: string, taken: Set<string>): string {
     const id = `elevenlabs-${slug(subject)}-${String(n).padStart(2, "0")}`;
     if (!taken.has(id) && !existsSync(join(AMBIENT, `${id}.json`))) return id;
   }
-}
-
-function editPlan(planPath: string, edit: (raw: any) => void): void {
-  const raw = JSON.parse(readFileSync(planPath, "utf8"));
-  edit(raw);
-  writeFileSync(planPath, JSON.stringify(raw, null, 2) + "\n");
 }
 
 function addMeteredCost(planPath: string, usd: number): void {

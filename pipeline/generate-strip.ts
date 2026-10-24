@@ -12,6 +12,7 @@ import { withFreshKey, type Retry } from "./lib/retry.ts";
 import { logAbandoned, type Abandoned } from "./lib/attempts.ts";
 import { budget, STRIPS_DIR } from "./lib/budget.ts";
 import { readScene } from "./lib/library.ts";
+import { editPlan } from "./lib/plan-file.ts";
 import { buildStrip, gateStrip, snapToPalette, type StripGateReport } from "./lib/strip.ts";
 
 const UPSCALE = 8;
@@ -182,18 +183,18 @@ function checkBudget(sceneFile: string, record: Prop, service: StripService): vo
 }
 
 function fallBack(record: Prop, sceneFile: string) {
-  const plan = JSON.parse(readFileSync(sceneFile, "utf8"));
-  const placements = plan.layers.flatMap((l: any) => l.placements ?? []).filter((p: any) => p.element === record.id);
-  if (placements.length === 0) throw new Error(`no Placement in ${sceneFile} uses ${record.id}`);
   const charge = chargeAttempts(SCRATCH, record.id);
-  for (const p of placements) delete p.animation;
-  chargePlan(plan, charge);
-  plan.cost.attemptsAbandoned += charge.attempts;
-  plan.status = "draft";
-  scenePlanSchema.parse(plan);
-  const entry: Abandoned = { placement: placements.map((p: any) => p.id).join(", "), element: record.id, attempts: charge.attempts, outcome: "still" };
-  const log = logAbandoned(plan.id, entry);
-  writeFileSync(sceneFile, JSON.stringify(plan, null, 2) + "\n");
+  const ids = editPlan(sceneFile, (plan) => {
+    const placements = plan.layers.flatMap((l: any) => l.placements ?? []).filter((p: any) => p.element === record.id);
+    if (placements.length === 0) throw new Error(`no Placement in ${sceneFile} uses ${record.id}`);
+    for (const p of placements) delete p.animation;
+    chargePlan(plan, charge);
+    plan.cost.attemptsAbandoned += charge.attempts;
+    plan.status = "draft";
+    return placements.map((p: any) => p.id as string);
+  });
+  const entry: Abandoned = { placement: ids.join(", "), element: record.id, attempts: charge.attempts, outcome: "still" };
+  const log = logAbandoned(readScene(sceneFile).id, entry);
   charge.commit();
   return { ...entry, cost: charge.cost, plan: sceneFile, log };
 }
@@ -224,17 +225,10 @@ function accept(record: Prop, stripPath: string, sceneFile: string | undefined) 
   };
   elementRecordSchema.parse(raw);
 
-  let plan: any;
-  if (sceneFile !== undefined) {
-    plan = JSON.parse(readFileSync(sceneFile, "utf8"));
-    chargePlan(plan, charge);
-    scenePlanSchema.parse(plan);
-  }
-
+  if (sceneFile !== undefined) editPlan(sceneFile, (plan) => chargePlan(plan, charge));
   const strip = join(ELEMENTS, `${record.id}.strip.png`);
   copyFileSync(stripPath, strip);
   writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
-  if (sceneFile !== undefined) writeFileSync(sceneFile, JSON.stringify(plan, null, 2) + "\n");
   charge.commit();
 
   return { element: record.id, strip, record: file, frames: attempt.frames, cost, ...(sceneFile !== undefined ? { plan: sceneFile } : {}) };

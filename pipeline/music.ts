@@ -5,6 +5,7 @@ import { MUSIC_FILE, scenePlanSchema } from "../schema/index.ts";
 import { decodeToWav, decodedSampleCount, encodeMp3, readWav, writeWav } from "./lib/audio.ts";
 import { main } from "./lib/cli.ts";
 import { makeMusicLoop, seamPasses } from "./lib/music-loop.ts";
+import { editPlan } from "./lib/plan-file.ts";
 import { lyria, stableAudio } from "./lib/music-services.ts";
 
 const REQUEST_SEC = 135;
@@ -32,7 +33,6 @@ main(async () => {
   const music = plan.soundtrack.music;
   const file = music.file ?? MUSIC_FILE;
   const out = join(dir, file);
-  const writePlan = () => writeFileSync(planPath, JSON.stringify(raw, null, 2) + "\n");
 
   if (!args.includes("--force") && music.file && music.loopEnd !== undefined && music.seam && existsSync(out)) {
     return { scene: plan.id, skipped: true, file: relative(process.cwd(), out), loopEnd: music.loopEnd, seam: music.seam };
@@ -42,8 +42,9 @@ main(async () => {
   const { costKey, generate } = generators[serviceName];
   const prompt = `${music.brief.replace(/[.\s]+$/, "")}. ${LOOP_WORDING}`;
   const bytes = await generate(prompt, Math.abs(plan.seed));
-  raw.cost.meteredUsd[costKey] = +((raw.cost.meteredUsd[costKey] ?? 0) + COST_USD).toFixed(4);
-  writePlan();
+  editPlan(planPath, (fresh) => {
+    fresh.cost.meteredUsd[costKey] = +((fresh.cost.meteredUsd[costKey] ?? 0) + COST_USD).toFixed(4);
+  });
 
   const work = mkdtempSync(join(tmpdir(), "music-"));
   try {
@@ -61,10 +62,9 @@ main(async () => {
       throw new Error(`${file} decodes to ${decoded} samples, the loop has ${made.loopSamples}`);
     }
     const loopEnd = +(made.loopSamples / source.rate).toFixed(6);
-    raw.soundtrack.music = {
-      brief: music.brief, service: serviceName, file, loopStart: 0, loopEnd, seam: made.seam, gain: music.gain,
-    };
-    writePlan();
+    editPlan(planPath, (fresh) => {
+      fresh.soundtrack.music = { brief: music.brief, service: serviceName, file, loopStart: 0, loopEnd, seam: made.seam, gain: music.gain };
+    });
     return {
       scene: plan.id, service: serviceName, prompt, file: relative(process.cwd(), out), loopStart: 0, loopEnd, seam: made.seam,
       regionStartSec: made.regionStartSec, regionEndSec: made.regionEndSec, pickCost: made.pickCost, costUsd: { [costKey]: COST_USD },

@@ -10,6 +10,7 @@ import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { createImageProFlash, PixelLabError, STYLE_OPTIONS, STYLE_USAGE, type ProFlashRequest } from "./lib/pixellab.ts";
 import { chargeStillAttempts, logAbandoned, stillAttemptsDir, type Abandoned, type StillAttempt } from "./lib/attempts.ts";
+import { editPlan } from "./lib/plan-file.ts";
 import { gateStill } from "./lib/quality-gate.ts";
 
 const UPSCALE = 8;
@@ -201,20 +202,19 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     : { ...base, kind: "backdrop", ...attempt.canvas, transparent: false });
 
   // Edit the plan as written, so schema defaults are not added to it.
-  const raw = JSON.parse(readFileSync(file, "utf8"));
-  const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
-  delete target.generate;
-  target.element = id;
   const charge = chargeStillAttempts(dirname(attemptPath), placement.id);
   const generationsAdded = charge.generations;
-  raw.cost.pixellabGenerations += generationsAdded;
-  if (asAnchor) raw.styleAnchor = id;
-  scenePlanSchema.parse(raw);
+  editPlan(file, (raw) => {
+    const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
+    delete target.generate;
+    target.element = id;
+    raw.cost.pixellabGenerations += generationsAdded;
+    if (asAnchor) raw.styleAnchor = id;
+  });
 
   mkdirSync(ELEMENTS, { recursive: true });
   copyFileSync(attemptPath, join(ELEMENTS, `${id}.png`));
   writeFileSync(join(ELEMENTS, `${id}.json`), JSON.stringify(record, null, 2) + "\n");
-  writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
   charge.commit();
 
   return {
@@ -249,27 +249,25 @@ function abandon(file: string, plan: ScenePlan, placement: Placement, substitute
   const dir = stillAttemptsDir(plan.id);
   const charge = chargeStillAttempts(dir, placement.id);
 
-  const raw = JSON.parse(readFileSync(file, "utf8"));
   const entry: Abandoned = { placement: placement.id, element: placement.element, attempts: charge.attempts, outcome: substitute ? "substituted" : "dropped" };
-  if (substitute) {
-    const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
-    delete target.generate;
-    target.element = substitute.id;
-    if (!(substitute.kind === "prop" && substitute.animation)) delete target.animation;
-    entry.substitute = substitute.id;
-  } else {
-    for (const layer of raw.layers) if (layer.placements) layer.placements = layer.placements.filter((p: any) => p.id !== placement.id);
-    const anchored = raw.primitives.filter((p: any) => p.anchor === placement.id);
-    raw.primitives = raw.primitives.filter((p: any) => p.anchor !== placement.id);
-    entry.droppedPrimitives = anchored.map((p: any) => `${p.type} anchored to ${placement.id}`);
-  }
-  raw.status = "draft";
-  raw.cost.pixellabGenerations += charge.generations;
-  raw.cost.attemptsAbandoned += charge.attempts;
-  scenePlanSchema.parse(raw);
-
+  editPlan(file, (raw) => {
+    if (substitute) {
+      const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
+      delete target.generate;
+      target.element = substitute.id;
+      if (!(substitute.kind === "prop" && substitute.animation)) delete target.animation;
+      entry.substitute = substitute.id;
+    } else {
+      for (const layer of raw.layers) if (layer.placements) layer.placements = layer.placements.filter((p: any) => p.id !== placement.id);
+      const anchored = raw.primitives.filter((p: any) => p.anchor === placement.id);
+      raw.primitives = raw.primitives.filter((p: any) => p.anchor !== placement.id);
+      entry.droppedPrimitives = anchored.map((p: any) => `${p.type} anchored to ${placement.id}`);
+    }
+    raw.status = "draft";
+    raw.cost.pixellabGenerations += charge.generations;
+    raw.cost.attemptsAbandoned += charge.attempts;
+  });
   const log = logAbandoned(plan.id, entry);
-  writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
   charge.commit();
   return { scene: plan.id, ...entry, generationsAdded: charge.generations, plan: file, log };
 }
