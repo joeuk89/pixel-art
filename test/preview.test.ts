@@ -100,3 +100,18 @@ test("a failed hard check stops the preview: nothing is staged and the Scene sta
   assert.deepEqual(staged(root), []);
   assert.equal(commits(root), "1");
 });
+
+test("a failed hard check after a direct edit to a resolved Scene puts the Scene back to draft", () => {
+  const root = repoTree("fail");
+  editJson(root, fixtureScene, (plan) => {
+    plan.status = "resolved";
+    plan.layers[1].placements[0].x += 4;
+  });
+  const { code, out } = runScript(root, "preview", fixtureScene);
+  assert.equal(code, 1);
+  assert.equal(out.ok, false);
+  assert.ok(out.checks.some((c: any) => c.name === "tests" && !c.ok));
+  assert.equal(readJson(root, fixtureScene).status, "draft");
+  assert.deepEqual(staged(root), []);
+  assert.equal(commits(root), "1");
+});

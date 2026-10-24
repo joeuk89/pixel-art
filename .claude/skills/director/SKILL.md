@@ -119,6 +119,6 @@ Then stop. Never commit or push: the owner does both.
 
 ## 10. Rejection
 
-If the owner rejects the preview, change only what the owner named, under the same Scene id. For Placements whose Element should change, run `node pipeline/reopen.ts scenes/<id>/scene.json <placementId...>`: it puts a `generate` block back on each with a fresh proposed id and marks the Scene `draft`. Apply the owner's edits to those blocks, rerun `derive-canvas` when a size changed, and run `validate`. Edit positions, Layers, Primitives or the Soundtrack in the plan directly, and rerun `music.ts --force` only when the owner rejects the music. Then run step 7 for the reopened Placements only, step 8 and step 9.
+If the owner rejects the preview, change only what the owner named, under the same Scene id. For Placements whose Element should change, run `node pipeline/reopen.ts scenes/<id>/scene.json <placementId...>`: it puts a `generate` block back on each with a fresh proposed id and marks the Scene `draft`. Apply the owner's edits to those blocks, rerun `derive-canvas` when a size changed, and run `validate`. For any other change, set `status: "draft"` first, then edit positions, Layers, Primitives or the Soundtrack in the plan directly, and rerun `music.ts --force` only when the owner rejects the music. Then run step 7 for the reopened Placements only, step 8 and step 9.
 
 **Done when** the owner accepts a preview or ends the session; every Placement the owner did not name keeps its Element.

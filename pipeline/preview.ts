@@ -67,7 +67,10 @@ async function preview(file: string) {
   const planPath = resolve(root, file);
   const plan = readScene(planPath);
   const report = await hardChecks(root, file, plan);
-  if (!report.ok) return { ok: false, scene: plan.id, error: "a hard check failed; nothing is staged and the Scene stays draft", checks: report.checks };
+  if (!report.ok) {
+    if (plan.status !== "draft") editPlan(planPath, (raw) => { raw.status = "draft"; });
+    return { ok: false, scene: plan.id, error: "a hard check failed; nothing is staged and the Scene is draft", checks: report.checks };
+  }
 
   if (plan.status !== "resolved") editPlan(planPath, (raw) => { raw.status = "resolved"; });
   git("add", "--", relative(root, dirname(planPath)), "library", "gallery.json");
