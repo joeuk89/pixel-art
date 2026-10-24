@@ -36,7 +36,7 @@ for (const [placement, canvas] of [
   [localProp("cabinet", "box", { w: 0.6, h: 0.8 }, { fill: 13, drawers: 2 }), { width: 32, height: 40 }],
   [localProp("bookcase", "shelf", { w: 1, h: 1.8 }, { frame: 14, books: [5, 9, 10] }), { width: 48, height: 88 }],
   [localProp("painting", "frame", { w: 1, h: 1 }, { colour: 11, mullionsAcross: 1, mullionsDown: 1 }), { width: 48, height: 48 }],
-  [localProp("towers", "skyline", { w: 4, h: 2 }, { colour: 2, windows: [8, 9] }), { width: 192, height: 96 }],
+  [localProp("towers", "skyline", { w: 3.5, h: 2 }, { colour: 2, windows: [8, 9] }), { width: 168, height: 96 }],
 ] as const) {
   const generator = placement.generate.generator as string;
   test(`draw-element draws the ${generator} generator at its derived ${canvas.width}x${canvas.height} canvas and it passes the gate`, async () => {

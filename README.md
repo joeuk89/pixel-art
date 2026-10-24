@@ -68,6 +68,7 @@ You only need the keys for the services a Scene uses. To check the audio keys, r
 | `node pipeline/validate.ts` | Checks every Scene plan, Element record and sound record |
 | `npm run bundle && npm run assemble` | Builds the publishable site into `dist/` |
 | `node pipeline/library-search.ts <words>` | Searches the Element library (`--sounds` for the Sound library) |
+| `node pipeline/draw-element.ts <scene.json> <placementId>` | Draws a local-Finish Element or Seamless texture with the local pixel engine, free, and gates it |
 | `node pipeline/orphans.ts` | Lists library Elements and sounds no Scene uses |
 | `node pipeline/ledger.ts` | Shows this month's generation spend |
 

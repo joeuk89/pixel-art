@@ -21,9 +21,11 @@ A Backdrop goes to Pro Flash at its own size whenever both sides are 256 px or u
 | `pixflux`, PixelLab Pixflux | 1 generation | no |
 | `rd-plus`, Retro Diffusion RD Plus | $0.06 metered | no |
 
-A PixelLab animate v3 Frame strip is 1 generation. Local Finish costs nothing.
+A PixelLab animate v3 Frame strip is 1 generation.
 
-The estimate is one first Attempt for every generated Element at its tier, a Backdrop over 256 px at Pro's 25, plus one call per planned PixelLab strip. Reused Elements cost nothing.
+A local Finish costs nothing. `draw-element` draws local-Finish props and Seamless textures with the local pixel engine, and `derive-canvas` prints their tier as `{ "service": "local", "generations": 0 }` and leaves them out of the total.
+
+The estimate is one first Attempt for every service-Finish Element at its tier, a Backdrop over 256 px at Pro's 25, plus one call per planned PixelLab strip. Reused Elements cost nothing.
 
 Per-Scene budget: 3x that first-Attempt estimate, which leaves room for retries. This reads the spec's "3x planned Elements" in generations, because a single Pro Flash prop already costs 5 to 9.
 

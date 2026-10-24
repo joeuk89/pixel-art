@@ -1,4 +1,4 @@
-import { MAX_PROP_SIDE, MIN_PROP_SIDE, SIDE_STEP, type Layer, type Placement } from "../../schema/index.ts";
+import { isLocal, MAX_PROP_SIDE, MIN_PROP_SIDE, SIDE_STEP, type Layer, type Placement } from "../../schema/index.ts";
 
 export type Canvas = { width: number; height: number };
 type Generate = NonNullable<Placement["generate"]>;
@@ -14,7 +14,10 @@ export const OVER_CAP_SERVICES = [
   { service: "rd-plus", meteredUsd: 0.06 },
 ] as const;
 
-export type Tier = { service: "pro-flash"; generations: number } | { service: null; alternatives: typeof OVER_CAP_SERVICES };
+export type Tier =
+  | { service: "pro-flash"; generations: number }
+  | { service: null; alternatives: typeof OVER_CAP_SERVICES }
+  | { service: "local"; generations: 0 };
 
 function propSide(scale: number, metres: number): number {
   const px = Math.round(scale * metres * 1e6) / 1e6;
@@ -37,7 +40,8 @@ export function proFlashGenerations(canvas: Canvas): number {
   return PRO_FLASH_TIERS.find((t) => side <= t.upTo)?.generations ?? PRO_FLASH_TIERS[PRO_FLASH_TIERS.length - 1].generations;
 }
 
-export function tier(canvas: Canvas): Tier {
+export function tier(canvas: Canvas, generate?: Generate): Tier {
+  if (generate && isLocal(generate)) return { service: "local", generations: 0 };
   return fitsProFlash(canvas) ? { service: "pro-flash", generations: proFlashGenerations(canvas) } : { service: null, alternatives: OVER_CAP_SERVICES };
 }
 
