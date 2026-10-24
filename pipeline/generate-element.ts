@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { basename, dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { elementRecordSchema, scenePlanSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
+import { elementRecordSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
 import { budget } from "./lib/budget.ts";
 import { anchorFits, deriveCanvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";

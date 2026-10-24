@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { DEFAULT_STRIP_FRAMES, elementRecordSchema, isPixelLabFrames, scenePlanSchema, type ElementRecord, type StripService } from "../schema/index.ts";
+import { DEFAULT_STRIP_FRAMES, elementRecordSchema, isPixelLabFrames, type ElementRecord, type StripService } from "../schema/index.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { animateWithTextV3 } from "./lib/pixellab.ts";
