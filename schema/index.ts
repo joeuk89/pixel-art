@@ -9,6 +9,7 @@ export const MAX_PALETTE_COLOURS = 32;
 export const BACKDROP_WIDTH = 128;
 export const BACKDROP_HEIGHT = 64;
 export const POSTER_FILE = "poster.png";
+export const MUSIC_FILE = "music.mp3";
 export const POSTER_OG_FILE = "poster-og.png";
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be a lowercase slug");
@@ -129,6 +130,7 @@ const music = z.strictObject({
   file: fileName.optional(),
   loopStart: z.number().min(0).optional(),
   loopEnd: z.number().positive().optional(),
+  seam: z.strictObject({ seamJump: z.number().min(0), maxInnerJump: z.number().min(0) }).optional(),
   gain: gain.default(0.6),
 });
 

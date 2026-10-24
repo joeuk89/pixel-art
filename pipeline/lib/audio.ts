@@ -21,6 +21,15 @@ export function encodeOgg(input: string, output: string): void {
   execFileSync(ffmpeg, ["-y", "-loglevel", "error", "-i", input, "-codec:a", "libvorbis", "-q:a", "5", output]);
 }
 
+export function encodeMp3(input: string, output: string): void {
+  execFileSync(ffmpeg, ["-y", "-loglevel", "error", "-i", input, "-codec:a", "libmp3lame", "-b:a", "192k", output]);
+}
+
+export function decodedSampleCount(input: string): number {
+  const pcm = execFileSync(ffmpeg, ["-loglevel", "error", "-i", input, "-f", "s16le", "-ac", "1", "-"], { maxBuffer: 1 << 28 });
+  return pcm.length / 2;
+}
+
 export function readWav(path: string): Wav {
   const b = readFileSync(path);
   let p = 12, rate = 0, ch = 0, bits = 0, data: Buffer | null = null;
@@ -37,12 +46,16 @@ export function readWav(path: string): Wav {
 }
 
 export function writeWav(path: string, w: Wav): void {
+  writeFileSync(path, wavBytes(w));
+}
+
+export function wavBytes(w: Wav): Buffer {
   const n = w.data[0].length, b = Buffer.alloc(44 + n * w.ch * 2);
   b.write("RIFF", 0); b.writeUInt32LE(36 + n * w.ch * 2, 4); b.write("WAVEfmt ", 8); b.writeUInt32LE(16, 16);
   b.writeUInt16LE(1, 20); b.writeUInt16LE(w.ch, 22); b.writeUInt32LE(w.rate, 24); b.writeUInt32LE(w.rate * w.ch * 2, 28);
   b.writeUInt16LE(w.ch * 2, 32); b.writeUInt16LE(16, 34); b.write("data", 36); b.writeUInt32LE(n * w.ch * 2, 40);
   for (let i = 0; i < n; i++) for (let c = 0; c < w.ch; c++) b.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(w.data[c][i] * 32767))), 44 + (i * w.ch + c) * 2);
-  writeFileSync(path, b);
+  return b;
 }
 
 function mono(w: Wav, i: number): number {
