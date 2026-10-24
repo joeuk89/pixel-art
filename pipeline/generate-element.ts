@@ -1,5 +1,5 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
 import { elementRecordSchema, scenePlanSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
@@ -32,8 +32,44 @@ function findPlacement(plan: ScenePlan, id: string): Placement {
   return placement;
 }
 
-async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: number; seed: number; brief?: string }) {
+const attemptFile = (dir: string, placementId: string, n: number, ext: string) => `${dir}/${placementId}-a${n}.${ext}`;
+
+function attemptNumbers(dir: string, placementId: string): number[] {
+  const prefix = `${placementId}-a`;
+  return readdirSync(dir)
+    .filter((n) => n.startsWith(prefix))
+    .map((n) => n.slice(prefix.length).match(/^(\d+)\.(png|json)$/)?.[1])
+    .filter((n) => n !== undefined)
+    .map(Number);
+}
+
+function createExclusive(path: string, data: Uint8Array): boolean {
+  try {
+    writeFileSync(path, data, { flag: "wx" });
+    return true;
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw e;
+  }
+}
+
+// The PNG is created exclusively, so parallel runs never write over each other's Attempt and lose its generations.
+function claimAttempt(dir: string, placementId: string, wanted: number | null, png: Uint8Array): number {
+  for (let n = wanted ?? 1 + Math.max(0, ...attemptNumbers(dir, placementId)); ; n++) {
+    if (!existsSync(attemptFile(dir, placementId, n, "json")) && createExclusive(attemptFile(dir, placementId, n, "png"), png)) return n;
+    if (wanted !== null) throw new Error(attemptTaken(dir, placementId, n));
+  }
+}
+
+const attemptTaken = (dir: string, placementId: string, n: number) =>
+  `Attempt ${n} of ${basename(dir)}/${placementId} is already in scratch; leave out --attempt to take the next free number`;
+
+async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: number | null; seed: number; brief?: string }) {
   const generate = placement.generate!;
+  const dir = `scratch/attempts/${plan.id}`;
+  if (opts.attempt !== null && existsSync(dir) && attemptNumbers(dir, placement.id).includes(opts.attempt)) {
+    throw new Error(attemptTaken(dir, placement.id, opts.attempt));
+  }
   const canvas = deriveCanvas(plan.scale, generate);
   const palette = loadPalette(process.cwd(), plan.palette);
   const prompt = opts.brief ?? generate.brief;
@@ -63,10 +99,9 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
   }
   const { png, generations } = result;
 
-  const dir = `scratch/attempts/${plan.id}`;
-  const stem = `${dir}/${placement.id}-a${opts.attempt}`;
   mkdirSync(dir, { recursive: true });
-  writeFileSync(`${stem}.png`, png);
+  const attemptNo = claimAttempt(dir, placement.id, opts.attempt, png);
+  const stem = `${dir}/${placement.id}-a${attemptNo}`;
   const decoded = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const pixels = { width: decoded.info.width, height: decoded.info.height, data: new Uint8Array(decoded.data) };
   await sharp(png).resize(pixels.width * UPSCALE, pixels.height * UPSCALE, { kernel: "nearest" }).png().toFile(`${stem}.x8.png`);
@@ -75,7 +110,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     : { kind: "backdrop", canvas, palette: palette.colours });
 
   const sidecar: Sidecar = {
-    scene: plan.id, placement: placement.id, attempt: opts.attempt, canvas, prompt, seed: opts.seed, generations,
+    scene: plan.id, placement: placement.id, attempt: attemptNo, canvas, prompt, seed: opts.seed, generations,
     params: { no_background: request.no_background, ...(sendStyle ? { style_options: STYLE_OPTIONS } : {}) },
     styleAnchor: sendStyle ? anchor.id : null, gate,
   };
@@ -85,7 +120,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     scene: plan.id,
     placement: placement.id,
     element: placement.element,
-    attempt: opts.attempt,
+    attempt: attemptNo,
     canvas,
     prompt,
     seed: opts.seed,
@@ -204,9 +239,9 @@ main(async () => {
   const plan = readScene(file);
   const placement = findPlacement(plan, placementId);
   if (values.accept !== undefined) return accept(file, plan, placement, values.accept);
-  const attemptNo = Number(values.attempt ?? 1);
+  const attemptNo = values.attempt === undefined ? null : Number(values.attempt);
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
-  if (!Number.isInteger(attemptNo) || attemptNo < 1) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);
+  if (attemptNo !== null && (!Number.isInteger(attemptNo) || attemptNo < 1)) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);
   if (!Number.isInteger(seed)) throw new Error(`--seed must be an integer, got ${values.seed}`);
   return attempt(plan, placement, { attempt: attemptNo, seed, brief: values.brief });
 });

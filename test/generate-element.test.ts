@@ -357,3 +357,23 @@ test("accepting charges every Attempt the Placement took to the plan's cost", as
   assert.deepEqual(readJson(root, "library/elements/cat-tabby-curled-01.json").cost, { pixellabGenerations: 5, meteredUsd: 0 });
   assert.equal(readJson(root, "library/elements/cat-tabby-curled-01.json").checks.attempt, 2);
 });
+
+test("runs without --attempt take the next free number, so accepting still charges every Attempt", async () => {
+  const root = tree((plan) => { placementIn(plan, "cat").element = "cat-tabby-curled-01"; });
+  const first = await run(root, "cat");
+  const second = await run(root, "cat");
+  assert.equal(first.json.attempt, 1);
+  assert.equal(second.json.attempt, 2);
+  const accepted = await run(root, "cat", "--accept", second.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(readJson(root, PLAN).cost.pixellabGenerations, 10);
+});
+
+test("--attempt n refuses an Attempt number already in scratch before calling PixelLab", async () => {
+  const root = tree();
+  await run(root, "cat", "--attempt", "3");
+  const again = await run(root, "cat", "--attempt", "3");
+  assert.equal(again.code, 1);
+  assert.match(again.json.error, /Attempt 3 of rainy-desk-night-k7f2\/cat is already in scratch/);
+  assert.equal(pixellabState.created, 1);
+});
