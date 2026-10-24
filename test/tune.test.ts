@@ -152,7 +152,7 @@ test("when a preview check fails the Scene goes back to draft and the Save names
   const root = tunerTree("fail");
   const url = await startTuner(root);
   const tuning = tuningOf(readJson(root, fixtureScene));
-  tuning.variants[0].lights[0].radius = 120;
+  tuning.variants[0].lights[0].radius = 110;
 
   const { status, out } = await save(url, tuning);
   assert.equal(status, 200, JSON.stringify(out));
@@ -160,7 +160,7 @@ test("when a preview check fails the Scene goes back to draft and the Save names
   assert.deepEqual(out.preview.failed, ["tests"]);
   assert.equal(out.status, "draft");
   assert.equal(readJson(root, fixtureScene).status, "draft");
-  assert.equal(readJson(root, fixtureScene).variants[0].lights[0].radius, 120);
+  assert.equal(readJson(root, fixtureScene).variants[0].lights[0].radius, 110);
   assert.deepEqual(staged(root), []);
 });
 
