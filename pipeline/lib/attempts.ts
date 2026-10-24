@@ -15,7 +15,9 @@ export type StillAttempt = {
   canvas: { width: number; height: number };
   prompt: string;
   seed: number;
+  service?: "pro-flash" | "pro" | "pixflux" | "rd-plus";
   generations: number;
+  meteredUsd?: number;
   params: Record<string, unknown>;
   styleAnchor: string | null;
   gate: GateReport;
@@ -38,11 +40,15 @@ export function stillAttempts(dir: string, placementId?: string): StillAttempt[]
     .filter((a) => placementId === undefined || a.placement === placementId);
 }
 
+const METERED_VENDOR = "retro-diffusion";
+
 // Every Attempt costs, accepted or not; marking them charged keeps a later accept or abandon from charging them again.
-export function chargeStillAttempts(dir: string, placementId: string): { generations: number; attempts: number; commit: () => void } {
+export function chargeStillAttempts(dir: string, placementId: string): { generations: number; meteredByService: Record<string, number>; attempts: number; commit: () => void } {
   const open = sidecars(dir, (n) => n.startsWith(`${placementId}-a`)).filter((f) => f.value.placement === placementId && !f.value.charged);
+  const metered = open.reduce((sum, f) => sum + (f.value.meteredUsd ?? 0), 0);
   return {
     generations: open.reduce((sum, f) => sum + f.value.generations, 0),
+    meteredByService: metered > 0 ? { [METERED_VENDOR]: Math.round(metered * 1e4) / 1e4 } : {},
     attempts: open.length,
     commit: () => {
       for (const f of open) writeFileSync(f.file, JSON.stringify({ ...f.value, charged: true }, null, 2) + "\n");

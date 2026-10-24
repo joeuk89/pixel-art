@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { fixturePalette, fixtures, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { encodePng, pixellabState } from "./fixtures/services/pixellab.ts";
+import { retroDiffusionState } from "./fixtures/services/retro-diffusion.ts";
 
 const script = join(repo, "pipeline/generate-element.ts");
 const PLAN = "scenes/rainy-desk-night-k7f2/scene.json";
@@ -15,7 +16,7 @@ const PALETTE = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixtu
 let server: FixtureServer;
 before(async () => { server = await startFixtureServer(); });
 after(() => server.close());
-beforeEach(() => pixellabState.reset());
+beforeEach(() => { pixellabState.reset(); retroDiffusionState.reset(); });
 
 function tree(edit: (plan: any) => void = () => {}): string {
   const root = makeTree();
@@ -36,7 +37,7 @@ test("one run writes the raw PNG and an 8x upscale to scratch and prints a gate 
   assert.equal(result.json.attempt, 1);
   assert.deepEqual(result.json.canvas, { width: 24, height: 16 });
   assert.deepEqual(result.json.gate.failed, []);
-  assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette"]);
+  assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette", "trimmed box"]);
   assert.equal(result.json.gate.ok, true);
 
   const { png, upscale } = result.json.scratch;
@@ -45,6 +46,38 @@ test("one run writes the raw PNG and an 8x upscale to scratch and prints a gate 
   assert.deepEqual([raw.width, raw.height], [24, 16]);
   const big = await sharp(join(root, upscale)).metadata();
   assert.deepEqual([big.width, big.height], [24 * 8, 16 * 8]);
+});
+
+for (const [realSize, canvas, factor] of [[{ w: 4, h: 2 }, [256, 128], 4], [{ w: 2, h: 1 }, [128, 64], 8]] as const) {
+  test(`the visual-check upscale of a ${canvas[0]} px Element is ${factor}x`, async () => {
+    const root = tree((plan) => {
+      plan.scale = 64;
+      plan.styleAnchor = null;
+      placementIn(plan, "cat").generate.realSize = realSize;
+    });
+    const result = await run(root, "cat");
+    assert.equal(result.code, 0, result.stdout + result.stderr);
+    assert.deepEqual(result.json.canvas, { width: canvas[0], height: canvas[1] });
+    assert.equal(result.json.upscaleFactor, factor);
+    assert.match(result.json.scratch.upscale, new RegExp(`\\.x${factor}\\.png$`));
+    const big = await sharp(join(root, result.json.scratch.upscale)).metadata();
+    assert.deepEqual([big.width, big.height], [canvas[0] * factor, canvas[1] * factor]);
+  });
+}
+
+test("a prop in a far Layer with its own scale is generated and gated at that scale", async () => {
+  server.requests.length = 0;
+  const root = tree((plan) => {
+    plan.styleAnchor = null;
+    plan.layers.splice(2, 0, { name: "towers", kind: "placements", plane: "far", scale: 8, placements: [{ id: "tower", element: "tower-glass-tall-01", x: 0, y: 0,
+      generate: { kind: "prop", brief: "glass tower", realSize: { w: 3, h: 10 }, tags: ["tower"] } }] });
+  });
+  pixellabState.images.set("glass tower", handMade(24, 80, [{ x: 0, y: 0, w: 24, h: 80 }]));
+  const result = await run(root, "tower");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.deepEqual(result.json.canvas, { width: 24, height: 80 });
+  assert.deepEqual(sentBodies()[0].image_size, { width: 24, height: 80 });
+  assert.equal(result.json.gate.ok, true);
 });
 
 const placementIn = (plan: any, id: string) => plan.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
@@ -74,7 +107,7 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   assert.equal(record.styleAnchor, null);
   assert.equal(record.firstScene, "rainy-desk-night-k7f2");
   assert.deepEqual(record.cost, { pixellabGenerations: 5, meteredUsd: 0 });
-  assert.deepEqual(record.checks, { attempt: 1, passed: ["dimensions", "alpha", "palette"], warnings: [] });
+  assert.deepEqual(record.checks, { attempt: 1, passed: ["dimensions", "alpha", "palette", "trimmed box"], warnings: [] });
 
   const plan = readJson(root, PLAN);
   const cat = placementIn(plan, "cat");
@@ -137,7 +170,7 @@ const CAT_FULL = { x: 0, y: 2, w: 24, h: 12 };
 test("a canvas of the wrong size is a hard fail", async () => {
   const gate = await gateOf(tree(), "cat", handMade(20, 16, [{ x: 0, y: 2, w: 20, h: 12 }]));
   assert.equal(gate.ok, false);
-  assert.deepEqual(gate.passed, ["alpha", "palette"]);
+  assert.deepEqual(gate.passed, ["alpha", "palette", "trimmed box"]);
   assert.deepEqual(gate.failed, ["dimensions: 20x16, derived canvas is 24x16"]);
 });
 
@@ -159,22 +192,51 @@ test("a transparent pixel's colour is ignored by the Palette check", async () =>
   assert.deepEqual(gate.warnings, []);
 });
 
-test("a trimmed box under 0.7x the target box warns", async () => {
-  const gate = await gateOf(tree(), "cat", handMade(24, 16, [{ x: 7, y: 5, w: 10, h: 6 }]));
-  assert.equal(gate.ok, true);
-  assert.deepEqual(gate.warnings, ["trimmed box 10x6 is outside 0.7x to 1.5x the target box 24x12"]);
+const smallProp = (w: number, h: number) => (plan: any) => {
+  plan.scale = 50;
+  placementIn(plan, "cat").generate.realSize = { w, h };
+};
+
+test("a trimmed box at 0.6x the target box is a hard fail that offers the fills-its-canvas brief", async () => {
+  const root = tree(smallProp(0.4, 0.2));
+  pixellabState.images.set("small", handMade(20, 16, [{ x: 4, y: 5, w: 12, h: 6 }]));
+  const result = await run(root, "cat", "--brief", "small");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const { gate } = result.json;
+  assert.equal(gate.ok, false);
+  assert.deepEqual(gate.passed, ["dimensions", "alpha", "palette"]);
+  assert.deepEqual(gate.failed, ["trimmed box: 12x6 is outside 0.7x to 1.5x the target box 20x10"]);
+  assert.equal(result.json.retryBrief, "tabby cat asleep, curled up, fills its canvas");
 });
 
-test("a trimmed box over 1.5x the target box warns", async () => {
-  const root = tree((plan) => { placementIn(plan, "cat").generate.realSize = { w: 0.2, h: 0.2 }; });
-  const gate = await gateOf(root, "cat", handMade(16, 16, [{ x: 0, y: 0, w: 16, h: 16 }]));
-  assert.equal(gate.ok, true);
-  assert.deepEqual(gate.warnings, ["trimmed box 16x16 is outside 0.7x to 1.5x the target box 9.6x9.6"]);
+test("a trimmed box at 1.6x the target box is a hard fail", async () => {
+  const gate = await gateOf(tree(smallProp(0.2, 0.2)), "cat", handMade(16, 16, [{ x: 0, y: 0, w: 16, h: 16 }]));
+  assert.equal(gate.ok, false);
+  assert.deepEqual(gate.failed, ["trimmed box: 16x16 is outside 0.7x to 1.5x the target box 10x10"]);
 });
 
-test("a trimmed box at the edges of the band does not warn", async () => {
-  const gate = await gateOf(tree(), "cat", handMade(24, 16, [{ x: 0, y: 0, w: 17, h: 16 }]));
+test("a trimmed box at the edges of the band passes, and a passing Attempt offers no retry brief", async () => {
+  const root = tree();
+  pixellabState.images.set("edges", handMade(24, 16, [{ x: 0, y: 0, w: 17, h: 16 }]));
+  const result = await run(root, "cat", "--brief", "edges");
+  assert.equal(result.json.gate.ok, true);
+  assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette", "trimmed box"]);
+  assert.deepEqual(result.json.gate.warnings, []);
+  assert.equal("retryBrief" in result.json, false);
+});
+
+test("the gate report carries the Orphan pixel count and share and the 2x2 checkerboard count, without gating them", async () => {
+  const gate = await gateOf(tree(), "cat", handMade(24, 16, [
+    CAT_FULL,
+    { x: 2, y: 4, w: 1, h: 1, colour: PALETTE[8] },
+    { x: 10, y: 6, w: 1, h: 1, colour: PALETTE[8] }, { x: 11, y: 7, w: 1, h: 1, colour: PALETTE[8] },
+    { x: 11, y: 6, w: 1, h: 1, colour: PALETTE[9] }, { x: 10, y: 7, w: 1, h: 1, colour: PALETTE[9] },
+  ]));
+  assert.equal(gate.ok, true);
   assert.deepEqual(gate.warnings, []);
+  assert.equal(gate.measurements.orphans, 5);
+  assert.equal(gate.measurements.orphanShare, 5 / 288);
+  assert.equal(gate.measurements.checkerboards, 1);
 });
 
 test("more than 2 disconnected opaque islands warns", async () => {
@@ -192,21 +254,167 @@ test("pixels touching only at a corner are separate islands", async () => {
   assert.deepEqual(gate.warnings, ["3 disconnected opaque islands"]);
 });
 
-test("a backdrop with transparent pixels warns", async () => {
-  const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }, { x: 10, y: 10, w: 4, h: 2, alpha: 0 }]));
-  assert.equal(gate.ok, true);
-  assert.deepEqual(gate.warnings, ["backdrop has 8 transparent pixels"]);
+test("one transparent pixel in a Backdrop is a hard fail", async () => {
+  const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }, { x: 10, y: 10, w: 1, h: 1, alpha: 0 }]));
+  assert.equal(gate.ok, false);
+  assert.deepEqual(gate.failed, ["opaque: a Backdrop has no transparent pixels; this one has 1"]);
 });
 
 test("a fully opaque backdrop passes with no warnings", async () => {
   const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }]));
   assert.equal(gate.ok, true);
+  assert.deepEqual(gate.passed, ["dimensions", "alpha", "palette", "opaque"]);
   assert.deepEqual(gate.warnings, []);
 });
 
 const sentBodies = () => server.requests
   .filter((r) => r.service === "pixellab" && r.method === "POST")
   .map((r) => JSON.parse(r.body.toString("utf8")));
+
+const posts = () => server.requests
+  .filter((r) => r.method === "POST")
+  .map((r) => ({ service: r.service, path: r.path, body: JSON.parse(r.body.toString("utf8")) }));
+
+const backdropSized = (w: number, h: number) => (plan: any) => {
+  placementIn(plan, "skyline").generate.size = { w, h };
+  placementIn(plan, "skyline").x = 0;
+};
+
+const ALTERNATIVES = /Pro Flash draws at most 256 px on an axis\. Choose another service with --service: pro \(PixelLab Pro, about 25 generations, takes the Style anchor\), pixflux \(PixelLab Pixflux, 1 generation, no Style anchor\) or rd-plus \(Retro Diffusion RD Plus, \$0\.06, no Style anchor\)/;
+
+test("a Backdrop goes to Pro Flash by default at the size its generate block names", async () => {
+  server.requests.length = 0;
+  const result = await run(tree(backdropSized(256, 148)), "skyline");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.path, "/v2/create-image-pro-flash");
+  assert.deepEqual(call.body.image_size, { width: 256, height: 148 });
+  assert.equal(result.json.service, "pro-flash");
+  assert.deepEqual(result.json.canvas, { width: 256, height: 148 });
+  assert.equal(result.json.gate.ok, true);
+});
+
+test("a Backdrop over 256 px on an axis is refused on Pro Flash, naming Pro, Pixflux and RD Plus, before any call", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(300, 148));
+  const result = await run(root, "skyline");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /^skyline is a 300x148 Backdrop: /);
+  assert.match(result.json.error, ALTERNATIVES);
+  assert.deepEqual(posts(), []);
+  assert.equal(existsSync(join(root, "scratch/attempts")), false);
+  const explicit = await run(root, "skyline", "--service", "pro-flash");
+  assert.match(explicit.json.error, ALTERNATIVES);
+});
+
+test("--service pro sends a 264x148 Backdrop at that size to PixelLab Pro with the Palette and the Style anchor", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(264, 148));
+  const result = await run(root, "skyline", "--service", "pro");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.path, "/v2/generate-image-v2");
+  assert.deepEqual(call.body.image_size, { width: 264, height: 148 });
+  assert.equal(call.body.no_background, false);
+  assert.deepEqual(call.body.target_palette, { colors: PALETTE, name: fixturePalette });
+  assert.deepEqual(call.body.style_image.size, { width: 48, height: 48 });
+  assert.deepEqual(call.body.style_options, { color_palette: false, outline: true, detail: true, shading: true });
+  assert.equal(result.json.service, "pro");
+  assert.equal(result.json.generations, 25);
+  assert.deepEqual(result.json.canvas, { width: 264, height: 148 });
+  assert.equal(result.json.gate.ok, true);
+
+  const accepted = await run(root, "skyline", "--accept", result.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const record = readJson(root, "library/elements/skyline-night-warm-windows-02.json");
+  assert.deepEqual([record.service, record.model, record.width, record.height], ["pixellab", "generate-image-v2", 264, 148]);
+  assert.deepEqual(record.cost, { pixellabGenerations: 25, meteredUsd: 0 });
+  assert.equal(readJson(root, PLAN).cost.pixellabGenerations, 25);
+});
+
+test("--service pixflux sends a 300x148 Backdrop to PixelLab Pixflux with the Palette as a colour image and no style image", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(300, 148));
+  const result = await run(root, "skyline", "--service", "pixflux");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.path, "/v2/create-image-pixflux");
+  assert.deepEqual(call.body.image_size, { width: 300, height: 148 });
+  assert.equal(call.body.style_image, undefined);
+  const colours = await sharp(Buffer.from(call.body.color_image.base64, "base64")).raw().toBuffer({ resolveWithObject: true });
+  assert.deepEqual([colours.info.width, colours.info.height], [PALETTE.length, 1]);
+  assert.deepEqual([...colours.data.subarray(0, 3)], rgb(PALETTE[0]));
+  assert.equal(result.json.generations, 1);
+  assert.deepEqual(result.json.styleImage, { sent: false, anchor: "window-wood-transparent-panes-01" });
+  assert.equal(result.json.gate.ok, true);
+});
+
+test("--service rd-plus sends a 384x240 Backdrop to Retro Diffusion RD Plus and charges its dollars to the plan on accept", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(384, 240));
+  const result = await run(root, "skyline", "--service", "rd-plus");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.service, "retro-diffusion");
+  assert.equal(call.path, "/v2/inferences");
+  assert.equal(call.body.prompt_style, "rd_plus__environment");
+  assert.deepEqual([call.body.width, call.body.height, call.body.num_images], [384, 240, 1]);
+  assert.equal(typeof call.body.input_palette, "string");
+  assert.equal(result.json.generations, 0);
+  assert.equal(result.json.meteredUsd, 0.06);
+  assert.equal(result.json.gate.ok, true);
+
+  const accepted = await run(root, "skyline", "--accept", result.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const record = readJson(root, "library/elements/skyline-night-warm-windows-02.json");
+  assert.deepEqual([record.service, record.model], ["retro-diffusion", "rd_plus__environment"]);
+  assert.deepEqual(record.cost, { pixellabGenerations: 0, meteredUsd: 0.06 });
+  const plan = readJson(root, PLAN);
+  assert.deepEqual(plan.cost.meteredUsd, { "retro-diffusion": 0.06 });
+  assert.equal(plan.cost.pixellabGenerations, 0);
+  assert.equal(validate(root).code, 0);
+});
+
+test("--service other than Pro Flash is refused for a prop", async () => {
+  const result = await run(tree(), "cat", "--service", "pixflux");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /--service pixflux is for Backdrops; props are generated on Pro Flash/);
+});
+
+test("an unknown --service is refused with the list of services", async () => {
+  const result = await run(tree(), "skyline", "--service", "dalle");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /--service must be one of pro-flash, pro, pixflux, rd-plus; got dalle/);
+});
+
+test("style_image is left out for a Placement whose subject is the Style anchor's subject, and sent for another subject", async () => {
+  server.requests.length = 0;
+  const root = tree((plan) => {
+    plan.layers[3].placements.push({ id: "window-2", element: "window-wood-arched-01", x: 20, y: 20,
+      generate: { kind: "prop", brief: "arched wooden window", realSize: { w: 1.5, h: 1.5 }, tags: ["window"] } });
+    plan.layers[3].placements.push({ id: "bookcase", element: "bookcase-oak-tall-01", x: 200, y: 20,
+      generate: { kind: "prop", brief: "tall oak bookcase", realSize: { w: 1.5, h: 1.5 }, tags: ["bookcase"] } });
+  });
+  const same = await run(root, "window-2");
+  assert.equal(same.code, 0, same.stdout + same.stderr);
+  const other = await run(root, "bookcase");
+  assert.equal(other.code, 0, other.stdout + other.stderr);
+  const [window, bookcase] = sentBodies();
+  assert.deepEqual(window.image_size, { width: 72, height: 72 });
+  assert.equal(window.style_image, undefined);
+  assert.deepEqual(same.json.styleImage, { sent: false, anchor: "window-wood-transparent-panes-01" });
+  assert.deepEqual(bookcase.image_size, { width: 72, height: 72 });
+  assert.deepEqual(bookcase.style_image.size, { width: 48, height: 48 });
+  assert.deepEqual(other.json.styleImage, { sent: true, anchor: "window-wood-transparent-panes-01" });
+});
+
+test("a Pro Backdrop waits out a 429 like any PixelLab job", async () => {
+  pixellabState.queue.push({ status: 429, json: { detail: "Maximum 8 concurrent background jobs allowed (Tier 1)" } });
+  const result = await run(tree(backdropSized(264, 148)), "skyline", "--service", "pro");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(pixellabState.served429, 1);
+  assert.equal(result.json.gate.ok, true);
+});
 
 test("style_image with all four style_options is sent only when the Style anchor fits the canvas", async () => {
   server.requests.length = 0;
@@ -526,7 +734,7 @@ test("eight parallel accepts into one plan all land in it", async () => {
   const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
   const root = tree((plan) => {
     plan.layers[3].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
-      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
+      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.3, h: 0.3 }, tags: ["mug"] } })));
     plan.cost.approvedOverage = { reason: "eight mugs", pixellabGenerations: 40 };
   });
   const attempts = await Promise.all(ids.map((id) => run(root, id)));

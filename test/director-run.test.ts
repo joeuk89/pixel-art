@@ -22,8 +22,8 @@ const draft = {
   layers: [
     { name: "sky", kind: "fill", plane: "far", colour: 1 },
     { name: "city", kind: "placements", plane: "far", placements: [
-      { id: "skyline", element: "skyline-rainy-roofs-01", x: 0, y: 30,
-        generate: { kind: "backdrop", brief: "distant rooftops at night", tags: ["skyline", "night"], size: { w: 384, h: 96 } } }] },
+      { id: "skyline", element: "skyline-rainy-roofs-01", x: 64, y: 30,
+        generate: { kind: "backdrop", brief: "distant rooftops at night", tags: ["skyline", "night"], size: { w: 256, h: 96 } } }] },
     { name: "room", kind: "placements", plane: "mid", placements: [
       { id: "lamp", element: "lamp-brass-desk-01", x: 40, y: 140,
         generate: { kind: "prop", brief: "brass desk lamp", realSize: { w: 1, h: 1 }, tags: ["lamp"] } },

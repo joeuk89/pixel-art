@@ -5,8 +5,12 @@ import type { FixtureReply, ServiceFixture } from "../../fixture-server.ts";
 export const PIXELLAB_KEY = "fixture-pixellab-key";
 export const MAX_JOBS = 8;
 const JOB_MS = 150;
-const GENERATIONS = 5;
+const PRO_FLASH_GENERATIONS = 5;
+export const PRO_GENERATIONS = 25;
+export const PIXFLUX_GENERATIONS = 1;
 export const ANIMATE_GENERATIONS = 1;
+const PRO_FLASH_MAX_SIDE = 256;
+const PIXFLUX_MAX_SIDE = 400;
 
 type Job = { id: string; pngs: Buffer[]; generations: number; doneAt: number; finished: boolean };
 
@@ -53,7 +57,7 @@ function hex(colour: string): [number, number, number] {
 }
 
 // Every pixel opaque and in the Palette, so an Attempt passes the still Quality gate unless a test queues another image.
-function solid(width: number, height: number, colour: string): Buffer {
+export function solid(width: number, height: number, colour: string): Buffer {
   const [r, g, b] = hex(colour);
   const rgba = new Uint8Array(width * height * 4);
   for (let p = 0; p < width * height; p++) rgba.set([r, g, b, 255], p * 4);
@@ -134,7 +138,7 @@ export const pixellab: ServiceFixture = {
   async handle(req) {
     if (req.headers.authorization !== `Bearer ${PIXELLAB_KEY}`) return { status: 401, json: { detail: "Invalid API key" } };
     const now = Date.now();
-    if (req.method === "POST" && req.path === "/v2/create-image-pro-flash") {
+    if (req.method === "POST" && (req.path === "/v2/create-image-pro-flash" || req.path === "/v2/generate-image-v2")) {
       const queued = pixellabState.queue.shift();
       if (queued) {
         if (queued.status === 429) pixellabState.served429++;
@@ -146,6 +150,10 @@ export const pixellab: ServiceFixture = {
       }
       const body = JSON.parse(req.body.toString("utf8"));
       const { width, height } = body.image_size;
+      const proFlash = req.path === "/v2/create-image-pro-flash";
+      if (proFlash && (width > PRO_FLASH_MAX_SIDE || height > PRO_FLASH_MAX_SIDE)) {
+        return { status: 422, json: { detail: [{ loc: ["body", "image_size"], msg: "Image size must be between 16 and 256 per side", type: "value_error" }] } };
+      }
       const style = body.style_image?.size;
       if (style && (style.width > width || style.height > height)) {
         return {
@@ -155,9 +163,26 @@ export const pixellab: ServiceFixture = {
       }
       const png = pixellabState.images.get(body.description) ?? solid(width, height, body.target_palette.colors[3]);
       const id = `job-${++pixellabState.created}`;
-      pixellabState.jobs.set(id, { id, pngs: [png], generations: GENERATIONS, doneAt: now + JOB_MS, finished: false });
+      pixellabState.jobs.set(id, { id, pngs: [png], generations: proFlash ? PRO_FLASH_GENERATIONS : PRO_GENERATIONS, doneAt: now + JOB_MS, finished: false });
       pixellabState.peakInFlight = Math.max(pixellabState.peakInFlight, inFlight(now));
       return { json: { background_job_id: id, status: "processing" } };
+    }
+    if (req.method === "POST" && req.path === "/v2/create-image-pixflux") {
+      const queued = pixellabState.queue.shift();
+      if (queued) {
+        if (queued.status === 429) pixellabState.served429++;
+        return queued;
+      }
+      const body = JSON.parse(req.body.toString("utf8"));
+      const { width, height } = body.image_size;
+      if (width > PIXFLUX_MAX_SIDE || height > PIXFLUX_MAX_SIDE || width * height > PIXFLUX_MAX_SIDE ** 2) {
+        return { status: 422, json: { detail: [{ loc: ["body", "image_size"], msg: "Image area must be between 32x32 and 400x400", type: "value_error" }] } };
+      }
+      const colours = await decodePng(Buffer.from(body.color_image.base64, "base64"));
+      const colour = `#${[...colours.data.subarray(12, 15)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+      const png = pixellabState.images.get(body.description) ?? solid(width, height, colour);
+      pixellabState.created++;
+      return { json: { image: { type: "base64", base64: png.toString("base64"), format: "png" }, usage: { type: "generations", generations: PIXFLUX_GENERATIONS } } };
     }
     if (req.method === "POST" && req.path === "/v2/animate-with-text-v3") {
       const body = JSON.parse(req.body.toString("utf8"));

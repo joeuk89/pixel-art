@@ -1,8 +1,17 @@
 import type { Canvas } from "./canvas.ts";
+import {
+  checkerboards, islands, offPaletteCount, opaqueBox, orphans, softAlphaCount, transparentCount, wrapSeamMismatch, type Pixels,
+} from "./pixel-ops.ts";
 
-export type Pixels = { width: number; height: number; data: Uint8Array };
+export type { Pixels } from "./pixel-ops.ts";
+export { paletteSet } from "./pixel-ops.ts";
+
 export type Box = { width: number; height: number };
-export type GateInput = { canvas: Canvas; palette: string[] } & ({ kind: "prop"; targetBox: Box } | { kind: "backdrop" });
+export type GateInput = { canvas: Canvas; palette: string[] } & (
+  | { kind: "prop"; targetBox: Box }
+  | { kind: "backdrop"; seamless?: boolean }
+  | { kind: "texture" }
+);
 export type GateReport = {
   ok: boolean;
   passed: string[];
@@ -16,58 +25,37 @@ export type GateReport = {
     transparentPixels: number;
     trimmed: Box;
     islands: number;
+    orphans: number;
+    orphanShare: number;
+    checkerboards: number;
+    wrapSeamMismatch: number;
   };
 };
 
 export const TRIM_MIN = 0.7;
 export const TRIM_MAX = 1.5;
 export const MAX_ISLANDS = 2;
+const UPSCALE_LONG_SIDE = 1024;
+const MIN_UPSCALE = 4;
+const MAX_UPSCALE = 8;
 
-export function paletteSet(palette: string[]): Set<number> {
-  return new Set(palette.map((hex) => parseInt(hex.slice(1), 16)));
-}
-
-function countIslands(opaque: Uint8Array, width: number, height: number): number {
-  const seen = new Uint8Array(width * height);
-  const stack: number[] = [];
-  let islands = 0;
-  for (let start = 0; start < width * height; start++) {
-    if (!opaque[start] || seen[start]) continue;
-    islands++;
-    seen[start] = 1;
-    stack.push(start);
-    while (stack.length) {
-      const p = stack.pop()!;
-      const x = p % width, y = (p - x) / width;
-      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
-        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-        const q = ny * width + nx;
-        if (opaque[q] && !seen[q]) { seen[q] = 1; stack.push(q); }
-      }
-    }
-  }
-  return islands;
+export function upscaleFactor(canvas: Canvas): number {
+  const fit = Math.floor(UPSCALE_LONG_SIDE / Math.max(canvas.width, canvas.height));
+  return Math.min(MAX_UPSCALE, Math.max(MIN_UPSCALE, fit));
 }
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
 export function gateStill(pixels: Pixels, input: GateInput): GateReport {
-  const { width, height, data } = pixels;
-  const colours = paletteSet(input.palette);
-  const opaque = new Uint8Array(width * height);
-  let softAlphaPixels = 0, offPalettePixels = 0, transparentPixels = 0;
-  let minX = width, minY = height, maxX = -1, maxY = -1;
-  for (let p = 0; p < width * height; p++) {
-    const a = data[p * 4 + 3];
-    if (a !== 0 && a !== 255) softAlphaPixels++;
-    if (a === 0) { transparentPixels++; continue; }
-    opaque[p] = 1;
-    const x = p % width, y = (p - x) / width;
-    minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
-    if (!colours.has((data[p * 4] << 16) | (data[p * 4 + 1] << 8) | data[p * 4 + 2])) offPalettePixels++;
-  }
-  const trimmed = maxX < 0 ? { width: 0, height: 0 } : { width: maxX - minX + 1, height: maxY - minY + 1 };
-  const islands = countIslands(opaque, width, height);
+  const { width, height } = pixels;
+  const box = opaqueBox(pixels);
+  const trimmed = { width: box.width, height: box.height };
+  const softAlphaPixels = softAlphaCount(pixels);
+  const offPalettePixels = offPaletteCount(pixels, input.palette);
+  const transparentPixels = transparentCount(pixels);
+  const islandCount = islands(pixels);
+  const orphan = orphans(pixels);
+  const seam = wrapSeamMismatch(pixels);
 
   const passed: string[] = [], failed: string[] = [], warnings: string[] = [];
   const check = (name: string, ok: boolean, why: string) => (ok ? passed.push(name) : failed.push(`${name}: ${why}`));
@@ -77,21 +65,27 @@ export function gateStill(pixels: Pixels, input: GateInput): GateReport {
   check("palette", offPalettePixels === 0, `${offPalettePixels} opaque pixels not in the Palette`);
 
   if (input.kind === "prop") {
-    const { targetBox: box } = input;
+    const target = input.targetBox;
     const inBand = (got: number, want: number) => got >= TRIM_MIN * want && got <= TRIM_MAX * want;
-    if (!inBand(trimmed.width, box.width) || !inBand(trimmed.height, box.height)) {
-      warnings.push(`trimmed box ${trimmed.width}x${trimmed.height} is outside ${TRIM_MIN}x to ${TRIM_MAX}x the target box ${fmt(box.width)}x${fmt(box.height)}`);
-    }
-  } else if (transparentPixels > 0) {
-    warnings.push(`backdrop has ${transparentPixels} transparent pixels`);
+    check("trimmed box", inBand(trimmed.width, target.width) && inBand(trimmed.height, target.height),
+      `${trimmed.width}x${trimmed.height} is outside ${TRIM_MIN}x to ${TRIM_MAX}x the target box ${fmt(target.width)}x${fmt(target.height)}`);
   }
-  if (islands > MAX_ISLANDS) warnings.push(`${islands} disconnected opaque islands`);
+  if (input.kind === "backdrop") {
+    check("opaque", transparentPixels === 0, `a Backdrop has no transparent pixels; this one has ${transparentPixels}`);
+  }
+  if (input.kind === "texture" || (input.kind === "backdrop" && input.seamless)) {
+    check("wrap seam", seam === 0, `${seam} of ${height} rows differ between the last column and the first`);
+  }
+  if (islandCount > MAX_ISLANDS) warnings.push(`${islandCount} disconnected opaque islands`);
 
   return {
     ok: failed.length === 0,
     passed,
     failed,
     warnings,
-    measurements: { width, height, softAlphaPixels, offPalettePixels, transparentPixels, trimmed, islands },
+    measurements: {
+      width, height, softAlphaPixels, offPalettePixels, transparentPixels, trimmed, islands: islandCount,
+      orphans: orphan.count, orphanShare: orphan.share, checkerboards: checkerboards(pixels), wrapSeamMismatch: seam,
+    },
   };
 }

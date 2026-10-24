@@ -1,5 +1,5 @@
 import { placementsOf } from "../schema/index.ts";
-import { anchorFits, deriveCanvas, type Canvas } from "./lib/canvas.ts";
+import { anchorFits, deriveCanvas, firstAttemptGenerations, layerScale, tier, type Canvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScene } from "./lib/library.ts";
 
@@ -18,18 +18,21 @@ main(() => {
   const placements = plan.layers.flatMap((layer) =>
     placementsOf(layer).flatMap((p) => {
       if (!p.generate) return [];
-      const canvas = deriveCanvas(plan.scale, p.generate);
+      const scale = layerScale(plan.scale, layer);
+      const canvas = deriveCanvas(scale, p.generate);
       return [{
         layer: layer.name,
         placement: p.id,
         element: p.element,
         kind: p.generate.kind,
-        ...(p.generate.kind === "prop" ? { realSize: p.generate.realSize } : {}),
+        ...(p.generate.kind === "prop" ? { scale, realSize: p.generate.realSize } : {}),
         canvas,
+        tier: tier(canvas),
         anchorFits: anchor === null ? null : anchorFits(anchor, canvas),
       }];
     }),
   );
+  const generations = placements.reduce((sum, p) => sum + firstAttemptGenerations(p.canvas), 0);
 
-  return { scene: plan.id, scale: plan.scale, styleAnchor: anchor, placements };
+  return { scene: plan.id, scale: plan.scale, styleAnchor: anchor, generations, placements };
 });

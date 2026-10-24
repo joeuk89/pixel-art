@@ -21,9 +21,12 @@ test("derive-canvas prints the canvas and anchor fit for every unresolved genera
   assert.equal(out.scale, 48);
   assert.deepEqual(out.styleAnchor, { id: "window-wood-transparent-panes-01", width: 48, height: 48 });
   assert.deepEqual(out.placements, [
-    { layer: "city", placement: "skyline", element: "skyline-night-warm-windows-01", kind: "backdrop", canvas: { width: 256, height: 128 }, anchorFits: true },
-    { layer: "room", placement: "cat", element: "cat-tabby-asleep-01", kind: "prop", realSize: { w: 0.5, h: 0.25 }, canvas: { width: 24, height: 16 }, anchorFits: false },
+    { layer: "city", placement: "skyline", element: "skyline-night-warm-windows-01", kind: "backdrop", canvas: { width: 256, height: 128 },
+      tier: { service: "pro-flash", generations: 9 }, anchorFits: true },
+    { layer: "room", placement: "cat", element: "cat-tabby-asleep-01", kind: "prop", scale: 48, realSize: { w: 0.5, h: 0.25 }, canvas: { width: 24, height: 16 },
+      tier: { service: "pro-flash", generations: 5 }, anchorFits: false },
   ]);
+  assert.equal(out.generations, 14);
 });
 
 const prop = (id: string, w: number, h: number) => ({
@@ -60,11 +63,49 @@ for (const [scale, w, h, width, height] of [
 }
 
 test("a Backdrop's canvas is the size its generate block names", () => {
+  const root = treeWithExample((plan) => { plan.layers[2].placements[0].generate.size = { w: 264, h: 148 }; });
+  const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(out.placements[0].canvas, { width: 264, height: 148 });
+});
+
+test("a Backdrop over 256 px on an axis has no Pro Flash tier and lists the alternatives, counted at Pro's 25 generations", () => {
   const root = treeWithExample((plan) => { plan.layers[2].placements[0].generate.size = { w: 384, h: 148 }; });
   const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
   assert.equal(code, 0, stderr);
-  assert.deepEqual(out.placements[0].canvas, { width: 384, height: 148 });
+  assert.deepEqual(out.placements[0].tier, {
+    service: null,
+    alternatives: [{ service: "pro", generations: 25 }, { service: "pixflux", generations: 1 }, { service: "rd-plus", meteredUsd: 0.06 }],
+  });
+  assert.equal(out.generations, 25 + 5);
 });
+
+test("an x, y Placement in a far Layer with its own scale takes that scale", () => {
+  const root = treeWithExample((plan) => {
+    plan.styleAnchor = null;
+    plan.layers = [{ name: "skyline", kind: "placements", plane: "far", scale: 8, placements: [prop("tower", 3, 10)] }];
+  });
+  const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  assert.equal(out.placements[0].scale, 8);
+  assert.deepEqual(out.placements[0].canvas, { width: 24, height: 80 });
+  assert.deepEqual(out.placements[0].tier, { service: "pro-flash", generations: 6 });
+});
+
+for (const [w, h, generations] of [[16, 64, 5], [68, 20, 6], [196, 196, 6], [200, 16, 9], [256, 256, 9]] as const) {
+  test(`a ${w}x${h} canvas is on the ${generations}-generation Pro Flash tier`, () => {
+    const root = treeWithExample((plan) => {
+      plan.styleAnchor = null;
+      plan.scale = 100;
+      plan.layers = [{ name: "room", kind: "placements", plane: "mid", placements: [prop("thing", w / 100, h / 100)] }];
+    });
+    const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+    assert.equal(code, 0, stderr);
+    assert.deepEqual(out.placements[0].canvas, { width: w, height: h });
+    assert.deepEqual(out.placements[0].tier, { service: "pro-flash", generations });
+    assert.equal(out.generations, generations);
+  });
+}
 
 test("a 64x64 Style anchor fits a 256x128 backdrop and does not fit a 48x48 prop", () => {
   const root = treeWithExample((plan) => {

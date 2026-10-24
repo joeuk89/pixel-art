@@ -6,15 +6,27 @@ export const MAX_JOBS = 8;
 const SLOT_DIR = "scratch/pixellab-jobs";
 const MAX_429_RETRIES = 20;
 
+type Base64Png = { type: "base64"; base64: string; format: "png" };
+
+export type PixfluxRequest = {
+  description: string;
+  image_size: { width: number; height: number };
+  seed: number;
+  no_background: boolean;
+  color_image: Base64Png;
+};
+
 export type ProFlashRequest = {
   description: string;
   image_size: { width: number; height: number };
   seed: number;
   no_background: boolean;
   target_palette: { colors: string[]; name: string };
-  style_image?: { image: { type: "base64"; base64: string; format: "png" }; size: { width: number; height: number }; usage_description: string };
+  style_image?: { image: Base64Png; size: { width: number; height: number }; usage_description: string };
   style_options?: { color_palette: boolean; outline: boolean; detail: boolean; shading: boolean };
 };
+
+export type ProRequest = ProFlashRequest;
 
 export class PixelLabError extends Error {
   status: number;
@@ -81,24 +93,45 @@ export async function createImageProFlash(body: ProFlashRequest): Promise<ProFla
   return { png: pngs[0], generations };
 }
 
+export async function generateImageV2(body: ProRequest): Promise<ProFlashResult> {
+  const { pngs, generations } = await job("generate-image-v2", body);
+  return { png: pngs[0], generations };
+}
+
+export async function createImagePixflux(body: PixfluxRequest): Promise<ProFlashResult> {
+  const { pngs, generations } = await job("create-image-pixflux", body);
+  return { png: pngs[0], generations };
+}
+
 // The reply holds frame_count + 1 images with the sent still first.
 export async function animateWithTextV3(body: AnimateRequest): Promise<JobResult> {
   return job("animate-with-text-v3", body);
 }
 
+type Submitted = { background_job_id?: string; usage?: { generations?: number } };
+
 // PixelLab answers 429 uncharged when jobs from elsewhere fill its cap, so waiting and resending is safe.
-async function submit(baseUrl: string, headers: Record<string, string>, path: string, body: unknown): Promise<string> {
+async function submit(baseUrl: string, headers: Record<string, string>, path: string, body: unknown): Promise<Submitted> {
   for (let tries = 0; ; tries++) {
     const res = await fetch(`${baseUrl}/${path}`, { method: "POST", headers, body: JSON.stringify(body) });
-    if (res.ok) return ((await res.json()) as { background_job_id: string }).background_job_id;
+    if (res.ok) return (await res.json()) as Submitted;
     const why = await detail(res);
     if (res.status !== 429 || tries >= MAX_429_RETRIES) throw new PixelLabError(`PixelLab ${path}`, res.status, why);
     await sleep(pollMs());
   }
 }
 
+function finished(what: string, response: unknown, generations: number | undefined): JobResult {
+  const found = images(response);
+  if (found.length === 0) throw new Error(`${what} completed with no image`);
+  return { pngs: found.map((b) => Buffer.from(b, "base64")), generations: generations ?? 0 };
+}
+
+// Some endpoints answer with the image at once instead of a background job.
 async function runJob(baseUrl: string, headers: Record<string, string>, path: string, body: unknown): Promise<JobResult> {
-  const job = await submit(baseUrl, headers, path, body);
+  const submitted = await submit(baseUrl, headers, path, body);
+  const job = submitted.background_job_id;
+  if (job === undefined) return finished(`PixelLab ${path}`, submitted, submitted.usage?.generations);
   for (;;) {
     await sleep(pollMs());
     const poll = await fetch(`${baseUrl}/background-jobs/${job}`, { headers });
@@ -106,8 +139,6 @@ async function runJob(baseUrl: string, headers: Record<string, string>, path: st
     const status = (await poll.json()) as { status: string; usage?: { generations?: number }; last_response?: unknown };
     if (status.status === "failed") throw new Error(`PixelLab background job ${job} failed: ${JSON.stringify(status).slice(0, 300)}`);
     if (status.status !== "completed") continue;
-    const found = images(status.last_response);
-    if (found.length === 0) throw new Error(`PixelLab background job ${job} completed with no image`);
-    return { pngs: found.map((b) => Buffer.from(b, "base64")), generations: status.usage?.generations ?? 0 };
+    return finished(`PixelLab background job ${job}`, status.last_response, status.usage?.generations);
   }
 }

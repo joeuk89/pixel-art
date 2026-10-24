@@ -1,63 +1,9 @@
-import { gateStill, paletteSet, type Pixels } from "./quality-gate.ts";
+import { gateStill, type Pixels } from "./quality-gate.ts";
+export { snapToPalette, type Snapped } from "./pixel-ops.ts";
 
 export const MIN_MOTION = 0.01;
 export const MAX_DRIFT = 0.1;
 export const MAX_SEAM_RATIO = 1.5;
-
-type Lab = [number, number, number];
-
-const linear = (c: number) => {
-  const v = c / 255;
-  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-};
-
-function oklab(r: number, g: number, b: number): Lab {
-  const [lr, lg, lb] = [linear(r), linear(g), linear(b)];
-  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
-  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
-  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
-  return [
-    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
-  ];
-}
-
-const rgbOf = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16);
-  return [n >> 16, (n >> 8) & 255, n & 255] as const;
-};
-
-export type Snapped = { frame: Pixels; opaque: number; offPalette: number };
-
-export function snapToPalette(frame: Pixels, palette: string[]): Snapped {
-  const colours = palette.map(rgbOf);
-  const labs = colours.map(([r, g, b]) => oklab(r, g, b));
-  const exact = paletteSet(palette);
-  const nearest = new Map<number, readonly [number, number, number]>();
-  const data = new Uint8Array(frame.data);
-  let opaque = 0, offPalette = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] === 0) continue;
-    opaque++;
-    const key = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
-    if (exact.has(key)) continue;
-    offPalette++;
-    let hit = nearest.get(key);
-    if (!hit) {
-      const [l, a, b] = oklab(data[i], data[i + 1], data[i + 2]);
-      let best = 0, bestDistance = Infinity;
-      labs.forEach(([pl, pa, pb], k) => {
-        const d = (l - pl) ** 2 + (a - pa) ** 2 + (b - pb) ** 2;
-        if (d < bestDistance) { bestDistance = d; best = k; }
-      });
-      hit = colours[best];
-      nearest.set(key, hit);
-    }
-    data.set(hit, i);
-  }
-  return { frame: { width: frame.width, height: frame.height, data }, opaque, offPalette };
-}
 
 export function buildStrip(frames: Pixels[]): Pixels {
   const width = frames.reduce((sum, f) => sum + f.width, 0);
