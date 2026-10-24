@@ -9,6 +9,7 @@ export const MAX_PALETTE_COLOURS = 32;
 export const BACKDROP_WIDTH = 128;
 export const BACKDROP_HEIGHT = 64;
 export const POSTER_FILE = "poster.png";
+export const POSTER_OG_FILE = "poster-og.png";
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be a lowercase slug");
 const elementId = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)+-\d{2,}$/, "must be <subject>-<descriptors>-<nn>");
