@@ -1,15 +1,13 @@
-import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry, type ScenePlan } from "../schema/index.ts";
 import { main } from "./lib/cli.ts";
 import { readScene } from "./lib/library.ts";
 import { DEV_URL, SITE_URL } from "./lib/site.ts";
+import { validationReport } from "./lib/validation.ts";
 
 const OG_SCALE = 4;
 const root = process.cwd();
-const validateScript = join(dirname(fileURLToPath(import.meta.url)), "validate.ts");
 
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -40,14 +38,7 @@ function stub(plan: ScenePlan): string {
 }
 
 function resolvedScenes(): GalleryEntry[] {
-  const run = spawnSync(process.execPath, [validateScript], { cwd: root, encoding: "utf8" });
-  let report: { scenes: { file: string; status: string }[] };
-  try {
-    report = JSON.parse(run.stdout);
-  } catch {
-    throw new Error(`validate did not report: ${run.stderr}`);
-  }
-  return report.scenes
+  return validationReport(root).scenes
     .filter((s) => s.status === "resolved")
     .map((s) => readScene(join(root, s.file)))
     .map(({ id, title, createdAt, prompt }) => ({ id, title, createdAt, prompt }))
