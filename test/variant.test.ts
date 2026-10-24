@@ -15,13 +15,13 @@ function fakeHistory() {
 test("with no variant in the URL the default Variant plays", () => {
   const s = createVariantSwitch({ plan: twoVariants, url: new URL(scene), history: fakeHistory() });
   assert.equal(s.current.id, "night-rain");
-  assert.equal(s.shareUrl().href, scene);
+  assert.equal(s.urlFor(new URL(scene)).href, scene);
 });
 
 test("?variant= picks that Variant", () => {
   const s = createVariantSwitch({ plan: twoVariants, url: new URL(`${scene}?variant=clear-night`), history: fakeHistory() });
   assert.equal(s.current.title, "Clear night");
-  assert.equal(s.shareUrl().href, `${scene}?variant=clear-night`);
+  assert.equal(s.urlFor(new URL(`${scene}index.html`)).href, `${scene}index.html?variant=clear-night`);
 });
 
 test("an unknown variant id falls back to the default", () => {

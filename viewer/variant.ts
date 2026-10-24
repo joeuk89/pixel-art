@@ -7,7 +7,7 @@ export type VariantHistory = { pushState(state: unknown, unused: string, url: UR
 export type VariantSwitch = {
   readonly current: Variant;
   readonly visible: boolean;
-  shareUrl(): URL;
+  urlFor(base: URL): URL;
   next(): Variant;
 };
 
@@ -25,8 +25,8 @@ export function variantFromUrl(plan: Pick<ScenePlan, "variants">, url: URL): Var
 
 export function createVariantSwitch({ plan, url, history, onChange }: VariantSwitchOptions): VariantSwitch {
   let current = variantFromUrl(plan, url);
-  const urlOf = (variant: Variant) => {
-    const next = new URL(url);
+  const urlOf = (variant: Variant, base = url) => {
+    const next = new URL(base);
     if (variant === plan.variants[0]) next.searchParams.delete(PARAM);
     else next.searchParams.set(PARAM, variant.id);
     return next;
@@ -36,7 +36,7 @@ export function createVariantSwitch({ plan, url, history, onChange }: VariantSwi
       return current;
     },
     visible: plan.variants.length > 1,
-    shareUrl: () => urlOf(current),
+    urlFor: (base) => urlOf(current, base),
     next() {
       current = plan.variants[(plan.variants.indexOf(current) + 1) % plan.variants.length];
       history.pushState(null, "", urlOf(current));
