@@ -1,7 +1,9 @@
 import type { ScenePlan } from "../schema/index.ts";
 import type { MuteState } from "./mute.ts";
+import { sceneUrl } from "./site.ts";
 
 export const OVERLAY_HIDE_MS = 3000;
+const COPIED_MS = 2000;
 
 export type ControlsOptions = {
   plan: ScenePlan;
@@ -44,7 +46,19 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
   const canFullscreen = fullscreenSupported();
   overlay.append(back, title, sound);
   if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
-  overlay.append(button("Copy link", () => {}), button("Info", () => {}));
+  const copy = button("Copy link", () => {
+    navigator.clipboard.writeText(sceneUrl(root, plan.id).href).then(
+      () => flash("Copied"),
+      () => flash("Copy failed"),
+    );
+  });
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  const flash = (label: string) => {
+    copy.textContent = label;
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => (copy.textContent = "Copy link"), COPIED_MS);
+  };
+  overlay.append(copy, button("Info", () => {}));
 
   const hint = document.createElement("p");
   hint.className = "hint";
@@ -99,5 +113,8 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
   };
   host.addEventListener("pointermove", show, { signal });
   host.addEventListener("pointerdown", show, { signal });
-  signal.addEventListener("abort", () => clearTimeout(hideTimer));
+  signal.addEventListener("abort", () => {
+    clearTimeout(hideTimer);
+    clearTimeout(copyTimer);
+  });
 }

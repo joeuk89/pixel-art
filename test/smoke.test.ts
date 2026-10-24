@@ -330,6 +330,17 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  test("Copy link writes the Scene's Share link to the clipboard", async () => {
+    const { page, errors } = await open("", { permissions: ["clipboard-read", "clipboard-write"] });
+    await page.getByRole("link", { name: title }).click();
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    await page.getByRole("button", { name: "Copy link" }).click();
+    await page.getByRole("button", { name: "Copied" }).waitFor();
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${site}scenes/${id}/`);
+    assert.deepEqual(errors, []);
+  });
+
   test("an unknown Scene id shows No such Scene with a link back to the Gallery", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();
