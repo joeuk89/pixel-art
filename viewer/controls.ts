@@ -1,4 +1,5 @@
 import type { ScenePlan } from "../schema/index.ts";
+import { aiNotice, type Credits } from "./credits.ts";
 import type { MuteState } from "./mute.ts";
 import { sceneUrl } from "./site.ts";
 
@@ -9,6 +10,7 @@ export type ControlsOptions = {
   plan: ScenePlan;
   root: URL;
   mute: MuteState;
+  credits: Promise<Credits>;
   navigate: (url: URL) => void;
   signal: AbortSignal;
 };
@@ -25,13 +27,47 @@ export function fullscreenSupported(): boolean {
   return document.fullscreenEnabled && !/iPhone|iPod/.test(navigator.userAgent);
 }
 
+function link(text: string, href: string): HTMLAnchorElement {
+  const el = document.createElement("a");
+  el.href = href;
+  el.target = "_blank";
+  el.rel = "noopener";
+  el.textContent = text;
+  return el;
+}
+
+function infoPanel(plan: ScenePlan, credits: Promise<Credits>, close: () => void): HTMLElement {
+  const panel = document.createElement("section");
+  panel.className = "info";
+  panel.setAttribute("aria-label", "About this Scene");
+  const heading = document.createElement("h2");
+  heading.textContent = plan.title;
+  const prompt = document.createElement("blockquote");
+  prompt.textContent = plan.prompt;
+  const notice = document.createElement("p");
+  const attributions = document.createElement("ul");
+  credits.then(
+    ({ services, attributions: lines }) => {
+      notice.textContent = aiNotice(services);
+      for (const line of lines) {
+        const item = document.createElement("li");
+        item.append(link(line.attribution, line.sourceUrl), " · ", link(line.licence, line.licenceUrl));
+        attributions.append(item);
+      }
+    },
+    () => (notice.textContent = aiNotice([])),
+  );
+  panel.append(heading, prompt, notice, attributions, button("Close", close));
+  return panel;
+}
+
 function toggleFullscreen(mute: MuteState): void {
   mute.set(false);
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   else document.documentElement.requestFullscreen().catch(() => {});
 }
 
-export function mountControls(host: HTMLElement, { plan, root, mute, navigate, signal }: ControlsOptions): void {
+export function mountControls(host: HTMLElement, { plan, root, mute, credits, navigate, signal }: ControlsOptions): void {
   const overlay = document.createElement("nav");
   overlay.className = "overlay";
   overlay.setAttribute("aria-label", "Scene controls");
@@ -58,7 +94,17 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
     clearTimeout(copyTimer);
     copyTimer = setTimeout(() => (copy.textContent = "Copy link"), COPIED_MS);
   };
-  overlay.append(copy, button("Info", () => {}));
+  let info: HTMLElement | undefined;
+  const toggleInfo = () => {
+    if (info) {
+      info.remove();
+      info = undefined;
+    } else {
+      info = infoPanel(plan, credits, toggleInfo);
+      host.append(info);
+    }
+  };
+  overlay.append(copy, button("Info", toggleInfo));
 
   const hint = document.createElement("p");
   hint.className = "hint";
@@ -75,7 +121,7 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
   host.addEventListener(
     "click",
     (e) => {
-      if (mute.everUnmuted || overlay.contains(e.target as Node)) return;
+      if (mute.everUnmuted || overlay.contains(e.target as Node) || info?.contains(e.target as Node)) return;
       mute.set(false);
     },
     { signal },
@@ -92,6 +138,9 @@ export function mountControls(host: HTMLElement, { plan, root, mute, navigate, s
         case "f":
           if (!canFullscreen) return;
           toggleFullscreen(mute);
+          break;
+        case "i":
+          toggleInfo();
           break;
         case "escape":
           if (document.fullscreenElement) return;

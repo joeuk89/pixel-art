@@ -8,6 +8,7 @@ import {
   type ScenePlan,
 } from "../schema/index.ts";
 import { mountControls } from "./controls.ts";
+import { loadCredits } from "./credits.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
 import { startLoop } from "./loop.ts";
 import { createPrimitives } from "./primitives.ts";
@@ -114,7 +115,9 @@ export async function renderScene(
   host.replaceChildren(main);
   document.title = plan.title;
   fitToViewport([poster], signal);
-  mountControls(main, { plan, root, mute, navigate, signal });
+  const credits = loadCredits(root, plan);
+  credits.catch((e) => console.error(e));
+  mountControls(main, { plan, root, mute, credits, navigate, signal });
 
   const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;

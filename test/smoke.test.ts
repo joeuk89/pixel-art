@@ -9,7 +9,7 @@ import sharp from "sharp";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { SITE_URL } from "../pipeline/lib/site.ts";
 import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
-import { fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
+import { editJson, fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
 const title = "Fixture rainy desk";
@@ -52,6 +52,9 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     root = makeTree();
     for (const dir of ["viewer", "schema", "node_modules", "package.json"]) symlinkSync(join(repo, dir), join(root, dir));
     cpSync(join(repo, "index.html"), join(root, "index.html"));
+    editJson(root, fixtureScene, (plan) => {
+      plan.soundtrack.ambient.push({ source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" });
+    });
     const staged = runScript(root, "stage", fixtureScene);
     assert.equal(staged.code, 0, staged.stderr);
     palette = readJson(root, "library/palettes/cosy-night.json").colours;
@@ -341,6 +344,41 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  test("I opens the info panel with the Prompt, the AI notice naming every service and one attribution line per curated sound", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const info = page.getByRole("region", { name: "About this Scene" });
+    assert.equal(await info.count(), 0);
+    await page.keyboard.press("i");
+    await info.waitFor();
+    assert.match(await info.innerText(), /a cosy desk by a rainy window at night, cat asleep/);
+    await info.getByText("Artwork, music and sound effects generated with AI using PixelLab, Stable Audio 3.0 and ElevenLabs.").waitFor();
+    const lines = info.getByRole("listitem");
+    assert.equal(await lines.count(), 2);
+    for (const [n, record] of ["freesound-room-tone-641306", "freesound-thunder-distant-195522"].entries()) {
+      const { attribution, licence, sourceUrl } = readJson(root, `library/ambient/${record}.json`);
+      const line = lines.nth(n);
+      assert.match(await line.innerText(), new RegExp(`${escape(attribution)}.*${escape(licence)}`));
+      assert.equal(await line.getByRole("link", { name: attribution }).getAttribute("href"), sourceUrl);
+    }
+    await page.keyboard.press("i");
+    await info.waitFor({ state: "detached" });
+    assert.equal(await soundOn(page), "false");
+    assert.deepEqual(errors, []);
+  });
+
+  test("the Info button opens the panel and its close button shuts it", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    await page.getByRole("button", { name: "Info" }).click();
+    const info = page.getByRole("region", { name: "About this Scene" });
+    await info.waitFor();
+    await info.getByRole("button", { name: "Close" }).click();
+    await info.waitFor({ state: "detached" });
+    assert.deepEqual(errors, []);
+  });
+
   test("an unknown Scene id shows No such Scene with a link back to the Gallery", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();
@@ -436,6 +474,10 @@ describe("Published site", { skip: browser ? false : "no Playwright browser inst
     }
   });
 });
+
+function escape(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function rgb(hex: string): number[] {
   const n = parseInt(hex.slice(1), 16);
