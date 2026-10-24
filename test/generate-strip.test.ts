@@ -5,6 +5,7 @@ import { join } from "node:path";
 import sharp from "sharp";
 import { makeTree, readJson, repo, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
+import { INFERENCE_FAILED, retroDiffusionState } from "./fixtures/services/retro-diffusion.ts";
 import { decodePng, encodePng, OFF_PALETTE_ACTION, pixellabState, type Rgba } from "./fixtures/services/pixellab.ts";
 
 const script = join(repo, "pipeline/generate-strip.ts");
@@ -14,7 +15,7 @@ const ELEMENTS = "library/elements";
 let server: FixtureServer;
 before(async () => { server = await startFixtureServer(); });
 after(() => server.close());
-beforeEach(() => pixellabState.reset());
+beforeEach(() => { pixellabState.reset(); retroDiffusionState.reset(); });
 
 function tree(): string {
   const root = makeTree();
@@ -164,4 +165,68 @@ test("the off-palette strip passes once snapped and records the pre-snap share a
   for (let i = 0; i < strip.data.length; i += 4) {
     if (strip.data[i + 3] !== 0) assert.ok(allowed.has((strip.data[i] << 16) | (strip.data[i + 1] << 8) | strip.data[i + 2]), "a snapped pixel is off the Palette");
   }
+});
+
+test("a Retro Diffusion run makes 8 frames from the still with frame 0 the still and records the metered cost", async () => {
+  const root = tree();
+  const result = await run(root, "--service", "retro-diffusion");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.frames, 8);
+  assert.equal(retroDiffusionState.submits[0].body.frames_duration, 8);
+  assert.equal(retroDiffusionState.submits[0].body.width, 24);
+  assert.equal(retroDiffusionState.submits[0].body.height, 16);
+  assert.deepEqual(result.json.cost, { pixellabGenerations: 0, meteredUsd: 0.25 });
+  const strip = await decode(join(root, result.json.scratch.strip));
+  assert.deepEqual([strip.width, strip.height], [192, 16]);
+  assert.deepEqual(frameOf(strip, 0, 24), (await decode(join(root, `${ELEMENTS}/${ELEMENT}.png`))).data);
+  assert.equal(result.json.gate.ok, true, JSON.stringify(result.json.gate));
+});
+
+test("a 5xx inference_failed is retried up to 3 times with a different idempotency key each time", async () => {
+  const root = tree();
+  retroDiffusionState.submitQueue.push(INFERENCE_FAILED, INFERENCE_FAILED, INFERENCE_FAILED);
+  const result = await run(root, "--service", "retro-diffusion");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const keys = retroDiffusionState.submits.map((s) => s.idempotencyKey);
+  assert.equal(keys.length, 4);
+  assert.ok(keys.every((k) => typeof k === "string" && k.length > 0));
+  assert.equal(new Set(keys).size, 4, "a retry reused an idempotency key");
+  assert.equal(result.json.retries.length, 3);
+});
+
+test("a fourth inference_failed in a row ends the Attempt with an error", async () => {
+  const root = tree();
+  retroDiffusionState.submitQueue.push(INFERENCE_FAILED, INFERENCE_FAILED, INFERENCE_FAILED, INFERENCE_FAILED);
+  const result = await run(root, "--service", "retro-diffusion");
+  assert.equal(result.code, 1);
+  assert.equal(result.json.ok, false);
+  assert.match(result.json.error, /inference_failed/);
+  assert.equal(retroDiffusionState.submits.length, 4);
+});
+
+test("a task that fails with inference_failed is retried with a fresh key", async () => {
+  const root = tree();
+  retroDiffusionState.failTasks = 1;
+  const result = await run(root, "--service", "retro-diffusion");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const keys = retroDiffusionState.submits.map((s) => s.idempotencyKey);
+  assert.equal(keys.length, 2);
+  assert.notEqual(keys[0], keys[1]);
+});
+
+test("a PixelLab 5xx is retried at once", async () => {
+  const root = tree();
+  pixellabState.animateQueue.push({ status: 503, json: { detail: "Service unavailable" } });
+  const result = await run(root);
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(pixellabState.animateRequests.length, 2);
+  assert.equal(result.json.retries.length, 1);
+});
+
+test("a request the service rejects as invalid is not retried", async () => {
+  const root = tree();
+  retroDiffusionState.submitQueue.push({ status: 400, json: { detail: "input_image too small" } });
+  const result = await run(root, "--service", "retro-diffusion");
+  assert.equal(result.code, 1);
+  assert.equal(retroDiffusionState.submits.length, 1);
 });

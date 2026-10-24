@@ -7,6 +7,8 @@ import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { animateWithTextV3 } from "./lib/pixellab.ts";
 import type { Pixels } from "./lib/quality-gate.ts";
+import { SUBTLE_MOTION, subtleMotion } from "./lib/retro-diffusion.ts";
+import { withFreshKey, type Retry } from "./lib/retry.ts";
 import { buildStrip, gateStrip, snapToPalette, type StripGateReport } from "./lib/strip.ts";
 
 const UPSCALE = 8;
@@ -15,7 +17,7 @@ const SCRATCH = "scratch/strips";
 const SERVICES = ["pixellab", "retro-diffusion"] as const;
 type StripService = (typeof SERVICES)[number];
 const DEFAULT_FRAMES: Record<StripService, number> = { pixellab: 4, "retro-diffusion": 8 };
-const MODELS: Record<StripService, string> = { pixellab: "animate-with-text-v3", "retro-diffusion": "rd_advanced_animation__subtle_motion" };
+const MODELS: Record<StripService, string> = { pixellab: "animate-with-text-v3", "retro-diffusion": SUBTLE_MOTION };
 const USAGE = "usage: generate-strip <elementId> [--service pixellab|retro-diffusion] [--frames n] [--motion text] [--seed n] | --accept <attempt.strip.png> [--scene scene.json]";
 
 type Prop = Extract<ElementRecord, { kind: "prop" }>;
@@ -49,6 +51,16 @@ async function generatePixelLab(still: Buffer, motion: string, frames: number, s
   return { frames: [await decode(still), ...decoded.slice(1)], params, cost: { pixellabGenerations: generations, meteredUsd: 0 } };
 }
 
+// Its frame 0 only approximates the input, so the library still takes its place.
+async function generateRetroDiffusion(still: Buffer, record: Prop, motion: string, frames: number, seed: number, key: string): Promise<Generated> {
+  const params = { prompt_style: SUBTLE_MOTION, frames_duration: frames };
+  const result = await subtleMotion(
+    { prompt: motion, width: record.width, height: record.height, seed, frames_duration: frames, input_image: still.toString("base64") },
+    key,
+  );
+  return { frames: [await decode(still), ...result.frames.slice(1)], params, cost: { pixellabGenerations: 0, meteredUsd: result.costUsd } };
+}
+
 type Sidecar = {
   element: string;
   attempt: number;
@@ -61,6 +73,7 @@ type Sidecar = {
   cost: { pixellabGenerations: number; meteredUsd: number };
   snappedTo: string;
   offPaletteBefore: number;
+  retries: Retry[];
   gate: StripGateReport;
 };
 
@@ -86,7 +99,9 @@ function createExclusive(path: string, data: string): boolean {
 async function attempt(record: Prop, opts: { service: StripService; frames: number; motion: string; seed: number }) {
   const palette = loadPalette(process.cwd(), record.palette);
   const still = readFileSync(join(ELEMENTS, `${record.id}.png`));
-  const generated = await generatePixelLab(still, opts.motion, opts.frames, opts.seed);
+  const { value: generated, retries } = await withFreshKey((key) => opts.service === "pixellab"
+    ? generatePixelLab(still, opts.motion, opts.frames, opts.seed)
+    : generateRetroDiffusion(still, record, opts.motion, opts.frames, opts.seed, key));
 
   const snapped = generated.frames.map((f) => snapToPalette(f, palette.colours));
   const opaque = snapped.reduce((s, f) => s + f.opaque, 0);
@@ -100,7 +115,7 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
   const sidecar = (attemptNo: number): Sidecar => ({
     element: record.id, attempt: attemptNo, service: opts.service, model: MODELS[opts.service], frames: opts.frames,
     prompt: opts.motion, seed: opts.seed, params: generated.params, cost: generated.cost,
-    snappedTo: palette.name, offPaletteBefore: gate.measurements.offPaletteBefore, gate,
+    snappedTo: palette.name, offPaletteBefore: gate.measurements.offPaletteBefore, retries, gate,
   });
   while (!createExclusive(join(SCRATCH, `${record.id}-a${n}.json`), JSON.stringify(sidecar(n), null, 2) + "\n")) n++;
   const stem = `${SCRATCH}/${record.id}-a${n}`;
@@ -116,6 +131,7 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
     prompt: opts.motion,
     seed: opts.seed,
     cost: generated.cost,
+    retries,
     gate,
     scratch: { strip: `${stem}.strip.png`, upscale: `${stem}.x8.png`, attempt: `${stem}.json` },
   };

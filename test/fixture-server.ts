@@ -5,6 +5,7 @@ import { fal } from "./fixtures/services/fal.ts";
 import { freesound } from "./fixtures/services/freesound.ts";
 import { gemini } from "./fixtures/services/gemini.ts";
 import { pixellab } from "./fixtures/services/pixellab.ts";
+import { retroDiffusion } from "./fixtures/services/retro-diffusion.ts";
 import { stability } from "./fixtures/services/stability.ts";
 
 export type FixtureRequest = {
@@ -24,7 +25,7 @@ export type ServiceFixture = {
   handle: (req: FixtureRequest, base: string) => FixtureReply | undefined | Promise<FixtureReply | undefined>;
 };
 
-export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal, pixellab];
+export const serviceFixtures: ServiceFixture[] = [freesound, stability, gemini, fal, pixellab, retroDiffusion];
 
 export type FixtureServer = {
   url: string;
