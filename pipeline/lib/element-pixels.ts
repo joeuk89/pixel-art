@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { allPlacements, elementRecordSchema, paletteSchema, type Palette, type ScenePlan } from "../../schema/index.ts";
-import type { ElementPixels, Pixels } from "../../viewer/compositor.ts";
+import { elementPixelsOf, type ElementPixels, type Pixels } from "../../viewer/compositor.ts";
 
 const ELEMENTS = "library/elements";
 const PALETTES = "library/palettes";
@@ -34,14 +34,7 @@ export async function loadElementPixels(root: string, plan: ScenePlan): Promise<
   const loaded = new Map<string, ElementPixels>();
   for (const id of ids) {
     const record = elementRecordSchema.parse(readJson(join(root, ELEMENTS, `${id}.json`)));
-    const pixels: ElementPixels = { still: await decode(join(root, ELEMENTS, `${id}.png`)) };
-    if (record.kind === "prop" && record.animation) {
-      const { frames, fps, order } = record.animation;
-      pixels.strip = { image: await decode(join(root, ELEMENTS, `${id}.strip.png`)), frames, fps, order };
-    }
-    if (record.emissive) pixels.emissive = record.emissive;
-    if (record.emissiveMask) pixels.mask = await decode(join(root, ELEMENTS, `${id}.emissive.png`));
-    loaded.set(id, pixels);
+    loaded.set(id, await elementPixelsOf(record, (suffix) => decode(join(root, ELEMENTS, `${id}${suffix}`))));
   }
   return loaded;
 }

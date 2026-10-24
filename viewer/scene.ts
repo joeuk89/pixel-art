@@ -11,7 +11,7 @@ import {
 import { playSoundtrack, type Audio } from "./audio.ts";
 import { mountControls } from "./controls.ts";
 import { loadCredits } from "./credits.ts";
-import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
+import { createCompositor, elementPixelsOf, type ElementPixels, type Pixels } from "./compositor.ts";
 import { fetchJson, fetchOk, NotFound } from "./http.ts";
 import { startLoop } from "./loop.ts";
 import { createPrimitives } from "./primitives.ts";
@@ -36,14 +36,7 @@ async function loadElements(root: URL, plan: ScenePlan): Promise<Map<string, Ele
     [...ids].map(async (id): Promise<[string, ElementPixels]> => {
       const base = new URL(`library/elements/${id}`, root);
       const record = elementRecordSchema.parse(await fetchJson(new URL(`${base.href}.json`)));
-      const pixels: ElementPixels = { still: await decode(new URL(`${base.href}.png`)) };
-      if (record.kind === "prop" && record.animation) {
-        const { frames, fps, order } = record.animation;
-        pixels.strip = { image: await decode(new URL(`${base.href}.strip.png`)), frames, fps, order };
-      }
-      if (record.emissive) pixels.emissive = record.emissive;
-      if (record.emissiveMask) pixels.mask = await decode(new URL(`${base.href}.emissive.png`));
-      return [id, pixels];
+      return [id, await elementPixelsOf(record, (suffix) => decode(new URL(`${base.href}${suffix}`)))];
     }),
   );
   return new Map(loaded);

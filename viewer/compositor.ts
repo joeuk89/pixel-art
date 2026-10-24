@@ -1,10 +1,21 @@
-import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
+import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
 import { createRampPass, NONE, UNLIT, type Planes } from "./lighting.ts";
 
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
 export type FrameStrip = { image: Pixels; frames: number; fps: number; order: FrameOrder };
 export type ElementPixels = { still: Pixels; strip?: FrameStrip; emissive?: readonly number[]; mask?: Pixels };
+
+export async function elementPixelsOf(record: ElementRecord, decode: (suffix: string) => Promise<Pixels>): Promise<ElementPixels> {
+  const pixels: ElementPixels = { still: await decode(".png") };
+  if (record.kind === "prop" && record.animation) {
+    const { frames, fps, order } = record.animation;
+    pixels.strip = { image: await decode(".strip.png"), frames, fps, order };
+  }
+  if (record.emissive) pixels.emissive = record.emissive;
+  if (record.emissiveMask) pixels.mask = await decode(".emissive.png");
+  return pixels;
+}
 
 export type PrimitiveDraw = {
   after: number;
@@ -157,12 +168,13 @@ function lookupOf(palette: Palette): Map<number, number> {
   return lookup;
 }
 
+function indexAt(data: Pixels["data"], s: number, lookup: Map<number, number>): number {
+  return lookup.get((data[s] << 16) | (data[s + 1] << 8) | data[s + 2]) ?? NONE;
+}
+
 function indexOf(pixels: Pixels, lookup: Map<number, number>): Uint8Array {
   const index = new Uint8Array(pixels.width * pixels.height);
-  for (let k = 0; k < index.length; k++) {
-    const s = k * 4;
-    index[k] = lookup.get((pixels.data[s] << 16) | (pixels.data[s + 1] << 8) | pixels.data[s + 2]) ?? NONE;
-  }
+  for (let k = 0; k < index.length; k++) index[k] = indexAt(pixels.data, k * 4, lookup);
   return index;
 }
 
@@ -247,8 +259,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
     const emissive = primitive.emissive ? 1 : 0;
     for (let p = 0; p < PIXELS; p++) {
       if (words[p] === before[p]) continue;
-      const i = p * 4;
-      frame.index[p] = lookup.get((frame.rgba[i] << 16) | (frame.rgba[i + 1] << 8) | frame.rgba[i + 2]) ?? NONE;
+      frame.index[p] = indexAt(frame.rgba, p * 4, lookup);
       frame.layer[p] = layer;
       frame.emissive[p] = emissive;
     }
