@@ -9,6 +9,7 @@ import {
 } from "../schema/index.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
 import { startLoop } from "./loop.ts";
+import { createPrimitives } from "./primitives.ts";
 import { sceneUrl } from "./site.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -111,7 +112,7 @@ export async function renderScene(host: HTMLElement, root: URL, id: string, sign
 
   const elements = await loadElements(root, plan);
   if (signal.aborted) return;
-  const compositor = createCompositor({ plan, elements, palette });
+  const compositor = createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
   const canvas = document.createElement("canvas");
   canvas.width = SCENE_WIDTH;
   canvas.height = SCENE_HEIGHT;

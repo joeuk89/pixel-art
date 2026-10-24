@@ -193,6 +193,22 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  test("the Scene plan's rain animates inside its window region on the canvas", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    const canvas = page.locator("canvas");
+    await canvas.waitFor();
+    const rainRegion = () =>
+      canvas.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(75, 17, 42, 42).data).join(","));
+    const first = await rainRegion();
+    let changed = false;
+    for (let k = 0; k < 10 && !changed; k++) {
+      await pause(100);
+      changed = (await rainRegion()) !== first;
+    }
+    assert.ok(changed, "the rain region never changed");
+    assert.deepEqual(errors, []);
+  });
+
   test("an unknown Scene id shows No such Scene with a link back to the Gallery", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();

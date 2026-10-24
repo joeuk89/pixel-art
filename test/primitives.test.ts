@@ -147,6 +147,21 @@ for (const [name, primitive, moves] of exactCases) {
   });
 }
 
+for (const flicker of [0, 0.7, 1]) {
+  test(`glow at flicker ${flicker} only ever lightens the Scene under it`, () => {
+    const lit = stillScene([{ ...only("glow")[0], flicker } as Primitive]);
+    const unlit = stillScene([]);
+    const sum = (px: Uint8ClampedArray, i: number) => px[i] + px[i + 1] + px[i + 2];
+    for (let k = 0; k < 3000; k++) {
+      const a = lit.render(k * 100);
+      const b = unlit.render(k * 100);
+      for (let i = 0; i < a.length; i += 4) {
+        if (sum(a, i) < sum(b, i)) assert.fail(`step ${k}: pixel ${(i / 4) % W},${Math.floor(i / 4 / W)} is darker with glow`);
+      }
+    }
+  });
+}
+
 test("a Scene with Primitives of both kinds wakes for whichever clock is next", () => {
   const c = stillScene([...only("rain"), ...only("steam")]);
   c.render(0);

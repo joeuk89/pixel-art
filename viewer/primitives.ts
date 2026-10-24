@@ -251,7 +251,7 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
   const changesAt = (j: number) => random(seed, salt, j, 0, 0) < FLICKER_CHANCE;
   const targetAt = (j: number) => {
     const dip = random(seed, salt, j, 0, 2);
-    return random(seed, salt, j, 0, 1) < DIM_SHARE ? 1 - flicker * (5 / 6 + (2 / 3) * dip) : 1 - flicker * 0.5 * dip;
+    return random(seed, salt, j, 0, 1) < DIM_SHARE ? Math.max(0, 1 - flicker * (5 / 6 + (2 / 3) * dip)) : 1 - flicker * 0.5 * dip;
   };
   const level = (s: number) => {
     const from = s - FLICKER_SETTLE_STEPS;
