@@ -26,7 +26,7 @@ export function layerScale(sceneScale: number, layer: Layer): number {
 }
 
 export function deriveCanvas(scale: number, generate: Generate): Canvas {
-  if (generate.kind === "backdrop") return { width: generate.size.w, height: generate.size.h };
+  if (generate.kind !== "prop") return { width: generate.size.w, height: generate.size.h };
   return { width: propSide(scale, generate.realSize.w), height: propSide(scale, generate.realSize.h) };
 }
 

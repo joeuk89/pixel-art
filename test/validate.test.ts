@@ -509,3 +509,41 @@ test("a resolved Scene whose Element PNG is missing fails on its own file when v
   failsWith(result, fixtureScene, "", /declared resolved but library\/elements\/window-wood-transparent-panes-01\.json fails validation/);
   assert.equal(result.report.scenes[0].status, "draft");
 });
+
+const localRug = { kind: "prop", brief: "plain grey rug", realSize: { w: 1, h: 0.5 }, tags: ["rug"], finish: "local", generator: "rect", params: { fill: 3 } };
+const starsTexture = { kind: "texture", brief: "night sky with stars", tags: ["sky"], size: { w: 64, h: 32 }, generator: "stars", params: { sky: 1, stars: [7, 12] } };
+
+function withGenerate(generate: object, placement = 0, layer = 3): string {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.status = "draft";
+    plan.layers[layer].placements[placement].generate = generate;
+  });
+  return root;
+}
+
+test("a local prop and a texture naming generators the engine has validate as a draft", () => {
+  const prop = validate(withGenerate(localRug));
+  assert.equal(prop.code, 0, prop.stderr);
+  const texture = validate(withGenerate(starsTexture, 0, 1));
+  assert.equal(texture.code, 0, texture.stderr);
+});
+
+test("a local prop without a generator fails", () => {
+  const { generator, ...noGenerator } = localRug;
+  failsWith(validate(withGenerate(noGenerator)), fixtureScene, "layers[3].placements[0].generate.generator", /local Finish needs a generator/);
+});
+
+test("a local generate naming a generator the engine lacks fails", () => {
+  failsWith(validate(withGenerate({ ...localRug, generator: "teapot" })), fixtureScene, "layers[3].placements[0].generate.generator",
+    /no generator teapot in the local pixel engine/);
+});
+
+test("a local generate whose params the generator rejects fails", () => {
+  failsWith(validate(withGenerate({ ...localRug, params: { fill: "beige" } })), fixtureScene, "layers[3].placements[0].generate.params.fill", /./);
+});
+
+test("a texture generate block with finish service fails", () => {
+  failsWith(validate(withGenerate({ ...starsTexture, finish: "service" }, 0, 1)), fixtureScene, "layers[1].placements[0].generate.finish",
+    /Seamless texture is always local/);
+});

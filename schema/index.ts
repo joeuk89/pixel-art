@@ -62,10 +62,49 @@ const strip = z
   })
   .transform((s) => ({ service: s.service, frames: s.frames ?? DEFAULT_STRIP_FRAMES[s.service] }));
 
+export const finishSchema = z.enum(["local", "service"]);
+export type Finish = z.infer<typeof finishSchema>;
+const paramValue = z.union([z.number(), z.string(), z.boolean()]);
+const generatorParams = z.record(z.string(), z.union([paramValue, z.array(paramValue)]));
+
+const propGenerate = z
+  .strictObject({
+    kind: z.literal("prop"),
+    brief: z.string().min(1),
+    realSize: size,
+    tags,
+    strip: strip.optional(),
+    removeBackground: z.boolean().optional(),
+    finish: finishSchema.default("service"),
+    generator: slug.optional(),
+    params: generatorParams.optional(),
+  })
+  .superRefine((g, ctx) => {
+    if (g.finish === "local") {
+      if (g.generator === undefined) ctx.addIssue({ code: "custom", path: ["generator"], message: "a local Finish needs a generator" });
+      if (g.params === undefined) ctx.addIssue({ code: "custom", path: ["params"], message: "a local Finish needs params" });
+    } else if (g.generator !== undefined || g.params !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["finish"], message: "generator and params go with finish: local" });
+    }
+  });
+
 const generate = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("prop"), brief: z.string().min(1), realSize: size, tags, strip: strip.optional(), removeBackground: z.boolean().optional() }),
+  propGenerate,
   z.strictObject({ kind: z.literal("backdrop"), brief: z.string().min(1), tags, size: z.strictObject({ w: canvasWidth, h: canvasHeight }) }),
+  z.strictObject({
+    kind: z.literal("texture"),
+    brief: z.string().min(1),
+    tags,
+    size: z.strictObject({ w: canvasWidth, h: canvasHeight }),
+    finish: z.literal("local", { error: "a Seamless texture is always local" }).optional(),
+    generator: slug,
+    params: generatorParams,
+  }),
 ]);
+
+export type Generate = z.infer<typeof generate>;
+
+export const isLocal = (g: Generate) => g.kind === "texture" || (g.kind === "prop" && g.finish === "local");
 
 const placement = z.strictObject({
   id: slug,
@@ -359,6 +398,7 @@ const elementBase = {
   checks,
   emissive: z.array(colourIndex).optional(),
   emissiveMask: z.literal(true).optional(),
+  generator: slug.optional(),
 };
 
 const propSide = int.min(MIN_PROP_SIDE).max(MAX_PROP_SIDE).multipleOf(SIDE_STEP);
@@ -389,7 +429,11 @@ export const elementRecordSchema = z.discriminatedUnion("kind", [
     transparent: z.boolean(),
     seamless: z.literal(true),
   }),
-]);
+]).superRefine((record, ctx) => {
+  if (record.service === "local" && record.generator === undefined) {
+    ctx.addIssue({ code: "custom", path: ["generator"], message: "an Element the local pixel engine drew names its generator" });
+  }
+});
 
 const ramp = z.strictObject({ dark: colourIndex, warm: colourIndex, cool: colourIndex });
 
