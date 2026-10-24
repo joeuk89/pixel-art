@@ -315,6 +315,36 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  const audioState = (page: Page) => page.evaluate(() => {
+    const [context] = (window as any).audio.contexts as AudioContext[];
+    return { contexts: (window as any).audio.contexts.length, state: context.state, time: context.currentTime };
+  });
+
+  test("the audio context stays suspended while muted, runs after the first click, keeps running while the tab is hidden and suspends on mute", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.waitForFunction(() => (window as any).audio.starts.length >= 5);
+    assert.deepEqual((({ contexts, state }) => ({ contexts, state }))(await audioState(page)), { contexts: 1, state: "suspended" });
+    await page.mouse.click(500, 400);
+    await page.waitForFunction(() => (window as any).audio.contexts[0].state === "running");
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    const hiddenAt = (await audioState(page)).time;
+    await pause(600);
+    const hidden = await audioState(page);
+    assert.equal(hidden.state, "running");
+    assert.ok(hidden.time > hiddenAt + 0.3, `the audio clock moved ${hidden.time - hiddenAt} s while hidden`);
+
+    await page.keyboard.press("m");
+    await page.waitForFunction(() => (window as any).audio.contexts[0].state === "suspended");
+    assert.equal((await audioState(page)).contexts, 1);
+    assert.deepEqual(errors, []);
+  });
+
   const soundOn = (page: Page) => page.getByRole("button", { name: "Sound", includeHidden: true }).getAttribute("aria-pressed");
 
   test("M toggles the muted flag and the click-for-sound hint goes after the first unmute", async () => {
