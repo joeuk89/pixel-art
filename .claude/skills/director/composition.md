@@ -44,11 +44,11 @@ Size other props against these: a desk is about the armchair's height, a window 
 
 Decide motion per Placement, in this order:
 
-1. If a Primitive in the catalogue supplies the motion, use it, anchored to the Placement it belongs to.
+1. Use a catalogue Primitive, or build one: if a Primitive in the catalogue supplies the motion, use it, anchored to the Placement it belongs to.
 2. If the Element is a living thing or soft matter that should move subtly (a sleeping cat, a plant), give its `generate` block a `strip` (PixelLab, 5 frames by default).
 3. Otherwise the Element is static.
 
-Motion the catalogue lacks is never painted into an Element. Put it on the missing-Primitive list for the Plan gate with the nearest existing Primitive, or none.
+Motion the catalogue lacks is never painted into an Element. Put it on the missing-Primitive list for the Plan gate with the nearest existing Primitive, or none; the owner answers "build it" or "use the nearest" for each.
 
 ## Backdrops
 

@@ -145,11 +145,29 @@ test("an owner edit to scale, a realSize or an Element re-derives canvases and r
   assert.match(edits, /pipeline\/validate\.ts[\s\S]*show the brief again/);
 });
 
-test("after the Plan gate the skill runs Generate, Hard checks, Preview and Rejection, in that order", () => {
+test("after the Plan gate the skill runs Build Primitives, Generate, Hard checks, Preview and Rejection, in that order", () => {
   const titles = steps(skill()).map((s) => s.title);
   const gate = titles.indexOf("Plan gate");
-  assert.deepEqual(titles.slice(gate + 1), ["Generate", "Hard checks", "Preview", "Rejection"]);
+  assert.deepEqual(titles.slice(gate + 1), ["Build Primitives", "Generate", "Hard checks", "Preview", "Rejection"]);
   assert.doesNotMatch(step("Plan gate").text, /generation is not part of this skill/);
+});
+
+test("the Plan gate offers each missing Primitive as build it or use the nearest, and waits for an answer to each", () => {
+  const gate = step("Plan gate").text;
+  assert.match(gate, /missing Primitive[^\n]*"build it" or "use the nearest"/);
+  assert.match(gate.slice(gate.indexOf("**Done when**")), /answered "build it" or "use the nearest" for every missing Primitive/);
+});
+
+test("Build Primitives runs one subagent at a time by primitives.md, unattended, ends on a passing npm test and stages without committing", () => {
+  const text = step("Build Primitives").text;
+  assert.match(text, /\(primitives\.md\)/);
+  assert.match(text, /never ask the owner/i);
+  assert.match(text, /subagent, one after another/);
+  assert.match(text, /stand-in/);
+  assert.match(text, /npm test/);
+  assert.match(text, /staged/);
+  assert.doesNotMatch(text, /git commit/);
+  assert.match(step("Preview").text, /Primitive built at step 7/);
 });
 
 test("Generate runs unattended in the agreed order and never asks the owner", () => {
@@ -183,5 +201,5 @@ test("Rejection reopens only the changed Placements under the same Scene id", ()
   assert.match(text, /pipeline\/reopen\.ts/);
   assert.match(text, /same Scene id/);
   assert.match(text, /only/);
-  assert.match(text, /step 7[\s\S]*step 8[\s\S]*step 9/);
+  assert.match(text, /step 8[\s\S]*step 9[\s\S]*step 10/);
 });
