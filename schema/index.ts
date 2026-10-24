@@ -13,6 +13,7 @@ export const POSTER_FILE = "poster.png";
 export const MUSIC_FILE = "music.mp3";
 export const POSTER_OG_FILE = "poster-og.png";
 export const POSTER_OG_SCALE = 2;
+export const DEFAULT_STAGE_F = 120;
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "must be a lowercase slug");
 const elementId = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)+-\d{2,}$/, "must be <subject>-<descriptors>-<nn>");
