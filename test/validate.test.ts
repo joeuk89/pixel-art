@@ -212,3 +212,11 @@ test("given paths, validate reports only the files under them", () => {
   assert.equal(code, 0);
   assert.deepEqual(report.checked, { scenes: 0, elements: 0, palettes: 0, ambient: 13 });
 });
+
+test("a resolved Scene whose Element PNG is missing fails on its own file when validated by path", () => {
+  const root = makeTree();
+  rmSync(join(root, "library/elements/window-wood-transparent-panes-01.png"));
+  const result = validate(root, sceneDir);
+  failsWith(result, fixtureScene, "", /declared resolved but library\/elements\/window-wood-transparent-panes-01\.json fails validation/);
+  assert.equal(result.report.scenes[0].status, "draft");
+});

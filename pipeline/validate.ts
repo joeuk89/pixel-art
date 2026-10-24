@@ -203,7 +203,13 @@ function referencedFiles(plan: ScenePlan): Set<string> {
 
 for (const scene of scenes) {
   const files = dependencies.get(scene.file);
-  if (files && errors.some((e) => files.has(e.file))) scene.status = "draft";
+  if (!files) continue;
+  const failing = [...files].filter((dep) => errors.some((e) => e.file === dep));
+  if (failing.length === 0) continue;
+  scene.status = "draft";
+  if (scene.declared === "resolved") {
+    for (const dep of failing) errors.push({ file: scene.file, path: "", message: `declared resolved but ${dep} fails validation` });
+  }
 }
 
 const targets = process.argv.slice(2).map((p) => resolve(root, p));
