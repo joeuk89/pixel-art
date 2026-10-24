@@ -35,8 +35,11 @@
     "pickCost": 0.2674,
     "seamJump": 0.0001,
     "maxInnerJump": 0.0021,
-    "normalisedTo": "-20 dBFS RMS",
-    "gainDb": 30
+    "target": "-20 dBFS RMS",
+    "gainDb": 30,
+    "rmsDbfs": -21.6,
+    "peakDbfs": -8.7,
+    "limitedBy": "lift"
   },
-  "fetchedAt": "2026-10-23"
+  "fetchedAt": "2026-10-24"
 }

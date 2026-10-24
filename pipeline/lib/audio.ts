@@ -121,7 +121,9 @@ export function cutOneShot(w: Wav, maxSec: number | undefined, fadeOutSec: numbe
   return { rate: w.rate, ch: w.ch, data };
 }
 
-export function normalise(w: Wav, kind: SoundKind): { gainDb: number } {
+export type Normalised = { gainDb: number; rmsDbfs: number; peakDbfs: number; limitedBy: "peak" | "lift" | null };
+
+function levels(w: Wav): { rms: number; peak: number } {
   let sq = 0, peak = 0;
   const n = w.data[0].length;
   for (let i = 0; i < n; i++) {
@@ -129,14 +131,23 @@ export function normalise(w: Wav, kind: SoundKind): { gainDb: number } {
     sq += m * m;
     for (const c of w.data) peak = Math.max(peak, Math.abs(c[i]));
   }
-  const rms = Math.sqrt(sq / n);
-  let gain = kind === "loop" ? 10 ** (LOOP_RMS_DBFS / 20) / rms : 10 ** (ONESHOT_PEAK_DBFS / 20) / peak;
-  gain = Math.min(gain, 0.98 / peak, 10 ** (MAX_LIFT_DB / 20));
-  for (const c of w.data) for (let i = 0; i < n; i++) c[i] *= gain;
-  return { gainDb: +(20 * Math.log10(gain)).toFixed(1) };
+  return { rms: Math.sqrt(sq / n), peak };
 }
 
-export function normalisedTo(kind: SoundKind): string {
+const db = (x: number) => +(20 * Math.log10(x)).toFixed(1);
+
+export function normalise(w: Wav, kind: SoundKind): Normalised {
+  const { rms, peak } = levels(w);
+  const wanted = kind === "loop" ? 10 ** (LOOP_RMS_DBFS / 20) / rms : 10 ** (ONESHOT_PEAK_DBFS / 20) / peak;
+  const peakCap = 0.98 / peak, liftCap = 10 ** (MAX_LIFT_DB / 20);
+  const gain = Math.min(wanted, peakCap, liftCap);
+  const limitedBy = gain === wanted ? null : gain === peakCap ? "peak" : "lift";
+  for (const c of w.data) for (let i = 0; i < c.length; i++) c[i] *= gain;
+  const after = levels(w);
+  return { gainDb: db(gain), rmsDbfs: db(after.rms), peakDbfs: db(after.peak), limitedBy };
+}
+
+export function normaliseTarget(kind: SoundKind): string {
   return kind === "loop" ? `${LOOP_RMS_DBFS} dBFS RMS` : `${ONESHOT_PEAK_DBFS} dBFS peak`;
 }
 

@@ -14,6 +14,7 @@ export const sounds: Record<number, Sound> = {
   641306: { name: "House Room Tone", username: "aleclubin", duration: 14, license: CC0, type: "wav", samplerate: 44100, channels: 2, tags: ["room-tone"], preview: "bed.ogg" },
   753540: { name: "House Vent Loop 01", username: "ventman", duration: 14, license: CC0, type: "wav", samplerate: 44100, channels: 2, tags: ["vent"], preview: "bed.ogg" },
   195522: { name: "Distant Thunder", username: "stormwatch", duration: 4, license: CC0, type: "wav", samplerate: 44100, channels: 1, tags: ["thunder"], preview: "burst.ogg" },
+  650574: { name: "Fire Crackle", username: "hearthside", duration: 6, license: CC0, type: "wav", samplerate: 44100, channels: 2, tags: ["fire"], preview: "crackle.ogg" },
   100001: { name: "Attribution Rain", username: "byauthor", duration: 14, license: CC_BY, type: "wav", samplerate: 44100, channels: 2, tags: ["rain"], preview: "bed.ogg" },
 };
 

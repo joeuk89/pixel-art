@@ -34,8 +34,11 @@
     "method": "whole",
     "seamJump": 0.1109,
     "maxInnerJump": 0.2865,
-    "normalisedTo": "-20 dBFS RMS",
-    "gainDb": -3.3
+    "target": "-20 dBFS RMS",
+    "gainDb": -3.3,
+    "rmsDbfs": -20,
+    "peakDbfs": -3.7,
+    "limitedBy": null
   },
   "fetchedAt": "2026-10-24",
   "note": "From the research bench; stands in for the ticking clock, which is already curated."

@@ -33,8 +33,11 @@
     "method": "whole",
     "seamJump": 0.0131,
     "maxInnerJump": 0.3638,
-    "normalisedTo": "-20 dBFS RMS",
-    "gainDb": 11.2
+    "target": "-20 dBFS RMS",
+    "gainDb": 11.2,
+    "rmsDbfs": -30.9,
+    "peakDbfs": -0.2,
+    "limitedBy": "peak"
   },
   "fetchedAt": "2026-10-24"
 }

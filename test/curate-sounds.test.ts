@@ -15,6 +15,7 @@ after(() => server.close());
 
 const roomTone = { id: "freesound-room-tone-641306", sourceId: 641306, kind: "loop", distance: ["mid"], subject: "room tone", tags: ["room tone", "bed"], method: "crossfade", targetSec: 6, fadeSec: 1 };
 const vent = { id: "freesound-vent-hum-753540", sourceId: 753540, kind: "loop", distance: ["mid"], subject: "vent hum", tags: ["vent", "hum"], method: "whole" };
+const crackle = { id: "freesound-fire-crackle-650574", sourceId: 650574, kind: "loop", distance: ["near"], subject: "fire crackle", tags: ["fire"], method: "whole" };
 const thunder = { id: "freesound-thunder-distant-195522", sourceId: 195522, kind: "oneshot", distance: ["far"], subject: "distant thunder", tags: ["thunder"], method: "cut", fadeSec: 0.5 };
 
 function tree(spec: unknown[]): string {
@@ -69,8 +70,25 @@ test("curated records pass validate, carry their licence chain and are normalise
 
   const loop = levels(join(root, `library/ambient/${roomTone.id}.ogg`), record.channels);
   assert.ok(Math.abs(loop.rmsDb - -20) < 0.5, `loop RMS ${loop.rmsDb} dBFS`);
+  assert.equal(record.processing.target, "-20 dBFS RMS");
+  assert.equal(record.processing.limitedBy, null);
+  assert.ok(Math.abs(record.processing.rmsDbfs - loop.rmsDb) < 0.5, `record says ${record.processing.rmsDbfs}, file is ${loop.rmsDb}`);
   const oneshot = levels(join(root, `library/ambient/${thunder.id}.ogg`), readJson(root, `library/ambient/${thunder.id}.json`).channels);
   assert.ok(Math.abs(oneshot.peakDb - -6) < 0.5, `one-shot peak ${oneshot.peakDb} dBFS`);
+});
+
+test("a loop with sharp peaks records the level it reached and that the peak ceiling limited it", async () => {
+  const root = tree([crackle]);
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(run.code, 0, run.stderr);
+  const record = readJson(root, `library/ambient/${crackle.id}.json`);
+  const file = levels(join(root, `library/ambient/${crackle.id}.ogg`), record.channels);
+  assert.ok(file.rmsDb < -25, `fixture should stay well under -20 dBFS RMS, got ${file.rmsDb}`);
+  assert.equal(record.processing.target, "-20 dBFS RMS");
+  assert.equal(record.processing.limitedBy, "peak");
+  assert.ok(Math.abs(record.processing.rmsDbfs - file.rmsDb) < 0.5, `record says ${record.processing.rmsDbfs}, file is ${file.rmsDb}`);
+  assert.ok(Math.abs(record.processing.peakDbfs - file.peakDb) < 0.5, `record says peak ${record.processing.peakDbfs}, file is ${file.peakDb}`);
+  assert.equal("normalisedTo" in record.processing, false);
 });
 
 test("a source that is not CC0 fails and writes nothing for that entry", async () => {

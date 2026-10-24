@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 import {
-  crossfadeLoop, cutOneShot, decodeToWav, encodeOgg, normalise, normalisedTo, pickRegion, readWav, seamReport, writeWav, type Wav,
+  crossfadeLoop, cutOneShot, decodeToWav, encodeOgg, normalise, normaliseTarget, pickRegion, readWav, seamReport, writeWav, type Wav,
 } from "./lib/audio.ts";
 import { downloadPreview, getSound, isCc0 } from "./lib/freesound.ts";
 
@@ -64,12 +64,12 @@ async function curate(entry: Entry, work: string, today: string) {
     file: `${entry.id}.ogg`, durationSec: +(out.data[0].length / out.rate).toFixed(3), sampleRate: out.rate, channels: out.ch,
     processing: {
       from: "preview-hq-ogg", sourceDurationSec: +meta.duration.toFixed(1), sourceType: meta.type, ...processing,
-      normalisedTo: normalisedTo(entry.kind), ...norm,
+      target: normaliseTarget(entry.kind), ...norm,
     },
     fetchedAt: today, ...(entry.note ? { note: entry.note } : {}),
   };
   writeFileSync(join(OUT_DIR, `${entry.id}.json`), JSON.stringify(record, null, 2) + "\n");
-  return { id: entry.id, file: `${OUT_DIR}/${record.file}`, record: `${OUT_DIR}/${entry.id}.json`, durationSec: record.durationSec, channels: out.ch, gainDb: norm.gainDb, processing };
+  return { id: entry.id, file: `${OUT_DIR}/${record.file}`, record: `${OUT_DIR}/${entry.id}.json`, durationSec: record.durationSec, channels: out.ch, gainDb: norm.gainDb, rmsDbfs: norm.rmsDbfs, limitedBy: norm.limitedBy, processing };
 }
 
 const written: Awaited<ReturnType<typeof curate>>[] = [];
