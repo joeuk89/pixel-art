@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { editJsonLocked } from "./plan-file.ts";
 import type { GateReport } from "./quality-gate.ts";
 
 export const stillAttemptsDir = (sceneId: string) => `scratch/attempts/${sceneId}`;
@@ -67,9 +68,8 @@ export function readAbandoned(sceneId: string): Abandoned[] {
 
 export function logAbandoned(sceneId: string, entry: Abandoned): string {
   const log = abandonedLog(sceneId);
-  const entries = readAbandoned(sceneId);
   mkdirSync(stillAttemptsDir(sceneId), { recursive: true });
-  writeFileSync(log, JSON.stringify([...entries, entry], null, 2) + "\n");
+  editJsonLocked(log, [], (entries: Abandoned[]) => { entries.push(entry); });
   return log;
 }
 
@@ -79,9 +79,11 @@ const placementIds = (entry: Abandoned) => entry.placement.split(", ");
 export function forgetAbandoned(sceneId: string, placements: string[]): void {
   const log = abandonedLog(sceneId);
   if (!existsSync(log)) return;
-  const kept = readAbandoned(sceneId).flatMap((entry) => {
-    const left = placementIds(entry).filter((id) => !placements.includes(id));
-    return left.length === 0 ? [] : [{ ...entry, placement: left.join(", ") }];
+  editJsonLocked(log, [], (entries: Abandoned[]) => {
+    const kept = entries.flatMap((entry) => {
+      const left = placementIds(entry).filter((id) => !placements.includes(id));
+      return left.length === 0 ? [] : [{ ...entry, placement: left.join(", ") }];
+    });
+    entries.splice(0, entries.length, ...kept);
   });
-  writeFileSync(log, JSON.stringify(kept, null, 2) + "\n");
 }

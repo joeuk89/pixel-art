@@ -1,4 +1,4 @@
-import { readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { scenePlanSchema } from "../../schema/index.ts";
 
 const WAIT_MS = 20;
@@ -34,13 +34,12 @@ function lock(path: string): () => void {
   }
 }
 
-// Scripts run in parallel during generation, so every plan edit re-reads the file under a lock and replaces it atomically.
-export function editPlan<T>(path: string, edit: (raw: any) => T): T {
+// Scripts run in parallel during generation, so every shared JSON edit re-reads the file under a lock and replaces it atomically.
+export function editJsonLocked<T>(path: string, fallback: unknown, edit: (raw: any) => T): T {
   const release = lock(path);
   try {
-    const raw = JSON.parse(readFileSync(path, "utf8"));
+    const raw = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : fallback;
     const result = edit(raw);
-    scenePlanSchema.parse(raw);
     const temp = `${path}.${process.pid}.tmp`;
     writeFileSync(temp, JSON.stringify(raw, null, 2) + "\n");
     renameSync(temp, path);
@@ -48,4 +47,12 @@ export function editPlan<T>(path: string, edit: (raw: any) => T): T {
   } finally {
     release();
   }
+}
+
+export function editPlan<T>(path: string, edit: (raw: any) => T): T {
+  return editJsonLocked(path, undefined, (raw) => {
+    const result = edit(raw);
+    scenePlanSchema.parse(raw);
+    return result;
+  });
 }

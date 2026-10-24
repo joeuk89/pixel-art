@@ -501,6 +501,17 @@ test("--abandon --substitute refuses an Element of another size and changes noth
   assert.equal(existsSync(join(root, "scratch/attempts/rainy-desk-night-k7f2/abandoned.json")), false);
 });
 
+test("eight parallel abandons into one Scene all land in the abandoned log", async () => {
+  const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
+  const root = tree((plan) => {
+    plan.layers[2].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
+      generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
+  });
+  const abandoned = await Promise.all(ids.map((id) => run(root, id, "--abandon")));
+  for (const a of abandoned) assert.equal(a.code, 0, a.stdout + a.stderr);
+  assert.deepEqual(abandonLog(root).map((entry: any) => entry.placement).sort(), ids);
+});
+
 test("eight parallel accepts into one plan all land in it", async () => {
   const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
   const root = tree((plan) => {
