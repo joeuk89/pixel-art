@@ -8,25 +8,26 @@ import { anchorFits, deriveCanvas, layerScale } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
-import { createImageProFlash, PixelLabError, STYLE_OPTIONS, STYLE_USAGE, type ProFlashRequest } from "./lib/pixellab.ts";
+import { checkService, generateImage, parseService, serviceInfo, type ImageService } from "./lib/image-services.ts";
+import { PixelLabError } from "./lib/pixellab.ts";
 import { chargeStillAttempts, logAbandoned, stillAttemptsDir, type Abandoned, type StillAttempt } from "./lib/attempts.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
 const ELEMENTS = "library/elements";
-const SERVICE = "pixellab";
-const MODEL = "pro-flash";
 const ANCHOR_MIN_SIDE = 48;
 const FILLS_CANVAS = "fills its canvas";
-const USAGE = "usage: generate-element <scene.json> <placementId> [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor] | --abandon [--substitute elementId]";
+const USAGE = "usage: generate-element <scene.json> <placementId> [--service pro-flash|pro|pixflux|rd-plus] [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor] | --abandon [--substitute elementId]";
 
 const targetBox = (scale: number, realSize: { w: number; h: number }) => ({ width: scale * realSize.w, height: scale * realSize.h });
 
-function styleAnchor(plan: ScenePlan): { id: string; width: number; height: number } | null {
+const subjectOf = (elementId: string) => elementId.split("-")[0];
+
+function styleAnchor(plan: ScenePlan): { id: string; subject: string; width: number; height: number } | null {
   if (plan.styleAnchor === null) return null;
   const record = readElements().find((e) => e.id === plan.styleAnchor);
   if (!record) throw new Error(`Style anchor ${plan.styleAnchor} is not in the Element library`);
-  return { id: record.id, width: record.width, height: record.height };
+  return { id: record.id, subject: record.subject, width: record.width, height: record.height };
 }
 
 type Found = { placement: Placement; scale: number };
@@ -72,49 +73,48 @@ function claimAttempt(dir: string, placementId: string, wanted: number | null, p
 const attemptTaken = (dir: string, placementId: string, n: number) =>
   `Attempt ${n} of ${basename(dir)}/${placementId} is already in scratch; leave out --attempt to take the next free number`;
 
-function checkBudget(plan: ScenePlan, placement: Placement): void {
+function checkBudget(plan: ScenePlan, placement: Placement, service: ImageService): void {
   const report = budget(plan);
   const still = report.stills.find((s) => s.placement === placement.id)!;
   if (still.attempts >= still.cap) throw new Error(`${still.placement} (${still.element}) has had ${still.attempts} of ${still.cap} Attempts; abandon it`);
-  const { used, cap } = report.pixellabGenerations;
-  if (used >= cap) throw new Error(`Scene budget reached: PixelLab generations: ${used} used of ${cap}`);
+  if (serviceInfo(service).vendor === "pixellab") {
+    const { used, cap } = report.pixellabGenerations;
+    if (used >= cap) throw new Error(`Scene budget reached: PixelLab generations: ${used} used of ${cap}`);
+  } else {
+    const { used, cap } = report.meteredUsd;
+    if (used >= cap) throw new Error(`Scene budget reached: metered: $${used} used of $${cap}`);
+  }
 }
 
-async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { attempt: number | null; seed: number; brief?: string }) {
+async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { attempt: number | null; seed: number; brief?: string; service: ImageService }) {
   const generate = placement.generate!;
   const dir = stillAttemptsDir(plan.id);
+  const canvas = deriveCanvas(scale, generate);
+  checkService(opts.service, generate.kind, placement.id, canvas);
   if (opts.attempt !== null && existsSync(dir) && attemptNumbers(dir, placement.id).includes(opts.attempt)) {
     throw new Error(attemptTaken(dir, placement.id, opts.attempt));
   }
-  checkBudget(plan, placement);
-  const canvas = deriveCanvas(scale, generate);
+  checkBudget(plan, placement, opts.service);
   const palette = loadPalette(process.cwd(), plan.palette);
   const prompt = opts.brief ?? generate.brief;
-  const request: ProFlashRequest = {
-    description: prompt,
-    image_size: canvas,
-    seed: opts.seed,
-    no_background: generate.kind === "prop" && generate.removeBackground !== false,
-    target_palette: { colors: palette.colours, name: palette.name },
-  };
   const anchor = styleAnchor(plan);
-  const sendStyle = anchor !== null && anchorFits(anchor, canvas);
-  if (sendStyle) {
-    const base64 = readFileSync(join(ELEMENTS, `${anchor.id}.png`)).toString("base64");
-    request.style_image = { image: { type: "base64", base64, format: "png" }, size: { width: anchor.width, height: anchor.height }, usage_description: STYLE_USAGE };
-    request.style_options = STYLE_OPTIONS;
-  }
+  const sendStyle = anchor !== null && serviceInfo(opts.service).takesStyle && anchorFits(anchor, canvas) && subjectOf(placement.element) !== anchor.subject;
+  const style = sendStyle ? { png: readFileSync(join(ELEMENTS, `${anchor.id}.png`)), width: anchor.width, height: anchor.height } : null;
 
   let result;
   try {
-    result = await createImageProFlash(request);
+    result = await generateImage({
+      service: opts.service, prompt, canvas, seed: opts.seed,
+      noBackground: generate.kind === "prop" && generate.removeBackground !== false,
+      palette: { name: palette.name, colours: palette.colours }, style,
+    });
   } catch (e) {
     if (e instanceof PixelLabError && e.styleImageTooLarge && anchor) {
       throw new Error(`PixelLab rejected the Style anchor ${anchor.id} (${anchor.width}x${anchor.height}): it must fit the ${canvas.width}x${canvas.height} canvas. Send this Attempt without a style image or choose a smaller anchor.`);
     }
     throw e;
   }
-  const { png, generations } = result;
+  const { png, generations, meteredUsd, params } = result;
 
   mkdirSync(dir, { recursive: true });
   const attemptNo = claimAttempt(dir, placement.id, opts.attempt, png);
@@ -130,8 +130,7 @@ async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { att
   const sidecar: StillAttempt = {
     scene: plan.id, placement: placement.id, element: placement.element, kind: generate.kind,
     ...(generate.kind === "prop" && generate.strip ? { strip: generate.strip } : {}),
-    attempt: attemptNo, canvas, prompt, seed: opts.seed, generations,
-    params: { no_background: request.no_background, ...(sendStyle ? { style_options: STYLE_OPTIONS } : {}) },
+    attempt: attemptNo, canvas, prompt, seed: opts.seed, service: opts.service, generations, meteredUsd, params,
     styleAnchor: sendStyle ? anchor.id : null, gate,
   };
   writeFileSync(`${stem}.json`, JSON.stringify(sidecar, null, 2) + "\n");
@@ -144,13 +143,21 @@ async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { att
     canvas,
     prompt,
     seed: opts.seed,
+    service: opts.service,
     styleImage: { sent: sendStyle, anchor: anchor?.id ?? null },
     generations,
+    meteredUsd,
     gate,
     ...(gate.failed.some((f) => f.startsWith("trimmed box:")) ? { retryBrief: `${generate.brief}, ${FILLS_CANVAS}` } : {}),
     upscaleFactor: upscale,
     scratch: { png: `${stem}.png`, upscale: `${stem}.x${upscale}.png`, attempt: `${stem}.json` },
   };
+}
+
+const roundUsd = (usd: number) => Math.round(usd * 1e4) / 1e4;
+
+function addMetered(raw: any, byService: Record<string, number>): void {
+  for (const [name, usd] of Object.entries(byService)) raw.cost.meteredUsd[name] = roundUsd((raw.cost.meteredUsd[name] ?? 0) + usd);
 }
 
 const sidecarOf = (png: string) => png.replace(/\.png$/, ".json");
@@ -185,15 +192,16 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   const generate = placement.generate!;
   const proposed = placement.element;
   const id = freeId(proposed);
-  const cost = { pixellabGenerations: attempt.generations, meteredUsd: 0 };
+  const service = serviceInfo(attempt.service ?? "pro-flash");
+  const cost = { pixellabGenerations: attempt.generations, meteredUsd: attempt.meteredUsd ?? 0 };
   const base = {
     id,
     subject: id.split("-")[0],
     tags: generate.tags,
     brief: generate.brief,
     prompt: attempt.prompt,
-    service: SERVICE,
-    model: MODEL,
+    service: service.vendor,
+    model: service.model,
     params: attempt.params,
     seed: attempt.seed,
     palette: plan.palette,
@@ -214,6 +222,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     delete target.generate;
     target.element = id;
     raw.cost.pixellabGenerations += charge.generations;
+    addMetered(raw, charge.meteredByService);
     if (asAnchor) raw.styleAnchor = id;
   });
 
@@ -271,6 +280,7 @@ function abandon(file: string, plan: ScenePlan, found: Found, substituteId: stri
     }
     raw.status = "draft";
     raw.cost.pixellabGenerations += charge.generations;
+    addMetered(raw, charge.meteredByService);
     raw.cost.attemptsAbandoned += charge.attempts;
   });
   const log = logAbandoned(plan.id, entry);
@@ -284,13 +294,15 @@ main(async () => {
     options: {
       attempt: { type: "string" }, seed: { type: "string" }, brief: { type: "string" },
       accept: { type: "string" }, "style-anchor": { type: "boolean" },
-      abandon: { type: "boolean" }, substitute: { type: "string" },
+      abandon: { type: "boolean" }, substitute: { type: "string" }, service: { type: "string" },
     },
   });
   const [file, placementId, ...rest] = positionals;
   if (!file || !placementId || rest.length > 0) throw new Error(USAGE);
   const plan = readScene(file);
   const found = findPlacement(plan, placementId);
+  if (values.service !== undefined && (values.accept !== undefined || values.abandon)) throw new Error("--service goes with an Attempt, not with --accept or --abandon");
+  const service = parseService(values.service);
   if (values.accept !== undefined) return accept(file, plan, found.placement, values.accept, values["style-anchor"] === true);
   if (values["style-anchor"]) throw new Error("--style-anchor goes with --accept");
   if (values.abandon) return abandon(file, plan, found, values.substitute);
@@ -299,5 +311,5 @@ main(async () => {
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
   if (attemptNo !== null && (!Number.isInteger(attemptNo) || attemptNo < 1)) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);
   if (!Number.isInteger(seed)) throw new Error(`--seed must be an integer, got ${values.seed}`);
-  return attempt(plan, found, { attempt: attemptNo, seed, brief: values.brief });
+  return attempt(plan, found, { attempt: attemptNo, seed, brief: values.brief, service });
 });

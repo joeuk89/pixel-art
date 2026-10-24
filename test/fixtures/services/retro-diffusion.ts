@@ -1,17 +1,21 @@
 import sharp from "sharp";
 import type { FixtureReply, ServiceFixture } from "../../fixture-server.ts";
-import { breathingRgba, decodePng, OFF_PALETTE_ACTION, offPaletteRgba } from "./pixellab.ts";
+import { breathingRgba, decodePng, OFF_PALETTE_ACTION, offPaletteRgba, solid } from "./pixellab.ts";
 
 export const RETRO_DIFFUSION_KEY = "fixture-retro-diffusion-key";
 export const SUBTLE_MOTION = "rd_advanced_animation__subtle_motion";
 export const COST_USD = 0.25;
+export const RD_PLUS_ENVIRONMENT = "rd_plus__environment";
+export const RD_PLUS_COST_USD = 0.06;
+const RD_PLUS_MIN_SIDE = 64;
+const RD_PLUS_MAX_SIDE = 384;
 
 export const INFERENCE_FAILED: FixtureReply = {
   status: 502,
   json: { status_code: 502, code: "inference_failed", message: "Unable to run inference." },
 };
 
-type Task = { gif?: Buffer; failed: boolean };
+type Task = { image?: Buffer; cost: number; failed: boolean };
 
 export const retroDiffusionState = {
   submitQueue: [] as FixtureReply[],
@@ -42,13 +46,23 @@ export const retroDiffusion: ServiceFixture = {
       retroDiffusionState.submits.push({ idempotencyKey: req.headers["idempotency-key"] as string | undefined, body });
       const queued = retroDiffusionState.submitQueue.shift();
       if (queued) return queued;
-      if (body.prompt_style !== SUBTLE_MOTION) return { status: 400, json: { detail: `unknown prompt_style ${body.prompt_style}` } };
       const id = `task-${retroDiffusionState.submits.length}`;
+      if (body.prompt_style === RD_PLUS_ENVIRONMENT) {
+        const { width, height } = body;
+        if ([width, height].some((side) => side < RD_PLUS_MIN_SIDE || side > RD_PLUS_MAX_SIDE)) {
+          return { status: 400, json: { status_code: 400, code: "invalid_size", message: "width and height must be 64 to 384" } };
+        }
+        const palette = await decodePng(Buffer.from(body.input_palette, "base64"));
+        const colour = `#${[...palette.data.subarray(12, 15)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+        retroDiffusionState.tasks.set(id, { image: solid(width, height, colour), cost: RD_PLUS_COST_USD, failed: false });
+        return { json: { task_id: id, status: "pending" } };
+      }
+      if (body.prompt_style !== SUBTLE_MOTION) return { status: 400, json: { detail: `unknown prompt_style ${body.prompt_style}` } };
       if (retroDiffusionState.failTasks > 0) {
         retroDiffusionState.failTasks--;
-        retroDiffusionState.tasks.set(id, { failed: true });
+        retroDiffusionState.tasks.set(id, { cost: COST_USD, failed: true });
       } else {
-        retroDiffusionState.tasks.set(id, { gif: await gifOf(body.input_image, body.frames_duration, body.prompt), failed: false });
+        retroDiffusionState.tasks.set(id, { image: await gifOf(body.input_image, body.frames_duration, body.prompt), cost: COST_USD, failed: false });
       }
       return { json: { task_id: id, status: "pending" } };
     }
@@ -61,7 +75,7 @@ export const retroDiffusion: ServiceFixture = {
         json: {
           task_id: poll[1],
           status: "succeeded",
-          result: { base64_images: [task.gif!.toString("base64")], balance_cost: COST_USD, remaining_balance: 7.5 },
+          result: { base64_images: [task.image!.toString("base64")], balance_cost: task.cost, remaining_balance: 7.5 },
         },
       };
     }

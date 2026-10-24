@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { fixturePalette, fixtures, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { encodePng, pixellabState } from "./fixtures/services/pixellab.ts";
+import { retroDiffusionState } from "./fixtures/services/retro-diffusion.ts";
 
 const script = join(repo, "pipeline/generate-element.ts");
 const PLAN = "scenes/rainy-desk-night-k7f2/scene.json";
@@ -15,7 +16,7 @@ const PALETTE = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixtu
 let server: FixtureServer;
 before(async () => { server = await startFixtureServer(); });
 after(() => server.close());
-beforeEach(() => pixellabState.reset());
+beforeEach(() => { pixellabState.reset(); retroDiffusionState.reset(); });
 
 function tree(edit: (plan: any) => void = () => {}): string {
   const root = makeTree();
@@ -269,6 +270,151 @@ test("a fully opaque backdrop passes with no warnings", async () => {
 const sentBodies = () => server.requests
   .filter((r) => r.service === "pixellab" && r.method === "POST")
   .map((r) => JSON.parse(r.body.toString("utf8")));
+
+const posts = () => server.requests
+  .filter((r) => r.method === "POST")
+  .map((r) => ({ service: r.service, path: r.path, body: JSON.parse(r.body.toString("utf8")) }));
+
+const backdropSized = (w: number, h: number) => (plan: any) => {
+  placementIn(plan, "skyline").generate.size = { w, h };
+  placementIn(plan, "skyline").x = 0;
+};
+
+const ALTERNATIVES = /Pro Flash draws at most 256 px on an axis\. Choose another service with --service: pro \(PixelLab Pro, about 25 generations, takes the Style anchor\), pixflux \(PixelLab Pixflux, 1 generation, no Style anchor\) or rd-plus \(Retro Diffusion RD Plus, \$0\.06, no Style anchor\)/;
+
+test("a Backdrop goes to Pro Flash by default at the size its generate block names", async () => {
+  server.requests.length = 0;
+  const result = await run(tree(backdropSized(256, 148)), "skyline");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.path, "/v2/create-image-pro-flash");
+  assert.deepEqual(call.body.image_size, { width: 256, height: 148 });
+  assert.equal(result.json.service, "pro-flash");
+  assert.deepEqual(result.json.canvas, { width: 256, height: 148 });
+  assert.equal(result.json.gate.ok, true);
+});
+
+test("a Backdrop over 256 px on an axis is refused on Pro Flash, naming Pro, Pixflux and RD Plus, before any call", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(300, 148));
+  const result = await run(root, "skyline");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /^skyline is a 300x148 Backdrop: /);
+  assert.match(result.json.error, ALTERNATIVES);
+  assert.deepEqual(posts(), []);
+  assert.equal(existsSync(join(root, "scratch/attempts")), false);
+  const explicit = await run(root, "skyline", "--service", "pro-flash");
+  assert.match(explicit.json.error, ALTERNATIVES);
+});
+
+test("--service pro sends a 264x148 Backdrop at that size to PixelLab Pro with the Palette and the Style anchor", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(264, 148));
+  const result = await run(root, "skyline", "--service", "pro");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.path, "/v2/generate-image-v2");
+  assert.deepEqual(call.body.image_size, { width: 264, height: 148 });
+  assert.equal(call.body.no_background, false);
+  assert.deepEqual(call.body.target_palette, { colors: PALETTE, name: fixturePalette });
+  assert.deepEqual(call.body.style_image.size, { width: 48, height: 48 });
+  assert.deepEqual(call.body.style_options, { color_palette: false, outline: true, detail: true, shading: true });
+  assert.equal(result.json.service, "pro");
+  assert.equal(result.json.generations, 25);
+  assert.deepEqual(result.json.canvas, { width: 264, height: 148 });
+  assert.equal(result.json.gate.ok, true);
+
+  const accepted = await run(root, "skyline", "--accept", result.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const record = readJson(root, "library/elements/skyline-night-warm-windows-02.json");
+  assert.deepEqual([record.service, record.model, record.width, record.height], ["pixellab", "generate-image-v2", 264, 148]);
+  assert.deepEqual(record.cost, { pixellabGenerations: 25, meteredUsd: 0 });
+  assert.equal(readJson(root, PLAN).cost.pixellabGenerations, 25);
+});
+
+test("--service pixflux sends a 300x148 Backdrop to PixelLab Pixflux with the Palette as a colour image and no style image", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(300, 148));
+  const result = await run(root, "skyline", "--service", "pixflux");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.path, "/v2/create-image-pixflux");
+  assert.deepEqual(call.body.image_size, { width: 300, height: 148 });
+  assert.equal(call.body.style_image, undefined);
+  const colours = await sharp(Buffer.from(call.body.color_image.base64, "base64")).raw().toBuffer({ resolveWithObject: true });
+  assert.deepEqual([colours.info.width, colours.info.height], [PALETTE.length, 1]);
+  assert.deepEqual([...colours.data.subarray(0, 3)], rgb(PALETTE[0]));
+  assert.equal(result.json.generations, 1);
+  assert.deepEqual(result.json.styleImage, { sent: false, anchor: "window-wood-transparent-panes-01" });
+  assert.equal(result.json.gate.ok, true);
+});
+
+test("--service rd-plus sends a 384x240 Backdrop to Retro Diffusion RD Plus and charges its dollars to the plan on accept", async () => {
+  server.requests.length = 0;
+  const root = tree(backdropSized(384, 240));
+  const result = await run(root, "skyline", "--service", "rd-plus");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const [call] = posts();
+  assert.equal(call.service, "retro-diffusion");
+  assert.equal(call.path, "/v2/inferences");
+  assert.equal(call.body.prompt_style, "rd_plus__environment");
+  assert.deepEqual([call.body.width, call.body.height, call.body.num_images], [384, 240, 1]);
+  assert.equal(typeof call.body.input_palette, "string");
+  assert.equal(result.json.generations, 0);
+  assert.equal(result.json.meteredUsd, 0.06);
+  assert.equal(result.json.gate.ok, true);
+
+  const accepted = await run(root, "skyline", "--accept", result.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const record = readJson(root, "library/elements/skyline-night-warm-windows-02.json");
+  assert.deepEqual([record.service, record.model], ["retro-diffusion", "rd_plus__environment"]);
+  assert.deepEqual(record.cost, { pixellabGenerations: 0, meteredUsd: 0.06 });
+  const plan = readJson(root, PLAN);
+  assert.deepEqual(plan.cost.meteredUsd, { "retro-diffusion": 0.06 });
+  assert.equal(plan.cost.pixellabGenerations, 0);
+  assert.equal(validate(root).code, 0);
+});
+
+test("--service other than Pro Flash is refused for a prop", async () => {
+  const result = await run(tree(), "cat", "--service", "pixflux");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /--service pixflux is for Backdrops; props are generated on Pro Flash/);
+});
+
+test("an unknown --service is refused with the list of services", async () => {
+  const result = await run(tree(), "skyline", "--service", "dalle");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /--service must be one of pro-flash, pro, pixflux, rd-plus; got dalle/);
+});
+
+test("style_image is left out for a Placement whose subject is the Style anchor's subject, and sent for another subject", async () => {
+  server.requests.length = 0;
+  const root = tree((plan) => {
+    plan.layers[3].placements.push({ id: "window-2", element: "window-wood-arched-01", x: 20, y: 20,
+      generate: { kind: "prop", brief: "arched wooden window", realSize: { w: 1.5, h: 1.5 }, tags: ["window"] } });
+    plan.layers[3].placements.push({ id: "bookcase", element: "bookcase-oak-tall-01", x: 200, y: 20,
+      generate: { kind: "prop", brief: "tall oak bookcase", realSize: { w: 1.5, h: 1.5 }, tags: ["bookcase"] } });
+  });
+  const same = await run(root, "window-2");
+  assert.equal(same.code, 0, same.stdout + same.stderr);
+  const other = await run(root, "bookcase");
+  assert.equal(other.code, 0, other.stdout + other.stderr);
+  const [window, bookcase] = sentBodies();
+  assert.deepEqual(window.image_size, { width: 72, height: 72 });
+  assert.equal(window.style_image, undefined);
+  assert.deepEqual(same.json.styleImage, { sent: false, anchor: "window-wood-transparent-panes-01" });
+  assert.deepEqual(bookcase.image_size, { width: 72, height: 72 });
+  assert.deepEqual(bookcase.style_image.size, { width: 48, height: 48 });
+  assert.deepEqual(other.json.styleImage, { sent: true, anchor: "window-wood-transparent-panes-01" });
+});
+
+test("a Pro Backdrop waits out a 429 like any PixelLab job", async () => {
+  pixellabState.queue.push({ status: 429, json: { detail: "Maximum 8 concurrent background jobs allowed (Tier 1)" } });
+  const result = await run(tree(backdropSized(264, 148)), "skyline", "--service", "pro");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(pixellabState.served429, 1);
+  assert.equal(result.json.gate.ok, true);
+});
 
 test("style_image with all four style_options is sent only when the Style anchor fits the canvas", async () => {
   server.requests.length = 0;

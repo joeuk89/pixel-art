@@ -64,7 +64,8 @@ export function budget(plan: ScenePlan) {
   const pixellabGenerations = { charged, pending, used: charged + pending, estimate, cap: GENERATION_MULTIPLIER * estimate + (overage?.pixellabGenerations ?? 0) };
 
   const meteredUsed = Object.values(plan.cost.meteredUsd).reduce((sum, usd) => sum + usd, 0) +
-    unchargedStrips.reduce((sum, a) => sum + a.cost.meteredUsd, 0);
+    unchargedStrips.reduce((sum, a) => sum + a.cost.meteredUsd, 0) +
+    attempts.filter((a) => !a.charged).reduce((sum, a) => sum + (a.meteredUsd ?? 0), 0);
   const meteredUsd = { used: round(meteredUsed), cap: round(METERED_CAP_USD + (overage?.meteredUsd ?? 0)) };
 
   const stills = placements.filter((p) => p.generate).map((p) => ({
