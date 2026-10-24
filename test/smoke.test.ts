@@ -52,7 +52,10 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     for (const dir of ["viewer", "schema", "node_modules", "package.json"]) symlinkSync(join(repo, dir), join(root, dir));
     cpSync(join(repo, "index.html"), join(root, "index.html"));
     editJson(root, fixtureScene, (plan) => {
-      plan.soundtrack.ambient.push({ source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" });
+      plan.soundtrack.ambient.push(
+        { source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" },
+        { source: { kind: "generated", service: "elevenlabs", brief: "distant wind" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
+      );
     });
     const staged = runScript(root, "stage", fixtureScene);
     assert.equal(staged.code, 0, staged.stderr);
@@ -78,6 +81,25 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       Element.prototype.requestFullscreen = function (this: Element, ...args: any[]) {
         (window as any).fullscreenRequests++;
         return (request as any).apply(this, args);
+      };
+      const audio = { contexts: [] as AudioContext[], edges: [] as [AudioNode, AudioNode][], starts: [] as any[] };
+      (window as any).audio = audio;
+      const Context = AudioContext;
+      (window as any).AudioContext = class extends Context {
+        constructor(...args: any[]) {
+          super(...args);
+          audio.contexts.push(this);
+        }
+      };
+      const connect = AudioNode.prototype.connect;
+      AudioNode.prototype.connect = function (this: AudioNode, destination: any, ...rest: any[]) {
+        if (destination instanceof AudioNode) audio.edges.push([this, destination]);
+        return (connect as any).call(this, destination, ...rest);
+      } as any;
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (this: AudioBufferSourceNode, when = 0, offset = 0, ...rest: any[]) {
+        audio.starts.push({ node: this, when, offset, now: this.context.currentTime });
+        return (start as any).call(this, when, offset, ...rest);
       };
     });
     const page = await context.newPage();
@@ -130,11 +152,15 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       await held;
       await route.continue();
     });
+    const audioFetched: string[] = [];
+    page.on("request", (r) => { if (/\.(mp3|ogg)$/.test(r.url())) audioFetched.push(r.url()); });
     await page.goto(`${site}scenes/${id}/`);
     const poster = page.getByRole("img", { name: title });
     await poster.waitFor();
     assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 192);
     assert.equal(await page.locator("canvas").count(), 0);
+    await pause(300);
+    assert.deepEqual(audioFetched, [], "audio loaded before the visuals");
     release();
     await page.locator("canvas").waitFor();
     assert.equal(await poster.count(), 0);
@@ -240,6 +266,85 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  type Route = { loop: boolean; loopStart: number; loopEnd: number; duration: number; offset: number; delay: number; rate: number; gain: number; filters: string[]; reachesOutput: boolean };
+
+  const routes = (page: Page): Promise<Route[]> =>
+    page.evaluate(() => {
+      const { edges, starts } = (window as any).audio as { edges: [AudioNode, AudioNode][]; starts: any[] };
+      return starts.map(({ node, when, offset, now }) => {
+        let gain = 1;
+        const filters: string[] = [];
+        let at: AudioNode = node;
+        for (let next = edges.find(([from]) => from === at); next; next = edges.find(([from]) => from === at)) {
+          at = next[1];
+          if (at instanceof GainNode) gain *= at.gain.value;
+          if (at instanceof BiquadFilterNode) filters.push(`${at.type} ${at.frequency.value}`);
+        }
+        const source = node as AudioBufferSourceNode;
+        return {
+          loop: source.loop, loopStart: source.loopStart, loopEnd: source.loopEnd, duration: source.buffer!.duration,
+          offset, delay: when - now, rate: source.playbackRate.value, gain: Math.round(gain * 1e6) / 1e6, filters,
+          reachesOutput: at instanceof AudioDestinationNode,
+        };
+      });
+    });
+
+  test("music loops at the plan's loop points on its gain and each Ambient loop plays through its Distance bus", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.waitForFunction(() => (window as any).audio.starts.length >= 5);
+    const all = await routes(page);
+    assert.equal(all.length, 5);
+    assert.ok(all.every((r) => r.reachesOutput), "a source does not reach the output");
+    const loops = all.filter((r) => r.loop);
+    const music = loops.filter((r) => r.loopEnd === 2);
+    assert.equal(music.length, 1);
+    assert.deepEqual([music[0].loopStart, music[0].gain, music[0].filters], [0, 0.6, []]);
+    const ambient = loops.filter((r) => r !== music[0]).map(({ gain, filters }) => ({ gain, filters }));
+    assert.deepEqual(new Set(ambient.map((a) => JSON.stringify(a))), new Set([
+      JSON.stringify({ gain: 0.7, filters: [] }),
+      JSON.stringify({ gain: 0.35, filters: ["lowpass 5000"] }),
+      JSON.stringify({ gain: 0.075, filters: ["lowpass 1200"] }),
+    ]));
+    for (const r of loops.filter((r) => r !== music[0])) assert.ok(r.offset >= 0 && r.offset < r.duration, `offset ${r.offset}`);
+    const [thunder] = all.filter((r) => !r.loop);
+    assert.ok(thunder.delay >= 90, `the first One-shot fires after ${thunder.delay} s`);
+    assert.deepEqual(thunder.filters, ["lowpass 1200"]);
+    assert.ok(thunder.gain >= 0.15 * 10 ** -0.1 && thunder.gain <= 0.15 * 10 ** 0.1, `One-shot gain ${thunder.gain}`);
+    assert.ok(thunder.rate >= 0.97 && thunder.rate <= 1.03, `One-shot rate ${thunder.rate}`);
+    assert.deepEqual(errors, []);
+  });
+
+  const audioState = (page: Page) => page.evaluate(() => {
+    const [context] = (window as any).audio.contexts as AudioContext[];
+    return { contexts: (window as any).audio.contexts.length, state: context.state, time: context.currentTime };
+  });
+
+  test("the audio context stays suspended while muted, runs after the first click, keeps running while the tab is hidden and suspends on mute", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.waitForFunction(() => (window as any).audio.starts.length >= 5);
+    assert.deepEqual((({ contexts, state }) => ({ contexts, state }))(await audioState(page)), { contexts: 1, state: "suspended" });
+    await page.mouse.click(500, 400);
+    await page.waitForFunction(() => (window as any).audio.contexts[0].state === "running");
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    const hiddenAt = (await audioState(page)).time;
+    await pause(600);
+    const hidden = await audioState(page);
+    assert.equal(hidden.state, "running");
+    assert.ok(hidden.time > hiddenAt + 0.3, `the audio clock moved ${hidden.time - hiddenAt} s while hidden`);
+
+    await page.keyboard.press("m");
+    await page.waitForFunction(() => (window as any).audio.contexts[0].state === "suspended");
+    assert.equal((await audioState(page)).contexts, 1);
+    assert.deepEqual(errors, []);
+  });
+
   const soundOn = (page: Page) => page.getByRole("button", { name: "Sound", includeHidden: true }).getAttribute("aria-pressed");
 
   test("M toggles the muted flag and the click-for-sound hint goes after the first unmute", async () => {
@@ -266,6 +371,40 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.getByRole("button", { name: "Sound" }).click();
     assert.equal(await soundOn(page), "false");
     assert.equal(await page.evaluate(() => document.fullscreenElement), null);
+    assert.deepEqual(errors, []);
+  });
+
+  const masterVolume = (page: Page) =>
+    page.evaluate(() => {
+      const edge = ((window as any).audio.edges as [AudioNode, AudioNode][]).find(([, to]) => to instanceof AudioDestinationNode);
+      return Math.round((edge![0] as GainNode).gain.value * 1000) / 1000;
+    });
+
+  test("sound on and master volume survive a reload, and sound off brings the hint back", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.keyboard.press("m");
+    await page.mouse.move(300, 300);
+    const volume = page.getByRole("slider", { name: "Volume", includeHidden: true });
+    await volume.fill("0.4");
+    assert.equal(await masterVolume(page), 0.4);
+
+    await page.reload();
+    await page.locator("canvas").waitFor();
+    assert.equal(await soundOn(page), "true");
+    assert.equal(await page.getByText("Click for sound").isVisible(), false);
+    assert.equal(await volume.inputValue(), "0.4");
+    assert.equal(await masterVolume(page), 0.4);
+    await page.mouse.click(500, 400);
+    assert.equal(await soundOn(page), "true");
+    await page.waitForFunction(() => (window as any).audio.contexts[0].state === "running");
+
+    await page.keyboard.press("m");
+    await page.reload();
+    await page.locator("canvas").waitFor();
+    assert.equal(await soundOn(page), "false");
+    assert.equal(await page.getByText("Click for sound").isVisible(), true);
+    assert.equal(await page.evaluate(() => (window as any).audio.contexts[0].state), "suspended");
     assert.deepEqual(errors, []);
   });
 
