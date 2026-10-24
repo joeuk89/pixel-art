@@ -6,7 +6,7 @@ import ffmpeg from "ffmpeg-static";
 import { join } from "node:path";
 import { editJson, fixtureScene, makeTree, readJson, repo, validate } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
-import { SOUND_EFFECTS } from "./fixtures/services/fal.ts";
+import { FAILING_BRIEF, SOUND_EFFECTS } from "./fixtures/services/fal.ts";
 
 const script = join(repo, "pipeline/ambient.ts");
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
@@ -143,4 +143,29 @@ test("generated loops are written at -20 dBFS RMS and generated One-shots at -6 
   assert.equal(run.json.costUsd, 0.036);
   const check = validate(root);
   assert.equal(check.code, 0, check.stderr);
+});
+
+test("a rerun keeps generated sounds already in the Sound library and makes no fal request", async () => {
+  const root = generatedTree();
+  assert.equal((await runScript(script, [fixtureScene], { cwd: root, env: server.env })).code, 0);
+  const before = server.requests.length;
+  const rerun = await runScript(script, [fixtureScene], { cwd: root, env: server.env });
+  assert.equal(rerun.code, 0, rerun.stderr);
+  assert.deepEqual(rerun.json.entries.map((e: any) => [e.file, e.action]), [["rain.ogg", "kept"], ["room.ogg", "copied"], ["thunder.ogg", "copied"]]);
+  assert.deepEqual(server.requests.slice(before).filter((r) => r.service === "fal"), []);
+  assert.deepEqual(readJson(root, fixtureScene).cost.meteredUsd, { stability: 0.2, fal: 0.028 });
+});
+
+test("a failed generation exits non-zero with the HTTP status and leaves that entry unresolved", async () => {
+  const root = generatedTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.soundtrack.ambient[0].source.brief = FAILING_BRIEF;
+  });
+  const run = await runScript(script, [fixtureScene], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.match(run.json.error, /^fal request fixture-request-\d+ result: HTTP 500$/);
+  const plan = readJson(root, fixtureScene);
+  assert.equal(plan.soundtrack.ambient[0].source.id, undefined);
+  assert.deepEqual(plan.cost.meteredUsd, { stability: 0.2 });
+  assert.equal(existsSync(join(root, sceneDir, "rain.ogg")), false);
 });

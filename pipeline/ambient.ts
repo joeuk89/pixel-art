@@ -12,7 +12,7 @@ const METERED_SERVICE = "fal";
 type Entry = ScenePlan["soundtrack"]["ambient"][number];
 type Slot = { entry: Entry; list: "ambient" | "oneshots"; index: number; slot: string; kind: SoundKind };
 type Report = {
-  slot: string; file: string; source: "curated" | "generated"; action: "copied" | "generated";
+  slot: string; file: string; source: "curated" | "generated"; action: "copied" | "generated" | "kept";
   record: string; costUsd?: number; rmsDbfs?: number; peakDbfs?: number;
 };
 
@@ -79,6 +79,14 @@ async function run(planPath: string, work: string) {
       const record = sounds.get(entry.source.id)!;
       copyFileSync(join(AMBIENT, record.file), join(sceneDir, entry.file));
       entries.push({ slot: slot.slot, file: entry.file, source: "curated", action: "copied", record: record.id });
+      continue;
+    }
+    const existing = entry.source.id ? sounds.get(entry.source.id) : undefined;
+    if (existing) {
+      const beside = join(sceneDir, entry.file);
+      const action = existsSync(beside) ? "kept" : "copied";
+      if (action === "copied") copyFileSync(join(AMBIENT, existing.file), beside);
+      entries.push({ slot: slot.slot, file: entry.file, source: "generated", action, record: existing.id });
       continue;
     }
     const id = newRecordId(subjectOf(entry), taken);
