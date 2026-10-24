@@ -443,3 +443,60 @@ test("regenerating an accepted Placement charges only its new Attempts", async (
   assert.equal(accepted.json.generationsAdded, 5);
   assert.equal(readJson(root, PLAN).cost.pixellabGenerations, 15);
 });
+
+async function failedAttempts(root: string, placement: string, count: number) {
+  pixellabState.images.set("off palette", handMade(24, 16, [{ ...CAT_FULL, colour: "#ff00ff" }]));
+  for (let k = 0; k < count; k++) {
+    const r = await run(root, placement, "--brief", "off palette");
+    assert.equal(r.json.gate.ok, false);
+  }
+}
+
+const abandonLog = (root: string) => readJson(root, "scratch/attempts/rainy-desk-night-k7f2/abandoned.json");
+
+test("--abandon with no substitute drops the Placement and the Primitives anchored to it, and charges its Attempts", async () => {
+  const root = tree((plan) => {
+    plan.primitives = [{ type: "twinkle", anchor: "cat", colours: [6] }, { type: "rain", region: { x: 0, y: 0, w: 10, h: 10 }, colours: [4] }];
+  });
+  await failedAttempts(root, "cat", 2);
+  const result = await run(root, "cat", "--abandon");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.outcome, "dropped");
+  assert.equal(result.json.element, "cat-tabby-asleep-01");
+  assert.deepEqual(result.json.droppedPrimitives, ["twinkle anchored to cat"]);
+
+  const plan = readJson(root, PLAN);
+  assert.equal(placementIn(plan, "cat"), undefined);
+  assert.deepEqual(plan.primitives.map((p: any) => p.type), ["rain"]);
+  assert.equal(plan.cost.pixellabGenerations, 10);
+  assert.equal(plan.cost.attemptsAbandoned, 2);
+  assert.deepEqual(abandonLog(root), [{ placement: "cat", element: "cat-tabby-asleep-01", attempts: 2, outcome: "dropped", droppedPrimitives: ["twinkle anchored to cat"] }]);
+  assert.equal(validate(root).code, 0);
+});
+
+test("--abandon --substitute swaps the Placement to a matching library Element", async () => {
+  const root = tree((plan) => { placementIn(plan, "cat").element = "cat-tabby-curled-01"; });
+  await failedAttempts(root, "cat", 4);
+  const result = await run(root, "cat", "--abandon", "--substitute", "cat-tabby-asleep-01");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(result.json.outcome, "substituted");
+  assert.equal(result.json.substitute, "cat-tabby-asleep-01");
+  const cat = placementIn(readJson(root, PLAN), "cat");
+  assert.equal(cat.element, "cat-tabby-asleep-01");
+  assert.equal(cat.generate, undefined);
+  assert.deepEqual(cat.animation, { fps: 4, order: "cycle" });
+  assert.equal(readJson(root, PLAN).cost.attemptsAbandoned, 4);
+  assert.deepEqual(abandonLog(root), [{ placement: "cat", element: "cat-tabby-curled-01", attempts: 4, outcome: "substituted", substitute: "cat-tabby-asleep-01" }]);
+  assert.equal(validate(root).code, 0);
+});
+
+test("--abandon --substitute refuses an Element of another size and changes nothing", async () => {
+  const root = tree();
+  await failedAttempts(root, "cat", 1);
+  const before = readFileSync(join(root, PLAN), "utf8");
+  const result = await run(root, "cat", "--abandon", "--substitute", "window-wood-transparent-panes-01");
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /window-wood-transparent-panes-01 is 48x48, the derived canvas for cat is 24x16/);
+  assert.equal(readFileSync(join(root, PLAN), "utf8"), before);
+  assert.equal(existsSync(join(root, "scratch/attempts/rainy-desk-night-k7f2/abandoned.json")), false);
+});

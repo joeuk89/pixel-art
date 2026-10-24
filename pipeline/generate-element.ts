@@ -16,7 +16,7 @@ const ELEMENTS = "library/elements";
 const SERVICE = "pixellab";
 const MODEL = "pro-flash";
 const ANCHOR_MIN_SIDE = 48;
-const USAGE = "usage: generate-element <scene.json> <placementId> [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor]";
+const USAGE = "usage: generate-element <scene.json> <placementId> [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor] | --abandon [--substitute elementId]";
 
 const targetBox = (scale: number, realSize: { w: number; h: number }) => ({ width: scale * realSize.w, height: scale * realSize.h });
 
@@ -221,10 +221,69 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   };
 }
 
+export type Abandoned = {
+  placement: string;
+  element: string;
+  attempts: number;
+  outcome: "substituted" | "dropped";
+  substitute?: string;
+  droppedPrimitives?: string[];
+};
+
+function checkSubstitute(plan: ScenePlan, placement: Placement, id: string): ElementRecord {
+  const record = readElements().find((e) => e.id === id);
+  if (!record) throw new Error(`no Element ${id} in the Element library`);
+  const generate = placement.generate!;
+  const canvas = deriveCanvas(plan.scale, generate);
+  if (record.kind !== generate.kind) throw new Error(`${id} is a ${record.kind}, ${placement.id} needs a ${generate.kind}`);
+  if (record.palette !== plan.palette) throw new Error(`${id} is locked to Palette ${record.palette}, the Scene uses ${plan.palette}`);
+  if (record.width !== canvas.width || record.height !== canvas.height) {
+    throw new Error(`${id} is ${record.width}x${record.height}, the derived canvas for ${placement.id} is ${canvas.width}x${canvas.height}`);
+  }
+  return record;
+}
+
+function abandon(file: string, plan: ScenePlan, placement: Placement, substituteId: string | undefined) {
+  const substitute = substituteId === undefined ? undefined : checkSubstitute(plan, placement, substituteId);
+  const dir = stillAttemptsDir(plan.id);
+  const charge = chargeStillAttempts(dir, placement.id);
+
+  const raw = JSON.parse(readFileSync(file, "utf8"));
+  const entry: Abandoned = { placement: placement.id, element: placement.element, attempts: charge.attempts, outcome: substitute ? "substituted" : "dropped" };
+  if (substitute) {
+    const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
+    delete target.generate;
+    target.element = substitute.id;
+    if (!(substitute.kind === "prop" && substitute.animation)) delete target.animation;
+    entry.substitute = substitute.id;
+  } else {
+    for (const layer of raw.layers) if (layer.placements) layer.placements = layer.placements.filter((p: any) => p.id !== placement.id);
+    const anchored = raw.primitives.filter((p: any) => p.anchor === placement.id);
+    raw.primitives = raw.primitives.filter((p: any) => p.anchor !== placement.id);
+    entry.droppedPrimitives = anchored.map((p: any) => `${p.type} anchored to ${placement.id}`);
+  }
+  raw.status = "draft";
+  raw.cost.pixellabGenerations += charge.generations;
+  raw.cost.attemptsAbandoned += charge.attempts;
+  scenePlanSchema.parse(raw);
+
+  mkdirSync(dir, { recursive: true });
+  const log = join(dir, "abandoned.json");
+  const entries: Abandoned[] = existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : [];
+  writeFileSync(log, JSON.stringify([...entries, entry], null, 2) + "\n");
+  writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
+  charge.commit();
+  return { scene: plan.id, ...entry, generationsAdded: charge.generations, plan: file, log };
+}
+
 main(async () => {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
-    options: { attempt: { type: "string" }, seed: { type: "string" }, brief: { type: "string" }, accept: { type: "string" }, "style-anchor": { type: "boolean" } },
+    options: {
+      attempt: { type: "string" }, seed: { type: "string" }, brief: { type: "string" },
+      accept: { type: "string" }, "style-anchor": { type: "boolean" },
+      abandon: { type: "boolean" }, substitute: { type: "string" },
+    },
   });
   const [file, placementId, ...rest] = positionals;
   if (!file || !placementId || rest.length > 0) throw new Error(USAGE);
@@ -232,6 +291,8 @@ main(async () => {
   const placement = findPlacement(plan, placementId);
   if (values.accept !== undefined) return accept(file, plan, placement, values.accept, values["style-anchor"] === true);
   if (values["style-anchor"]) throw new Error("--style-anchor goes with --accept");
+  if (values.abandon) return abandon(file, plan, placement, values.substitute);
+  if (values.substitute !== undefined) throw new Error("--substitute goes with --abandon");
   const attemptNo = values.attempt === undefined ? null : Number(values.attempt);
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
   if (attemptNo !== null && (!Number.isInteger(attemptNo) || attemptNo < 1)) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);
