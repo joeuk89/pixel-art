@@ -129,6 +129,8 @@ for (const file of jsonFiles(ELEMENTS)) {
   elements.set(value.id, value);
   if (!paletteNames.has(value.palette)) errors.push({ file, path: "palette", message: `Palette ${value.palette} does not exist` });
   checkPng(file, "", `${ELEMENTS}/${stem(file)}.png`, value.width, value.height, "Element PNG");
+  const mask = `${ELEMENTS}/${stem(file)}.emissive.png`;
+  if (existsSync(join(root, mask))) checkPng(file, "emissive", mask, value.width, value.height, "emissive mask");
   const lockedSize = palettes.get(value.palette)?.colours.length;
   value.emissive?.forEach((index, i) => {
     if (lockedSize !== undefined && index >= lockedSize) {

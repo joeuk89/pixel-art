@@ -139,6 +139,74 @@ test("a Variant offset naming a missing Layer fails", () => {
   failsWith(validate(root), fixtureScene, "variants[0].ambient.layers.curtains", /no Layer curtains/);
 });
 
+const lamp = { type: "point", id: "lamp", anchor: "cat", offset: { x: 12, y: 0 }, radius: 80, strength: 2.5, tint: "warm" };
+
+test("point and beam Lights with flicker and halo blocks validate", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[1].lights = [
+      { ...lamp, flicker: { depth: 0.12, rate: 0.8 }, halo: { colour: 8, radius: 36, strength: 0.6 } },
+      { type: "point", id: "spill", at: { x: 192, y: 52 }, radius: 120, strength: 0.75, tint: "cool" },
+      { type: "beam", id: "moon", corners: [{ x: 170, y: 76 }, { x: 214, y: 76 }, { x: 250, y: 239 }, { x: 150, y: 239 }], strength: 1, tint: "cool", softness: 6 },
+    ];
+  });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("a point Light with both anchor and at fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].lights = [{ ...lamp, at: { x: 10, y: 10 } }]; });
+  failsWith(validate(root), fixtureScene, "variants[0].lights[0]", /exactly one of anchor or at/);
+});
+
+test("a point Light with neither anchor nor at fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    const { anchor, offset, ...unplaced } = lamp;
+    plan.variants[0].lights = [unplaced];
+  });
+  failsWith(validate(root), fixtureScene, "variants[0].lights[0]", /exactly one of anchor or at/);
+});
+
+test("a point Light anchored to a missing Placement fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[1].lights = [{ ...lamp, anchor: "lamp" }]; });
+  failsWith(validate(root), fixtureScene, "variants[1].lights[0].anchor", /no Placement lamp/);
+});
+
+test("emissiveOff naming a missing Placement fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[1].emissiveOff = ["stars", "city-lights"]; });
+  failsWith(validate(root), fixtureScene, "variants[1].emissiveOff[1]", /no Placement city-lights/);
+});
+
+test("a Light with an unknown type fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].lights = [{ type: "directional", id: "sun", strength: 1, tint: "warm" }]; });
+  failsWith(validate(root), fixtureScene, "variants[0].lights[0].type", /./);
+});
+
+test("a beam whose corners do not go round a convex quad fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[0].lights = [{ type: "beam", id: "sun", corners: [{ x: 0, y: 0 }, { x: 40, y: 40 }, { x: 40, y: 0 }, { x: 0, y: 40 }], strength: 1, tint: "warm", softness: 2 }];
+  });
+  failsWith(validate(root), fixtureScene, "variants[0].lights[0].corners", /convex quad/);
+});
+
+test("two Lights with the same id in one Variant fail", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].lights = [lamp, { ...lamp, anchor: "window" }]; });
+  failsWith(validate(root), fixtureScene, "variants[0].lights[1].id", /duplicate Light id lamp/);
+});
+
+test("an emissive mask whose size differs from the Element fails", () => {
+  const root = makeTree();
+  copyFileSync(join(root, "library/elements/sky-stars-night-01.png"), join(root, "library/elements/skyline-night-warm-windows-01.emissive.png"));
+  failsWith(validate(root), SKYLINE, "emissive", /emissive mask .* is 32x32, record says 256x128/);
+});
+
 test("a Scene with zero Variants fails", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { plan.variants = []; });
