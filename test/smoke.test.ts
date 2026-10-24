@@ -52,7 +52,10 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     for (const dir of ["viewer", "schema", "node_modules", "package.json"]) symlinkSync(join(repo, dir), join(root, dir));
     cpSync(join(repo, "index.html"), join(root, "index.html"));
     editJson(root, fixtureScene, (plan) => {
-      plan.soundtrack.ambient.push({ source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" });
+      plan.soundtrack.ambient.push(
+        { source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" },
+        { source: { kind: "generated", service: "elevenlabs", brief: "distant wind" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
+      );
     });
     const staged = runScript(root, "stage", fixtureScene);
     assert.equal(staged.code, 0, staged.stderr);
@@ -78,6 +81,25 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       Element.prototype.requestFullscreen = function (this: Element, ...args: any[]) {
         (window as any).fullscreenRequests++;
         return (request as any).apply(this, args);
+      };
+      const audio = { contexts: [] as AudioContext[], edges: [] as [AudioNode, AudioNode][], starts: [] as any[] };
+      (window as any).audio = audio;
+      const Context = AudioContext;
+      (window as any).AudioContext = class extends Context {
+        constructor(...args: any[]) {
+          super(...args);
+          audio.contexts.push(this);
+        }
+      };
+      const connect = AudioNode.prototype.connect;
+      AudioNode.prototype.connect = function (this: AudioNode, destination: any, ...rest: any[]) {
+        if (destination instanceof AudioNode) audio.edges.push([this, destination]);
+        return (connect as any).call(this, destination, ...rest);
+      } as any;
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (this: AudioBufferSourceNode, when = 0, offset = 0, ...rest: any[]) {
+        audio.starts.push({ node: this, when, offset, now: this.context.currentTime });
+        return (start as any).call(this, when, offset, ...rest);
       };
     });
     const page = await context.newPage();
@@ -130,11 +152,15 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       await held;
       await route.continue();
     });
+    const audioFetched: string[] = [];
+    page.on("request", (r) => { if (/\.(mp3|ogg)$/.test(r.url())) audioFetched.push(r.url()); });
     await page.goto(`${site}scenes/${id}/`);
     const poster = page.getByRole("img", { name: title });
     await poster.waitFor();
     assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 192);
     assert.equal(await page.locator("canvas").count(), 0);
+    await pause(300);
+    assert.deepEqual(audioFetched, [], "audio loaded before the visuals");
     release();
     await page.locator("canvas").waitFor();
     assert.equal(await poster.count(), 0);
@@ -237,6 +263,55 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.locator("canvas").waitFor();
     await page.touchscreen.tap(500, 350);
     await page.getByRole("link", { name: "Back to the Gallery" }).waitFor({ state: "visible" });
+    assert.deepEqual(errors, []);
+  });
+
+  type Route = { loop: boolean; loopStart: number; loopEnd: number; duration: number; offset: number; delay: number; rate: number; gain: number; filters: string[]; reachesOutput: boolean };
+
+  const routes = (page: Page): Promise<Route[]> =>
+    page.evaluate(() => {
+      const { edges, starts } = (window as any).audio as { edges: [AudioNode, AudioNode][]; starts: any[] };
+      return starts.map(({ node, when, offset, now }) => {
+        let gain = 1;
+        const filters: string[] = [];
+        let at: AudioNode = node;
+        for (let next = edges.find(([from]) => from === at); next; next = edges.find(([from]) => from === at)) {
+          at = next[1];
+          if (at instanceof GainNode) gain *= at.gain.value;
+          if (at instanceof BiquadFilterNode) filters.push(`${at.type} ${at.frequency.value}`);
+        }
+        const source = node as AudioBufferSourceNode;
+        return {
+          loop: source.loop, loopStart: source.loopStart, loopEnd: source.loopEnd, duration: source.buffer!.duration,
+          offset, delay: when - now, rate: source.playbackRate.value, gain: Math.round(gain * 1e6) / 1e6, filters,
+          reachesOutput: at instanceof AudioDestinationNode,
+        };
+      });
+    });
+
+  test("music loops at the plan's loop points on its gain and each Ambient loop plays through its Distance bus", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.waitForFunction(() => (window as any).audio.starts.length >= 5);
+    const all = await routes(page);
+    assert.equal(all.length, 5);
+    assert.ok(all.every((r) => r.reachesOutput), "a source does not reach the output");
+    const loops = all.filter((r) => r.loop);
+    const music = loops.filter((r) => r.loopEnd === 2);
+    assert.equal(music.length, 1);
+    assert.deepEqual([music[0].loopStart, music[0].gain, music[0].filters], [0, 0.6, []]);
+    const ambient = loops.filter((r) => r !== music[0]).map(({ gain, filters }) => ({ gain, filters }));
+    assert.deepEqual(new Set(ambient.map((a) => JSON.stringify(a))), new Set([
+      JSON.stringify({ gain: 0.7, filters: [] }),
+      JSON.stringify({ gain: 0.35, filters: ["lowpass 5000"] }),
+      JSON.stringify({ gain: 0.075, filters: ["lowpass 1200"] }),
+    ]));
+    for (const r of loops.filter((r) => r !== music[0])) assert.ok(r.offset >= 0 && r.offset < r.duration, `offset ${r.offset}`);
+    const [thunder] = all.filter((r) => !r.loop);
+    assert.ok(thunder.delay >= 90, `the first One-shot fires after ${thunder.delay} s`);
+    assert.deepEqual(thunder.filters, ["lowpass 1200"]);
+    assert.ok(thunder.gain >= 0.15 * 10 ** -0.1 && thunder.gain <= 0.15 * 10 ** 0.1, `One-shot gain ${thunder.gain}`);
+    assert.ok(thunder.rate >= 0.97 && thunder.rate <= 1.03, `One-shot rate ${thunder.rate}`);
     assert.deepEqual(errors, []);
   });
 

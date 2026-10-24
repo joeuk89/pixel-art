@@ -7,6 +7,7 @@ import {
   scenePlanSchema,
   type ScenePlan,
 } from "../schema/index.ts";
+import { playSoundtrack, type Audio } from "./audio.ts";
 import { mountControls } from "./controls.ts";
 import { loadCredits } from "./credits.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
@@ -74,14 +75,14 @@ export function renderMissing(host: HTMLElement, root: URL): void {
   document.title = "No such Scene";
 }
 
-export type SceneSession = { mute: MuteState; navigate: (url: URL) => void };
+export type SceneSession = { mute: MuteState; audio: Audio; navigate: (url: URL) => void };
 
 export async function renderScene(
   host: HTMLElement,
   root: URL,
   id: string,
   signal: AbortSignal,
-  { mute, navigate }: SceneSession,
+  { mute, audio, navigate }: SceneSession,
 ): Promise<void> {
   const base = sceneUrl(root, id);
   let plan: ScenePlan;
@@ -110,7 +111,11 @@ export async function renderScene(
   const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;
   document.body.style.background = palette.colours[0];
-  if (reducedMotion.matches) return;
+  const startSound = () =>
+    playSoundtrack(audio, plan, base, signal).catch((e) => {
+      if (!signal.aborted) console.error(e);
+    });
+  if (reducedMotion.matches) return void startSound();
 
   const elements = await loadElements(root, plan);
   if (signal.aborted) return;
@@ -130,4 +135,5 @@ export async function renderScene(
     },
     signal,
   );
+  startSound();
 }

@@ -1,4 +1,5 @@
 import { scenePlanSchema, type ScenePlan } from "../schema/index.ts";
+import { createAudio } from "./audio.ts";
 import { renderGallery } from "./gallery.ts";
 import { createMuteState } from "./mute.ts";
 import { renderScene } from "./scene.ts";
@@ -12,6 +13,9 @@ export function parseScenePlan(json: unknown): ScenePlan {
 function boot(root: URL): void {
   let view: AbortController | undefined;
   const mute = createMuteState();
+  const audio = createAudio(1);
+  audio.setRunning(!mute.muted);
+  mute.onChange((muted) => audio.setRunning(!muted));
 
   const show = (route: Route) => {
     view?.abort();
@@ -20,7 +24,7 @@ function boot(root: URL): void {
     document.body.style.background = "";
     const shown = route.kind === "gallery"
       ? renderGallery(document.body, root, controller.signal)
-      : renderScene(document.body, root, route.id, controller.signal, { mute, navigate });
+      : renderScene(document.body, root, route.id, controller.signal, { mute, audio, navigate });
     shown.catch((e) => console.error(e));
   };
 
