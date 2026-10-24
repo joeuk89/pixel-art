@@ -61,6 +61,37 @@ test("a PixelLab run yields exactly the asked frames with the still as frame 0 a
   assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette", "motion", "drift", "seam"]);
 });
 
+function sizedProp(root: string, side: number): void {
+  editJson(root, `${ELEMENTS}/${ELEMENT}.json`, (record) => { record.width = side; record.height = side; });
+  const palette = readJson(root, `library/palettes/${fixturePalette}.json`).colours as string[];
+  const n = parseInt(palette[5].slice(1), 16);
+  const data = new Uint8Array(side * side * 4);
+  for (let p = 0; p < side * side; p++) data.set([n >> 16, (n >> 8) & 255, n & 255, 255], p * 4);
+  writeFileSync(join(root, `${ELEMENTS}/${ELEMENT}.png`), encodePng(side, side, data));
+}
+
+test("a 256 px prop gets a Frame strip at its full size", async () => {
+  const root = tree();
+  sizedProp(root, 256);
+  const result = await run(root);
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  const strip = await decode(join(root, result.json.scratch.strip));
+  assert.deepEqual([strip.width, strip.height], [5 * 256, 256]);
+  assert.equal(result.json.gate.ok, true, JSON.stringify(result.json.gate));
+  assert.equal(result.json.upscaleFactor, 4);
+  const big = await sharp(join(root, result.json.scratch.upscale)).metadata();
+  assert.deepEqual([big.width, big.height], [5 * 256 * 4, 256 * 4]);
+});
+
+test("a prop over 256 px is refused before any call", async () => {
+  const root = tree();
+  sizedProp(root, 260);
+  const result = await run(root);
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /width/);
+  assert.equal(pixellabState.animateRequests.length, 0);
+});
+
 test("PixelLab --frames sends the even frame_count animate v3 accepts", async () => {
   const root = tree();
   const result = await run(root, "--frames", "7");

@@ -6,7 +6,7 @@ import { DEFAULT_STRIP_FRAMES, elementRecordSchema, isPixelLabFrames, type Eleme
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { animateWithTextV3 } from "./lib/pixellab.ts";
-import type { Pixels } from "./lib/quality-gate.ts";
+import { upscaleFactor, type Pixels } from "./lib/quality-gate.ts";
 import { SUBTLE_MOTION, subtleMotion } from "./lib/retro-diffusion.ts";
 import { withFreshKey, type Retry } from "./lib/retry.ts";
 import { logAbandoned, type Abandoned } from "./lib/attempts.ts";
@@ -15,7 +15,6 @@ import { readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { buildStrip, gateStrip, snapToPalette, type StripGateReport } from "./lib/strip.ts";
 
-const UPSCALE = 8;
 const ELEMENTS = "library/elements";
 const SCRATCH = STRIPS_DIR;
 const SERVICES: readonly StripService[] = ["pixellab", "retro-diffusion"];
@@ -126,7 +125,8 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
   const stem = `${SCRATCH}/${record.id}-a${n}`;
   const png = await encode(strip);
   writeFileSync(`${stem}.strip.png`, png);
-  await sharp(png).resize(strip.width * UPSCALE, strip.height * UPSCALE, { kernel: "nearest" }).png().toFile(`${stem}.x8.png`);
+  const upscale = upscaleFactor(record);
+  await sharp(png).resize(strip.width * upscale, strip.height * upscale, { kernel: "nearest" }).png().toFile(`${stem}.x${upscale}.png`);
 
   return {
     element: record.id,
@@ -139,7 +139,8 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
     cost: generated.cost,
     retries,
     gate,
-    scratch: { strip: `${stem}.strip.png`, upscale: `${stem}.x8.png`, attempt: `${stem}.json` },
+    upscaleFactor: upscale,
+    scratch: { strip: `${stem}.strip.png`, upscale: `${stem}.x${upscale}.png`, attempt: `${stem}.json` },
   };
 }
 
