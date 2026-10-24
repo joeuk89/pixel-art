@@ -24,7 +24,10 @@
     { "type": "glow", "anchor": "window", "offset": { "x": 24, "y": 24 }, "colour": 8, "radius": 24, "flicker": 0.4, "pool": { "y": 100, "colour": 9 } },
     { "type": "steam", "anchor": "cat", "offset": { "x": 12, "y": 0 }, "colours": [12, 15], "count": 12 },
     { "type": "twinkle", "anchor": "skyline", "colours": [8], "count": 5 },
-    { "type": "blink", "anchor": "window", "swaps": [[10, 14]], "rate": 2, "longShare": 0.4, "longFrames": [3, 6] }
+    { "type": "blink", "anchor": "window", "swaps": [[10, 14]], "rate": 2, "longShare": 0.4, "longFrames": [3, 6] },
+    { "type": "dust", "region": { "x": 20, "y": 70, "w": 40, "h": 30 }, "colours": [13, 12], "count": 12 },
+    { "type": "sway", "anchor": "skyline", "region": { "x": 120, "y": 30, "w": 60, "h": 34 }, "colours": [2], "amplitude": 1, "rate": 0.5 },
+    { "type": "birds", "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 70, "h": 30 }, "colours": [0], "count": 3, "every": [6, 8] }
   ],
   "soundtrack": {
     "music": { "brief": "slow piano, warm and sparse", "service": "stable-audio-3", "gain": 0.6 },

@@ -423,6 +423,139 @@ function blink(p: Of<"blink">, ctx: Context): PrimitiveDraw {
   };
 }
 
+const DUST_LIFE_STEPS = [40, 80] as const;
+
+function dust(p: Of<"dust">, ctx: Context): PrimitiveDraw {
+  const { seed, salt, colours: c } = ctx;
+  const { region, colours, count } = p;
+  const [shortest, longest] = DUST_LIFE_STEPS;
+  const life = new Uint32Array(count), phase = new Uint32Array(count);
+  for (let k = 0; k < count; k++) {
+    life[k] = shortest + Math.floor(random(seed, salt, k, 0, 0) * (longest - shortest + 1));
+    phase[k] = Math.floor(random(seed, salt, k, 0, 1) * life[k]);
+  }
+  return {
+    after: p.anchor ? ctx.anchor(p.anchor).layer : ctx.top,
+    fps: PROP_FPS,
+    draw(out, timeMs) {
+      const s = step(timeMs, PROP_FPS);
+      for (let k = 0; k < count; k++) {
+        const u = s + phase[k];
+        const gen = Math.floor(u / life[k]);
+        const local = u - gen * life[k];
+        const level = Math.min(colours.length - 1, Math.floor(Math.sin((Math.PI * local) / life[k]) * (colours.length + 1)) - 1);
+        if (level < 0) continue;
+        const angle = random(seed, salt, k, gen, 2) * 2 * Math.PI;
+        const speed = 0.03 + random(seed, salt, k, gen, 3) * 0.07;
+        const x = Math.round(region.x + random(seed, salt, k, gen, 4) * region.w + Math.cos(angle) * speed * local);
+        const y = Math.round(region.y + random(seed, salt, k, gen, 5) * region.h + Math.sin(angle) * speed * local);
+        plotIn(out, c, region, x, y, colours[level]);
+      }
+    },
+  };
+}
+
+const SWAY_ROWS_PER_WAVE = 24;
+
+function sway(p: Of<"sway">, ctx: Context): PrimitiveDraw {
+  const { seed, salt, colours: c } = ctx;
+  const { placement, pixels, layer } = ctx.anchor(p.anchor);
+  const { region, amplitude, rate } = p;
+  const x0 = Math.max(region.x, 0), y0 = Math.max(region.y, 0);
+  const x1 = Math.min(region.x + region.w, SCENE_WIDTH), y1 = Math.min(region.y + region.h, SCENE_HEIGHT);
+  const leaves = new Set(p.colours);
+  const leaf = new Uint8Array(SCENE_WIDTH * SCENE_HEIGHT);
+  let any = false;
+  eachPlacedPixel(placement, pixels, (pixel, source) => {
+    const x = pixel % SCENE_WIDTH, y = Math.floor(pixel / SCENE_WIDTH);
+    if (x < x0 || x >= x1 || y < y0 || y >= y1) return;
+    const index = sourceIndex(c, pixels, source);
+    if (index !== undefined && leaves.has(index)) (leaf[pixel] = 1), (any = true);
+  });
+  const phase = random(seed, salt, 0, 0, 0);
+  const offsets = new Int8Array(Math.max(0, y1 - y0));
+  const offsetsAt = (timeMs: number) => {
+    const turn = (step(timeMs, PROP_FPS) / PROP_FPS) * rate + phase;
+    for (let y = y0; y < y1; y++) offsets[y - y0] = Math.round(amplitude * Math.sin(2 * Math.PI * (turn + y / SWAY_ROWS_PER_WAVE)));
+  };
+  const row = new Uint8ClampedArray(SCENE_WIDTH * 4);
+  return {
+    after: layer,
+    fps: PROP_FPS,
+    state(timeMs) {
+      if (!any) return 0;
+      offsetsAt(timeMs);
+      let h = 0x2545f491;
+      for (let k = 0; k < offsets.length; k++) h = mix(h ^ (offsets[k] + 128 + (k << 8)));
+      return h;
+    },
+    draw(out, timeMs) {
+      if (!any) return;
+      offsetsAt(timeMs);
+      for (let y = y0; y < y1; y++) {
+        const dx = offsets[y - y0];
+        if (dx === 0) continue;
+        row.set(out.subarray(y * SCENE_WIDTH * 4, (y + 1) * SCENE_WIDTH * 4));
+        for (let x = x0; x < x1; x++) {
+          const from = x - dx;
+          if (from < 0 || from >= SCENE_WIDTH) continue;
+          if (!leaf[y * SCENE_WIDTH + from] && !leaf[y * SCENE_WIDTH + x]) continue;
+          out.set(row.subarray(from * 4, from * 4 + 4), (y * SCENE_WIDTH + x) * 4);
+        }
+      }
+    },
+  };
+}
+
+const BIRD_SPACING = 5;
+const BIRD_FLAP_STEPS = 3;
+const BIRD_WINGS = [[[-1, -1], [0, 0], [1, -1]], [[-1, 1], [0, 0], [1, 1]]] as const;
+
+function birds(p: Of<"birds">, ctx: Context): PrimitiveDraw {
+  const { seed, salt, colours: c } = ctx;
+  const { region, colours, count } = p;
+  const [min, max] = p.every;
+  const slotSteps = ((min + max) / 2) * WEATHER_FPS;
+  const jitterSteps = ((max - min) / 2) * WEATHER_FPS;
+  const flockLength = (count - 1) * BIRD_SPACING + 2;
+  const route = region.w + 2 * flockLength;
+  const lookback = Math.ceil((jitterSteps + route / 0.7) / slotSteps);
+  const rise = Math.ceil((count - 1) / 2) * 2;
+  const flock = (timeMs: number, visit: (x: number, y: number, wings: number, colour: number) => void) => {
+    const s = step(timeMs, WEATHER_FPS);
+    const slot = Math.floor(s / slotSteps);
+    for (let j = Math.max(0, slot - lookback); j <= slot; j++) {
+      const local = s - Math.floor(j * slotSteps + random(seed, salt, j, 0, 0) * jitterSteps);
+      const speed = 0.7 + random(seed, salt, j, 0, 1) * 0.3;
+      const travel = local * speed;
+      if (local < 0 || travel > route) continue;
+      const leftward = random(seed, salt, j, 0, 2) < 0.5;
+      const baseY = region.y + 1 + rise + Math.floor(random(seed, salt, j, 0, 3) * Math.max(1, region.h - 2 - 2 * rise));
+      for (let b = 0; b < count; b++) {
+        const along = Math.round(travel) - 2 - b * BIRD_SPACING;
+        const x = leftward ? region.x + region.w - 1 - along : region.x + along;
+        const y = baseY + (b % 2 === 1 ? -1 : 1) * Math.ceil(b / 2) * 2;
+        const wings = Math.floor((local + b * 2) / BIRD_FLAP_STEPS) % 2;
+        visit(x, y, wings, colours[Math.floor(random(seed, salt, j, b, 4) * colours.length)]);
+      }
+    }
+  };
+  return {
+    after: p.anchor ? ctx.anchor(p.anchor).layer : ctx.top,
+    fps: WEATHER_FPS,
+    state(timeMs) {
+      let h = 0;
+      flock(timeMs, (x, y, wings, colour) => (h = mix(h ^ ((x + 64) | ((y + 64) << 9) | (wings << 18) | (colour << 19)))));
+      return h;
+    },
+    draw(out, timeMs) {
+      flock(timeMs, (x, y, wings, colour) => {
+        for (const [dx, dy] of BIRD_WINGS[wings]) plotIn(out, c, region, x + dx, y + dy, colour);
+      });
+    },
+  };
+}
+
 export function createPrimitives({ plan, elements, palette, seed = plan.seed }: PrimitivesInput): PrimitiveDraw[] {
   const colours = coloursOf(palette);
   const placements = new Map<string, { placement: Placement; layer: number }>();
@@ -449,6 +582,9 @@ export function createPrimitives({ plan, elements, palette, seed = plan.seed }: 
       case "steam": return steam(primitive, ctx);
       case "twinkle": return twinkle(primitive, ctx);
       case "blink": return blink(primitive, ctx);
+      case "dust": return dust(primitive, ctx);
+      case "sway": return sway(primitive, ctx);
+      case "birds": return birds(primitive, ctx);
     }
   });
 }

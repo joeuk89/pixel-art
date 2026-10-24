@@ -117,6 +117,28 @@ export const primitiveSchema = z.discriminatedUnion("type", [
       .refine(([min, max]) => min <= max, "min must not exceed max")
       .default([4, 9]),
   }),
+  // A mote fades in and out through colours, so list them dim to bright.
+  z.strictObject({ type: z.literal("dust"), anchor: slug.optional(), region, colours, count: int.positive().default(12) }),
+  z.strictObject({
+    type: z.literal("sway"),
+    anchor: slug,
+    // In Scene coordinates, like every Primitive region; only the anchor's pixels of colours inside it move.
+    region,
+    colours,
+    amplitude: int.positive().default(1),
+    rate: z.number().positive().default(0.25),
+  }),
+  z.strictObject({
+    type: z.literal("birds"),
+    anchor: slug.optional(),
+    region,
+    colours,
+    count: int.positive().max(7).default(3),
+    every: z
+      .tuple([z.number().positive(), z.number().positive()])
+      .refine(([min, max]) => min <= max, "min must not exceed max")
+      .default([12, 30]),
+  }),
 ]);
 
 const soundSource = z.discriminatedUnion("kind", [

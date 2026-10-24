@@ -13,7 +13,7 @@ const palette = JSON.parse(readFileSync(join(repo, "library/palettes/cosy-night.
 const paletteRgb = new Set<number>(palette.colours.map((hex: string) => parseInt(hex.slice(1), 16)));
 const catalogue: ScenePlan = scenePlanSchema.parse(JSON.parse(readFileSync(join(fixtures, "primitives/scene.json"), "utf8")));
 const elements = await loadElementPixels(fixtures, catalogue);
-const TYPES = ["rain", "snow", "glow", "steam", "twinkle", "blink"] as const;
+const TYPES = ["rain", "snow", "glow", "steam", "twinkle", "blink", "dust", "sway", "birds"] as const;
 const TIMES = Array.from({ length: 60 }, (_, k) => k * 137);
 
 function only(type: string): Primitive[] {
@@ -109,13 +109,33 @@ for (const type of ["rain", "snow"]) {
   });
 }
 
-test("steam makes a redraw due every 1/10 s and not in between", () => {
-  const c = stillScene(only("steam"));
-  c.render(0);
-  assert.equal(c.nextTick(0), 100);
-  assert.equal(c.tick(99), false);
-  assert.equal(c.tick(100), true);
-});
+for (const type of ["steam", "dust"]) {
+  test(`${type} makes a redraw due every 1/10 s and not in between`, () => {
+    const c = stillScene(only(type));
+    c.render(0);
+    assert.equal(c.nextTick(0), 100);
+    assert.equal(c.tick(99), false);
+    assert.equal(c.tick(100), true);
+  });
+}
+
+for (const [type, fps, idles] of [["sway", PROP_FPS, false], ["birds", WEATHER_FPS, true]] as const) {
+  test(`${type} wakes at ${fps} fps and never skips a step that changes pixels${idles ? ", but skips steps between flights" : ""}`, () => {
+    const c = stillScene(only(type));
+    const at = (k: number) => (k * 1000) / fps;
+    let idle = 0;
+    c.render(0);
+    for (let k = 1; k <= 600; k++) {
+      assert.equal(c.nextTick(at(k - 1)), at(k));
+      const before = Buffer.from(c.render(at(k - 1)));
+      const tick = c.tick(at(k));
+      const changed = !before.equals(Buffer.from(c.render(at(k))));
+      if (changed) assert.ok(tick, `step ${k} changed pixels without a tick`);
+      if (!tick) idle++;
+    }
+    if (idles) assert.ok(idle > 0, `${type} never skipped a step`);
+  });
+}
 
 const [twinkleOf, blinkOf] = [only("twinkle")[0], only("blink")[0]];
 const exactCases: [string, Primitive, boolean][] = [
@@ -222,6 +242,66 @@ test("blink swaps only the anchored Placement's from colour, and twinkle only th
   }
 });
 
+function inRegion(pixel: number, region: { x: number; y: number; w: number; h: number }): boolean {
+  const x = pixel % W, y = Math.floor(pixel / W);
+  return x >= region.x && x < region.x + region.w && y >= region.y && y < region.y + region.h;
+}
+
+function hexAt(out: Uint8ClampedArray, pixel: number): string {
+  return "#" + [...out.subarray(pixel * 4, pixel * 4 + 3)].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+test("dust stays inside its region, paints only its colours, and each mote fades through them", () => {
+  const dust = only("dust")[0] as Extract<Primitive, { type: "dust" }>;
+  const times = Array.from({ length: 300 }, (_, k) => k * 100);
+  const changed = changedPixels([dust], times);
+  assert.ok(changed.size > 0);
+  const c = stillScene([dust]);
+  const seen = new Set<string>();
+  for (const t of times) {
+    const out = c.render(t);
+    for (const pixel of changedPixels([dust], [t])) {
+      assert.ok(inRegion(pixel, dust.region), `dust at ${pixel % W},${Math.floor(pixel / W)} is outside its region`);
+      seen.add(hexAt(out, pixel));
+    }
+  }
+  assert.deepEqual([...seen].sort(), dust.colours.map((i) => palette.colours[i]).sort());
+});
+
+test("sway shifts only the anchor's leaf colours inside its region, by at most its amplitude, on every tiled copy", () => {
+  const sway = only("sway")[0] as Extract<Primitive, { type: "sway" }>;
+  const leaf = palette.colours[sway.colours[0]];
+  const plain = stillScene([]).render(0);
+  const c = stillScene([sway]);
+  const times = Array.from({ length: 100 }, (_, k) => k * 100);
+  const changed = changedPixels([sway], times);
+  assert.ok([...changed].some((p) => p % W < 128) && [...changed].some((p) => p % W >= 128), "sway moved only one tiled copy");
+  for (const t of times) {
+    const out = c.render(t);
+    for (const pixel of changedPixels([sway], [t])) {
+      assert.ok(inRegion(pixel, sway.region), `sway changed ${pixel % W},${Math.floor(pixel / W)} outside its region`);
+      const now = hexAt(out, pixel), was = hexAt(plain, pixel);
+      assert.ok(now === leaf || was === leaf, `sway changed a ${was} pixel to ${now}, and neither is a leaf`);
+      const near = [];
+      for (let dx = -sway.amplitude; dx <= sway.amplitude; dx++) near.push(hexAt(plain, pixel + dx));
+      assert.ok(near.includes(now), `sway moved ${now} further than ${sway.amplitude} px`);
+    }
+  }
+});
+
+test("birds draw nothing at time 0, fly inside their region, and cross it now and then", () => {
+  const birds = only("birds")[0] as Extract<Primitive, { type: "birds" }>;
+  assert.equal(changedPixels([birds], [0]).size, 0, "birds are in the Poster");
+  const times = Array.from({ length: 600 }, (_, k) => k * 50);
+  let present = 0;
+  for (const t of times) {
+    const at = changedPixels([birds], [t]);
+    if (at.size > 0) present++;
+    for (const pixel of at) assert.ok(inRegion(pixel, birds.region), `a bird at ${pixel % W},${Math.floor(pixel / W)} is outside its region`);
+  }
+  assert.ok(present > 0 && present < times.length, `birds were present at ${present} of ${times.length} times`);
+});
+
 test("a Primitive anchored to a missing Placement fails with its index and anchor", () => {
   const plan = { ...catalogue, primitives: [{ ...only("steam")[0], anchor: "teapot" } as Primitive] };
   assert.throws(() => createPrimitives({ plan, elements, palette }), /Primitive 0 \(steam\): no Placement teapot/);
@@ -241,5 +321,5 @@ test("the Primitives module bundles for a neutral platform and draws where no No
   const draws = sandbox.primitives.createPrimitives({ plan: catalogue, elements, palette });
   const out = new Uint8ClampedArray(W * 120 * 4);
   for (const d of draws) d.draw(out, 500);
-  assert.equal(draws.length, 6);
+  assert.equal(draws.length, 9);
 });
