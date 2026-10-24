@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ScenePlan } from "../../schema/index.ts";
 import { stillAttempts, stillAttemptsDir } from "./attempts.ts";
+import { readElements } from "./library.ts";
 
 export const ATTEMPTS_PER_STILL = 4;
 export const GENERATION_MULTIPLIER = 3;
@@ -44,7 +45,8 @@ export function budget(plan: ScenePlan) {
   }
   const estimate = [...planned.values()].reduce((sum, p) => sum + FIRST_ATTEMPT[p.kind] + (p.pixellabStrip ? FIRST_ATTEMPT.pixellabStrip : 0), 0);
 
-  const strips = [...new Set(placements.map((p) => p.element))].map((id) => ({ id, attempts: stripAttempts(id) }));
+  // Only Elements this Scene generated get strips here; strip Attempts on reused Elements belong to the Scene that made them.
+  const strips = readElements().filter((e) => e.firstScene === plan.id).map((e) => ({ id: e.id, attempts: stripAttempts(e.id) }));
   const unchargedStrips = strips.flatMap((s) => s.attempts.filter((a) => !a.charged));
   const pending = attempts.filter((a) => !a.charged).reduce((sum, a) => sum + a.generations, 0) +
     unchargedStrips.reduce((sum, a) => sum + a.cost.pixellabGenerations, 0);

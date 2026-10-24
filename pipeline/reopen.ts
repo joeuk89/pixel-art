@@ -1,4 +1,5 @@
 import { isPixelLabFrames, type ElementRecord } from "../schema/index.ts";
+import { forgetAbandoned } from "./lib/attempts.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
@@ -39,5 +40,6 @@ main(() => {
     raw.status = "draft";
     return Object.fromEntries(ids.map((id) => [id, placements.find((p: any) => p.id === id).element as string]));
   });
+  forgetAbandoned(plan.id, ids);
   return { scene: plan.id, reopened: ids, proposed, plan: file };
 });

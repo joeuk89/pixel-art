@@ -506,3 +506,24 @@ test("--abandon --scene falls back to the still: it charges the strip Attempts, 
   assert.equal((await budgetOf(root)).pixellabGenerations.pending, 0);
   assert.equal(validate(root).code, 0);
 });
+
+test("strip Attempts left from an earlier Scene on reused props count toward neither this Scene's Retro Diffusion caps nor its spend", async () => {
+  const root = tree();
+  const reused = ["cat-tabby-a-01", "cat-tabby-b-01", "cat-tabby-c-01", "cat-tabby-d-01"];
+  for (const id of reused) {
+    copyProp(root, id);
+    editJson(root, `${ELEMENTS}/${id}.json`, (record) => { record.firstScene = "earlier-scene-0000"; });
+    assert.equal((await runFor(root, id, "--service", "retro-diffusion")).code, 0);
+  }
+  placeIn(root, [...reused, ELEMENT]);
+  let report = await budgetOf(root);
+  assert.deepEqual(report.retroDiffusion.props, []);
+  assert.deepEqual(report.capsHit, []);
+  assert.equal(report.pixellabGenerations.pending, 0);
+  assert.equal(report.meteredUsd.used, 0.2);
+
+  const mine = await run(root, "--service", "retro-diffusion", "--scene", fixtureScene);
+  assert.equal(mine.code, 0, mine.stdout + mine.stderr);
+  report = await budgetOf(root);
+  assert.deepEqual(report.retroDiffusion.props, [{ element: ELEMENT, attempts: 1 }]);
+});

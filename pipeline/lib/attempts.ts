@@ -72,3 +72,16 @@ export function logAbandoned(sceneId: string, entry: Abandoned): string {
   writeFileSync(log, JSON.stringify([...entries, entry], null, 2) + "\n");
   return log;
 }
+
+const placementIds = (entry: Abandoned) => entry.placement.split(", ");
+
+// A reopened Placement gets a new Element, so what was abandoned for it no longer describes the Scene.
+export function forgetAbandoned(sceneId: string, placements: string[]): void {
+  const log = abandonedLog(sceneId);
+  if (!existsSync(log)) return;
+  const kept = readAbandoned(sceneId).flatMap((entry) => {
+    const left = placementIds(entry).filter((id) => !placements.includes(id));
+    return left.length === 0 ? [] : [{ ...entry, placement: left.join(", ") }];
+  });
+  writeFileSync(log, JSON.stringify(kept, null, 2) + "\n");
+}

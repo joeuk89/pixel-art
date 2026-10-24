@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { makeTree, readJson, repo, writeJson } from "./helpers.ts";
+import { editJson, makeTree, readJson, repo, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { pixellabState } from "./fixtures/services/pixellab.ts";
 
@@ -131,4 +131,32 @@ test("from a yes at the Plan gate the scripts take a draft to a staged Scene, an
   assert.ok(second.staged.includes(`library/elements/${newCat}.png`));
   assert.deepEqual(readdirSync(join(root, "scenes")).sort(), ["fixture-rainy-desk-a1b2", ID], "no second Scene folder");
   assert.ok(existsSync(join(root, `scenes/${ID}/index.html`)));
+});
+
+test("after a rejection, preview no longer reports a strip fallback for a Placement that was reopened and regenerated", async () => {
+  const root = tree();
+  await element(root, "lamp", "--style-anchor");
+  await step(root, "music", PLAN);
+  await step(root, "ambient", PLAN);
+  await element(root, "skyline");
+  const cat = await element(root, "cat");
+  await step(root, "generate-strip", cat, "--scene", PLAN);
+  await step(root, "generate-strip", cat, "--abandon", "--scene", PLAN);
+
+  const first = await finish(root);
+  assert.deepEqual(first.abandoned, [{ placement: "cat", element: cat, attempts: 1, outcome: "still" }]);
+  assert.match(first.commitMessage, /Still only, no Frame strip: cat-grey-asleep-01 \(cat\)/);
+
+  await step(root, "reopen", PLAN, "cat");
+  editJson(root, PLAN, (plan) => {
+    const reopened = placements(plan).cat;
+    reopened.generate.strip = { service: "pixellab" };
+    reopened.animation = { fps: 4 };
+  });
+  const newCat = await element(root, "cat");
+  await strip(root, newCat);
+  const second = await finish(root);
+  assert.equal(second.ok, true);
+  assert.deepEqual(second.abandoned, []);
+  assert.doesNotMatch(second.commitMessage, /Still only/);
 });
