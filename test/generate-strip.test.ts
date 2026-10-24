@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
+import { createCompositor } from "../viewer/compositor.ts";
+import { loadElementPixels, loadPalette } from "../pipeline/lib/element-pixels.ts";
+import { scenePlanSchema } from "../schema/index.ts";
 import { editJson, fixtureScene, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { INFERENCE_FAILED, retroDiffusionState } from "./fixtures/services/retro-diffusion.ts";
@@ -320,4 +323,29 @@ test("a backdrop gets no Frame strip", async () => {
   assert.equal(result.code, 1);
   assert.match(result.json.error, /backdrop/);
   assert.equal(pixellabState.animateRequests.length, 0);
+});
+
+test("a Placement with animation overrides on the accepted Element passes validate and plays the strip", async () => {
+  const root = tree();
+  const first = await run(root);
+  assert.equal((await run(root, "--accept", first.json.scratch.strip)).code, 0);
+  editJson(root, fixtureScene, (plan) => {
+    for (const layer of plan.layers) for (const p of layer.placements ?? []) if (p.element === "cat-tabby-asleep-01") p.element = ELEMENT;
+    plan.primitives = [];
+  });
+  const plan = scenePlanSchema.parse(readJson(root, fixtureScene));
+  const cat = plan.layers.flatMap((l) => l.placements ?? []).find((p) => p.id === "cat")!;
+  assert.deepEqual(cat.animation, { fps: 4, order: "pingpong" });
+  const valid = validate(root);
+  assert.equal(valid.code, 0, JSON.stringify(valid.report));
+
+  const compositor = createCompositor({ plan, elements: await loadElementPixels(root, plan), palette: loadPalette(root, plan.palette) });
+  const seen = new Set<string>();
+  for (let t = 0; t < 1500; t += 250) {
+    const frame = compositor.render(t);
+    const rows: number[] = [];
+    for (let y = cat.y; y < cat.y + 16; y++) rows.push(...frame.subarray((y * 192 + cat.x) * 4, (y * 192 + cat.x + 24) * 4));
+    seen.add(rows.join(","));
+  }
+  assert.equal(seen.size, 4, "a 4-frame pingpong strip shows all four frames over one cycle");
 });
