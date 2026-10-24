@@ -48,16 +48,35 @@ test("a PixelLab run yields exactly the asked frames with the still as frame 0 a
   const result = await run(root);
   assert.equal(result.code, 0, result.stdout + result.stderr);
   assert.equal(result.json.service, "pixellab");
-  assert.equal(result.json.frames, 4);
-  assert.equal(pixellabState.animateRequests[0].frame_count, 3);
+  assert.equal(result.json.frames, 5);
+  assert.equal(pixellabState.animateRequests[0].frame_count, 4);
 
   const strip = await decode(join(root, result.json.scratch.strip));
-  assert.deepEqual([strip.width, strip.height], [96, 16]);
+  assert.deepEqual([strip.width, strip.height], [120, 16]);
   const still = await decode(join(root, `${ELEMENTS}/${ELEMENT}.png`));
   assert.deepEqual(frameOf(strip, 0, 24), still.data);
-  for (let k = 1; k < 4; k++) assert.notDeepEqual(frameOf(strip, k, 24), still.data, `frame ${k} repeats the still`);
+  for (let k = 1; k < 5; k++) assert.notDeepEqual(frameOf(strip, k, 24), still.data, `frame ${k} repeats the still`);
   assert.equal(result.json.gate.ok, true, JSON.stringify(result.json.gate));
   assert.deepEqual(result.json.gate.passed, ["dimensions", "alpha", "palette", "motion", "drift", "seam"]);
+});
+
+test("PixelLab --frames sends the even frame_count animate v3 accepts", async () => {
+  const root = tree();
+  const result = await run(root, "--frames", "7");
+  assert.equal(result.code, 0, result.stdout + result.stderr);
+  assert.equal(pixellabState.animateRequests[0].frame_count, 6);
+  const strip = await decode(join(root, result.json.scratch.strip));
+  assert.deepEqual([strip.width, strip.height], [168, 16]);
+});
+
+test("PixelLab --frames outside the odd numbers 5 to 15 is refused before any call", async () => {
+  const root = tree();
+  for (const frames of ["4", "6", "3", "17", "2"]) {
+    const result = await run(root, "--frames", frames);
+    assert.equal(result.code, 1, frames);
+    assert.match(result.json.error, /--frames for pixellab must be an odd number from 5 to 15/);
+  }
+  assert.equal(pixellabState.animateRequests.length, 0);
 });
 
 const COSY = JSON.parse(readFileSync(join(repo, "library/palettes/cosy-night.json"), "utf8")).colours as string[];
@@ -95,11 +114,11 @@ test("a strip with too few frames or a frame of the wrong size fails dimensions"
   const { still, opaque } = await stillOf(root);
   const few = await gateOf(root, [recolour(still, opaque.slice(0, 6)), recolour(still, opaque.slice(6, 12))]);
   assert.deepEqual(failedNames(few), ["dimensions"]);
-  assert.match(few.failed[0], /3 frames making 72x16, expected 4 frames making 96x16/);
+  assert.match(few.failed[0], /3 frames making 72x16, expected 5 frames making 120x16/);
 
   const tall: Rgba = { width: 24, height: 20, data: new Uint8Array(24 * 20 * 4) };
   tall.data.set(still.data);
-  const wrongSize = await gateOf(root, [recolour(still, opaque.slice(0, 6)), tall, recolour(still, opaque.slice(12, 18))]);
+  const wrongSize = await gateOf(root, [recolour(still, opaque.slice(0, 6)), tall, recolour(still, opaque.slice(12, 18)), recolour(still, opaque.slice(18, 24))]);
   assert.ok(failedNames(wrongSize).includes("dimensions"));
 });
 
@@ -108,7 +127,7 @@ test("a frame with soft alpha fails alpha and names the frame", async () => {
   const { still, opaque } = await stillOf(root);
   const soft = recolour(still, opaque.slice(6, 12));
   soft.data[opaque[100] * 4 + 3] = 128;
-  const gate = await gateOf(root, [recolour(still, opaque.slice(0, 6)), soft, recolour(still, opaque.slice(12, 18))]);
+  const gate = await gateOf(root, [recolour(still, opaque.slice(0, 6)), soft, recolour(still, opaque.slice(12, 18)), recolour(still, opaque.slice(18, 24))]);
   assert.deepEqual(failedNames(gate), ["alpha"]);
   assert.match(gate.failed[0], /frame 2/);
 });
@@ -116,26 +135,26 @@ test("a frame with soft alpha fails alpha and names the frame", async () => {
 test("every step must move at least 1% of opaque pixels", async () => {
   const root = tree();
   const { still, opaque } = await stillOf(root);
-  const atOnePercent = await gateOf(root, [recolour(still, opaque.slice(0, 2)), recolour(still, opaque.slice(2, 4)), recolour(still, opaque.slice(4, 6))]);
+  const atOnePercent = await gateOf(root, [recolour(still, opaque.slice(0, 2)), recolour(still, opaque.slice(2, 4)), recolour(still, opaque.slice(4, 6)), recolour(still, opaque.slice(6, 8))]);
   assert.deepEqual(atOnePercent.failed, []);
   assert.equal(atOnePercent.measurements.steps[0], 0.01);
 
-  const under = await gateOf(root, [recolour(still, opaque.slice(0, 1)), recolour(still, opaque.slice(2, 4)), recolour(still, opaque.slice(4, 6))]);
+  const under = await gateOf(root, [recolour(still, opaque.slice(0, 1)), recolour(still, opaque.slice(2, 4)), recolour(still, opaque.slice(4, 6)), recolour(still, opaque.slice(6, 8))]);
   assert.deepEqual(failedNames(under), ["motion"]);
   assert.match(under.failed[0], /step 0 to 1 moves 0.5%/);
 
-  const frozen = await gateOf(root, [recolour(still, opaque.slice(0, 6)), recolour(still, opaque.slice(0, 6)), recolour(still, opaque.slice(6, 12))]);
+  const frozen = await gateOf(root, [recolour(still, opaque.slice(0, 6)), recolour(still, opaque.slice(0, 6)), recolour(still, opaque.slice(6, 12)), recolour(still, opaque.slice(12, 18))]);
   assert.deepEqual(failedNames(frozen), ["motion"]);
 });
 
 test("the last frame may drift from frame 0 by at most 10%", async () => {
   const root = tree();
   const { still, opaque } = await stillOf(root);
-  const atTen = await gateOf(root, [recolour(still, opaque.slice(0, 20)), recolour(still, opaque.slice(20, 40)), recolour(still, opaque.slice(40, 60))]);
+  const atTen = await gateOf(root, [recolour(still, opaque.slice(0, 20)), recolour(still, opaque.slice(20, 40)), recolour(still, opaque.slice(40, 60)), recolour(still, opaque.slice(60, 80))]);
   assert.deepEqual(atTen.failed, []);
   assert.equal(atTen.measurements.drift, 0.1);
 
-  const over = await gateOf(root, [recolour(still, opaque.slice(0, 20)), recolour(still, opaque.slice(20, 40)), recolour(still, opaque.slice(40, 61))]);
+  const over = await gateOf(root, [recolour(still, opaque.slice(0, 20)), recolour(still, opaque.slice(20, 40)), recolour(still, opaque.slice(40, 60)), recolour(still, opaque.slice(60, 81))]);
   assert.deepEqual(failedNames(over), ["drift"]);
   assert.equal(over.measurements.drift, 0.105);
 });
@@ -143,15 +162,16 @@ test("the last frame may drift from frame 0 by at most 10%", async () => {
 test("the seam from the last frame back to frame 0 may be at most 1.5x the mean step", async () => {
   const root = tree();
   const { still, opaque } = await stillOf(root);
-  const growing = await gateOf(root, [recolour(still, opaque.slice(0, 2)), recolour(still, opaque.slice(0, 4)), recolour(still, opaque.slice(0, 8))]);
+  const growing = await gateOf(root, [recolour(still, opaque.slice(0, 2)), recolour(still, opaque.slice(0, 4)), recolour(still, opaque.slice(0, 8)), recolour(still, opaque.slice(0, 16))]);
   assert.deepEqual(failedNames(growing), ["seam"]);
-  assert.deepEqual(growing.measurements.steps, [0.01, 0.01, 0.02]);
-  assert.equal(growing.measurements.seam, 0.04);
+  assert.deepEqual(growing.measurements.steps, [0.01, 0.01, 0.02, 0.04]);
+  assert.equal(growing.measurements.seam, 0.08);
 
-  const atLimit = await gateOf(root, [recolour(still, opaque.slice(0, 4)), recolour(still, opaque.slice(0, 2)), recolour(still, [...opaque.slice(0, 2), ...opaque.slice(4, 6)])]);
-  assert.deepEqual(atLimit.measurements.steps, [0.02, 0.01, 0.01]);
-  assert.equal(atLimit.measurements.seam, 0.02);
-  assert.deepEqual(atLimit.failed, [], "a 2% seam is exactly 1.5x the 1.33% mean step");
+  const last = [...opaque.slice(4, 7), ...opaque.slice(8, 11)];
+  const atLimit = await gateOf(root, [recolour(still, opaque.slice(0, 4)), recolour(still, opaque.slice(2, 6)), recolour(still, opaque.slice(4, 8)), recolour(still, last)]);
+  assert.deepEqual(atLimit.measurements.steps, [0.02, 0.02, 0.02, 0.02]);
+  assert.equal(atLimit.measurements.seam, 0.03);
+  assert.deepEqual(atLimit.failed, [], "a 3% seam is exactly 1.5x the 2% mean step");
 });
 
 test("the off-palette strip passes once snapped and records the pre-snap share as a warning", async () => {
@@ -160,8 +180,8 @@ test("the off-palette strip passes once snapped and records the pre-snap share a
   assert.equal(result.code, 0, result.stdout + result.stderr);
   const { gate } = result.json;
   assert.deepEqual(gate.failed, []);
-  assert.equal(gate.measurements.offPaletteBefore, 0.75);
-  assert.deepEqual(gate.warnings, ["75% of opaque pixels were off the Palette before snapping"]);
+  assert.equal(gate.measurements.offPaletteBefore, 0.8);
+  assert.deepEqual(gate.warnings, ["80% of opaque pixels were off the Palette before snapping"]);
 
   const strip = await decode(join(root, result.json.scratch.strip));
   const allowed = new Set(COSY.map((h) => parseInt(h.slice(1), 16)));
@@ -226,6 +246,19 @@ test("a PixelLab 5xx is retried at once", async () => {
   assert.equal(result.json.retries.length, 1);
 });
 
+test("the PixelLab fixture rejects a frame_count animate v3 rejects", async () => {
+  const root = tree();
+  const still = readFileSync(join(root, `${ELEMENTS}/${ELEMENT}.png`)).toString("base64");
+  for (const [frameCount, status] of [[3, 422], [18, 422], [2, 422], [4, 200], [16, 200]]) {
+    const res = await fetch(`${server.env.PIXELLAB_BASE_URL}/animate-with-text-v3`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${server.env.PIXELLAB_API_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({ first_frame: { type: "base64", base64: still, format: "png" }, action: "breathing", frame_count: frameCount }),
+    });
+    assert.equal(res.status, status, `frame_count ${frameCount}`);
+  }
+});
+
 test("a request the service rejects as invalid is not retried", async () => {
   const root = tree();
   retroDiffusionState.submitQueue.push({ status: 400, json: { detail: "input_image too small" } });
@@ -244,14 +277,14 @@ test("--accept writes the sidecar strip and the animation block, and validate ch
   assert.deepEqual(readFileSync(join(root, `${ELEMENTS}/${ELEMENT}.strip.png`)), readFileSync(join(root, first.json.scratch.strip)));
   const record = readJson(root, `${ELEMENTS}/${ELEMENT}.json`);
   assert.deepEqual(record.animation, {
-    frames: 4,
+    frames: 5,
     fps: 6,
     order: "cycle",
     service: "pixellab",
     model: "animate-with-text-v3",
     prompt: "tail twitches",
     seed: 41,
-    params: { frame_count: 3, no_background: true },
+    params: { frame_count: 4, no_background: true },
     snappedTo: "cosy-night",
     offPaletteBefore: 0,
     cost: { pixellabGenerations: 1, meteredUsd: 0 },
@@ -260,11 +293,11 @@ test("--accept writes the sidecar strip and the animation block, and validate ch
   const valid = validate(root);
   assert.equal(valid.code, 0, JSON.stringify(valid.report));
 
-  const narrow = await sharp(join(root, first.json.scratch.strip)).extract({ left: 0, top: 0, width: 72, height: 16 }).png().toBuffer();
+  const narrow = await sharp(join(root, first.json.scratch.strip)).extract({ left: 0, top: 0, width: 96, height: 16 }).png().toBuffer();
   writeFileSync(join(root, `${ELEMENTS}/${ELEMENT}.strip.png`), narrow);
   const invalid = validate(root);
   assert.equal(invalid.code, 1);
-  assert.match(JSON.stringify(invalid.report), /Frame strip .*is 72x16, record says 96x16/);
+  assert.match(JSON.stringify(invalid.report), /Frame strip .*is 96x16, record says 120x16/);
 });
 
 test("--accept records the off-palette share and warning, and charges every Attempt for the Element", async () => {
@@ -300,7 +333,7 @@ test("--accept refuses an Attempt that failed the gate and an Element that alrea
   const { still, opaque } = await stillOf(root);
   const frozen = recolour(still, opaque.slice(0, 6));
   const action = "frozen";
-  pixellabState.animations.set(action, [still, frozen, frozen, frozen].map((f) => encodePng(f.width, f.height, f.data)));
+  pixellabState.animations.set(action, [still, frozen, frozen, frozen, frozen].map((f) => encodePng(f.width, f.height, f.data)));
   const failed = await run(root, "--motion", action);
   assert.equal(failed.json.gate.ok, false);
   const refused = await run(root, "--accept", failed.json.scratch.strip);
@@ -347,5 +380,5 @@ test("a Placement with animation overrides on the accepted Element passes valida
     for (let y = cat.y; y < cat.y + 16; y++) rows.push(...frame.subarray((y * 192 + cat.x) * 4, (y * 192 + cat.x + 24) * 4));
     seen.add(rows.join(","));
   }
-  assert.equal(seen.size, 4, "a 4-frame pingpong strip shows all four frames over one cycle");
+  assert.equal(seen.size, 5, "a 5-frame pingpong strip shows all five frames over one cycle");
 });

@@ -162,6 +162,9 @@ export const pixellab: ServiceFixture = {
     if (req.method === "POST" && req.path === "/v2/animate-with-text-v3") {
       const body = JSON.parse(req.body.toString("utf8"));
       pixellabState.animateRequests.push(body);
+      if (!Number.isInteger(body.frame_count) || body.frame_count % 2 !== 0 || body.frame_count < 4 || body.frame_count > 16) {
+        return { status: 422, json: { detail: [{ loc: ["body", "frame_count"], msg: "Number of animation frames (4-16, must be even)", type: "value_error" }] } };
+      }
       const queued = pixellabState.animateQueue.shift();
       if (queued) return queued;
       const still = Buffer.from(body.first_frame.base64, "base64");

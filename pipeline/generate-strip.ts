@@ -16,7 +16,7 @@ const ELEMENTS = "library/elements";
 const SCRATCH = "scratch/strips";
 const SERVICES = ["pixellab", "retro-diffusion"] as const;
 type StripService = (typeof SERVICES)[number];
-const DEFAULT_FRAMES: Record<StripService, number> = { pixellab: 4, "retro-diffusion": 8 };
+const DEFAULT_FRAMES: Record<StripService, number> = { pixellab: 5, "retro-diffusion": 8 };
 const MODELS: Record<StripService, string> = { pixellab: "animate-with-text-v3", "retro-diffusion": SUBTLE_MOTION };
 const USAGE = "usage: generate-strip <elementId> [--service pixellab|retro-diffusion] [--frames n] [--motion text] [--seed n] | --accept <attempt.strip.png> [--scene scene.json]";
 
@@ -213,6 +213,10 @@ main(async () => {
   const service = (values.service ?? "pixellab") as StripService;
   if (!SERVICES.includes(service)) throw new Error(`--service must be pixellab or retro-diffusion, got ${values.service}`);
   const frames = values.frames === undefined ? DEFAULT_FRAMES[service] : Number(values.frames);
+  // animate v3 takes an even frame_count from 4 to 16 and returns frame_count + 1 images.
+  if (service === "pixellab" && !(Number.isInteger(frames) && frames % 2 === 1 && frames >= 5 && frames <= 15)) {
+    throw new Error(`--frames for pixellab must be an odd number from 5 to 15, got ${values.frames}`);
+  }
   if (!Number.isInteger(frames) || frames < 2 || frames > 16) throw new Error(`--frames must be an integer from 2 to 16, got ${values.frames}`);
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
   if (!Number.isInteger(seed)) throw new Error(`--seed must be an integer, got ${values.seed}`);
