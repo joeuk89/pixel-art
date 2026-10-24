@@ -120,7 +120,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await card.waitFor();
     const poster = card.getByRole("img", { name: title });
     await poster.waitFor();
-    assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 192);
+    assert.equal(await poster.evaluate(async (img: HTMLImageElement) => { await img.decode(); return img.naturalWidth; }), 192);
     assert.match(await card.innerText(), new RegExp(title));
     assert.match(await page.locator("footer").innerText(), /generated with AI/);
     assert.deepEqual(errors, []);
