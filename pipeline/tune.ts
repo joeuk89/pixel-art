@@ -107,15 +107,14 @@ async function main() {
         throw e;
       }
       writeAtomically(planPath, tuned.text);
-      if (tuned.defaultChanged) {
-        const poster = await runScript("poster", file);
-        if (poster.code !== 0) return json(res, 200, { ok: false, poster: true, error: `poster failed: ${poster.out.error}` });
-      }
+      const poster = tuned.defaultChanged ? await runScript("poster", file) : undefined;
+      const posterFailed = poster !== undefined && poster.code !== 0;
       const preview = await runScript("preview", file);
       const failed = (preview.out.checks ?? []).filter((c: { ok: boolean }) => !c.ok);
       return json(res, 200, {
-        ok: preview.code === 0,
+        ok: preview.code === 0 && !posterFailed,
         poster: tuned.defaultChanged,
+        ...(posterFailed && { error: `poster failed: ${poster.out.error}` }),
         status: readScene(planPath).status,
         preview: {
           ok: preview.code === 0,

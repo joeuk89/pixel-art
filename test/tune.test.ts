@@ -1,6 +1,6 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, existsSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { build } from "esbuild";
 import { fixtureScene, readJson, repo, runScript, writeJson } from "./helpers.ts";
@@ -113,6 +113,28 @@ test("a Save that changes the default Variant renders the Poster again under the
   assert.equal(out.poster, true);
   assert.notDeepEqual(readFileSync(posterPath(root)), poster);
   assert.ok(statSync(posterPath(root)).mtimeMs > old.getTime());
+});
+
+test("when the Poster cannot be rendered after a default Variant Save, preview still runs and sends the resolved Scene back to draft", async () => {
+  const root = tunerTree();
+  const plan = readJson(root, fixtureScene);
+  plan.status = "resolved";
+  writeJson(root, fixtureScene, plan);
+  git(root, "commit", "-qam", "resolved");
+  chmodSync(posterPath(root), 0o444);
+  const url = await startTuner(root);
+  const tuning = tuningOf(plan);
+  tuning.variants[0].ambient.level = -1;
+
+  const { status, out } = await save(url, tuning);
+  assert.equal(status, 200, JSON.stringify(out));
+  assert.equal(out.ok, false);
+  assert.equal(out.poster, true);
+  assert.match(out.error, /^poster failed: /);
+  assert.ok(out.preview.failed.includes("poster"), JSON.stringify(out.preview));
+  assert.equal(out.status, "draft");
+  assert.equal(readJson(root, fixtureScene).status, "draft");
+  assert.deepEqual(staged(root), []);
 });
 
 test("a Save that changes only a second Variant leaves the Poster alone", async () => {

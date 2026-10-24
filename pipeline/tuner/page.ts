@@ -338,9 +338,8 @@ async function boot(): Promise<void> {
       const response = await fetch("save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(tuning) });
       const out = await response.json();
       if (response.status !== 200) return say(`Not saved. ${out.error}`, true);
-      if (out.error) return say(`Saved, but ${out.error}`, true);
-      const poster = out.poster ? " Poster rendered again." : "";
-      if (out.ok) say(`Saved.${poster} Preview passed: the Scene is ${out.status} and ${out.preview.staged.length} files are staged.`);
+      const poster = out.error ? ` But ${out.error}.` : out.poster ? " Poster rendered again." : "";
+      if (out.preview.ok) say(`Saved.${poster} Preview passed: the Scene is ${out.status} and ${out.preview.staged.length} files are staged.`, !out.ok);
       else say(`Saved.${poster} A preview check failed: ${out.preview.failed.join(", ") || out.preview.error}. The Scene is ${out.status}.\n${out.preview.problems.join("\n")}`, true);
     } catch (e) {
       say(`Not saved: ${(e as Error).message}`, true);
