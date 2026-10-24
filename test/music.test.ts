@@ -104,3 +104,50 @@ test("validate keeps a plan draft while its music has no measured seam", () => {
   assert.equal(check.report.scenes[0].status, "draft");
   assert.ok(check.report.scenes[0].pending.some((p: any) => p.path === "soundtrack.music.seam"), JSON.stringify(check.report.scenes[0].pending));
 });
+
+test("--lyria generates through Lyria instead of Stable Audio and shares the loop maker", async () => {
+  const root = draftTree();
+  const mark = server.requests.length;
+  const run = await runScript(script, [fixtureScene, "--lyria"], { cwd: root, env: env() });
+  assert.equal(run.code, 0, run.stderr);
+  const calls = since(mark);
+  assert.deepEqual(calls.map((r) => `${r.service} ${r.method} ${r.path}`), ["gemini POST /v1beta/interactions"]);
+  const body = JSON.parse(calls[0].body.toString());
+  assert.equal(body.model, "lyria-3.5");
+  assert.match(body.input, /slow piano, rain on a window, warm and sparse/);
+
+  const plan = readJson(root, fixtureScene);
+  assert.equal(plan.soundtrack.music.service, "lyria");
+  assert.ok(plan.soundtrack.music.loopEnd >= 105 && plan.soundtrack.music.loopEnd <= 115);
+  assert.ok(plan.soundtrack.music.seam.seamJump <= plan.soundtrack.music.seam.maxInnerJump);
+  assert.deepEqual(plan.cost.meteredUsd, { stability: 0.2, gemini: 0.08 });
+  assert.equal(validate(root, sceneDir).report.scenes[0].status, "resolved");
+});
+
+test("a rerun keeps finished music and spends nothing unless --force", async () => {
+  const root = draftTree();
+  assert.equal((await runScript(script, [fixtureScene], { cwd: root, env: env() })).code, 0);
+  const first = readJson(root, fixtureScene);
+  const mark = server.requests.length;
+  const again = await runScript(script, [fixtureScene], { cwd: root, env: env() });
+  assert.equal(again.code, 0, again.stderr);
+  assert.equal(again.json.skipped, true);
+  assert.equal(server.requests.length, mark);
+  assert.deepEqual(readJson(root, fixtureScene), first);
+
+  const forced = await runScript(script, [fixtureScene, "--force"], { cwd: root, env: env() });
+  assert.equal(forced.code, 0, forced.stderr);
+  assert.ok(server.requests.length > mark);
+  assert.deepEqual(readJson(root, fixtureScene).cost.meteredUsd, { stability: 0.36 });
+});
+
+test("without a Stability key the script fails with JSON and leaves the plan alone", async () => {
+  const root = draftTree();
+  const before = readJson(root, fixtureScene);
+  const run = await runScript(script, [fixtureScene], { cwd: root, env: { ...env(), STABILITY_API_KEY: undefined } });
+  assert.equal(run.code, 1);
+  assert.equal(run.json.ok, false);
+  assert.match(run.json.error, /STABILITY_API_KEY/);
+  assert.deepEqual(readJson(root, fixtureScene), before);
+  assert.equal(existsSync(join(root, sceneDir, "music.mp3")), false);
+});
