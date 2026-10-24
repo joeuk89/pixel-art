@@ -1,7 +1,7 @@
 import { POSTER_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry } from "../schema/index.ts";
+import { AI_NOTICE } from "./credits.ts";
 import { sceneUrl } from "./site.ts";
 
-export const AI_NOTICE = "Artwork, music and sound effects generated with AI.";
 const POSTER_SCALE = 2;
 
 async function readGallery(root: URL): Promise<GalleryEntry[]> {

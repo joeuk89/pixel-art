@@ -6,9 +6,9 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
-import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
+import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { SITE_URL } from "../pipeline/lib/site.ts";
-import { fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
+import { editJson, fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
 const title = "Fixture rainy desk";
@@ -51,6 +51,9 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     root = makeTree();
     for (const dir of ["viewer", "schema", "node_modules", "package.json"]) symlinkSync(join(repo, dir), join(root, dir));
     cpSync(join(repo, "index.html"), join(root, "index.html"));
+    editJson(root, fixtureScene, (plan) => {
+      plan.soundtrack.ambient.push({ source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss" }, file: "room.ogg", distance: "near" });
+    });
     const staged = runScript(root, "stage", fixtureScene);
     assert.equal(staged.code, 0, staged.stderr);
     palette = readJson(root, "library/palettes/cosy-night.json").colours;
@@ -69,6 +72,12 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       CanvasRenderingContext2D.prototype.putImageData = function (this: CanvasRenderingContext2D, ...args: any[]) {
         (window as any).draws++;
         return (put as any).apply(this, args);
+      };
+      const request = Element.prototype.requestFullscreen;
+      (window as any).fullscreenRequests = 0;
+      Element.prototype.requestFullscreen = function (this: Element, ...args: any[]) {
+        (window as any).fullscreenRequests++;
+        return (request as any).apply(this, args);
       };
     });
     const page = await context.newPage();
@@ -209,6 +218,173 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  test("the overlay appears on pointer move and hides itself after a few seconds", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const back = page.getByRole("link", { name: "Back to the Gallery" });
+    assert.equal(await back.isVisible(), false);
+    await page.mouse.move(300, 300);
+    await page.mouse.move(310, 305);
+    await back.waitFor({ state: "visible" });
+    assert.equal(await page.getByText(title, { exact: true }).isVisible(), true);
+    for (const name of ["Sound", "Copy link", "Info"]) assert.ok(await page.getByRole("button", { name }).isVisible(), name);
+    await back.waitFor({ state: "hidden", timeout: 6000 });
+    assert.deepEqual(errors, []);
+  });
+
+  test("a tap shows the overlay", async () => {
+    const { page, errors } = await open(`scenes/${id}/`, { hasTouch: true });
+    await page.locator("canvas").waitFor();
+    await page.touchscreen.tap(500, 350);
+    await page.getByRole("link", { name: "Back to the Gallery" }).waitFor({ state: "visible" });
+    assert.deepEqual(errors, []);
+  });
+
+  const soundOn = (page: Page) => page.getByRole("button", { name: "Sound", includeHidden: true }).getAttribute("aria-pressed");
+
+  test("M toggles the muted flag and the click-for-sound hint goes after the first unmute", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const hint = page.getByText("Click for sound");
+    assert.equal(await hint.isVisible(), true);
+    assert.equal(await soundOn(page), "false");
+    await page.keyboard.press("m");
+    assert.equal(await soundOn(page), "true");
+    assert.equal(await hint.isVisible(), false);
+    await page.keyboard.press("M");
+    assert.equal(await soundOn(page), "false");
+    assert.equal(await hint.isVisible(), false);
+    assert.deepEqual(errors, []);
+  });
+
+  test("the first click anywhere unmutes and the sound toggle mutes again", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.click(500, 400);
+    assert.equal(await soundOn(page), "true");
+    assert.equal(await page.getByText("Click for sound").isVisible(), false);
+    await page.getByRole("button", { name: "Sound" }).click();
+    assert.equal(await soundOn(page), "false");
+    assert.equal(await page.evaluate(() => document.fullscreenElement), null);
+    assert.deepEqual(errors, []);
+  });
+
+  const fullscreenRequests = (page: Page): Promise<number> => page.evaluate(() => (window as any).fullscreenRequests);
+  const isFullscreen = (page: Page) => page.evaluate(() => document.fullscreenElement !== null);
+
+  test("F requests fullscreen and unmutes, F again leaves fullscreen", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.keyboard.press("f");
+    assert.equal(await fullscreenRequests(page), 1);
+    assert.equal(await soundOn(page), "true");
+    await page.waitForFunction(() => document.fullscreenElement !== null);
+    await page.keyboard.press("m");
+    assert.equal(await soundOn(page), "false");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.fullscreenElement === null);
+    assert.equal(await fullscreenRequests(page), 1);
+    assert.equal(await soundOn(page), "false");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.fullscreenElement !== null);
+    assert.equal(await fullscreenRequests(page), 2);
+    assert.equal(await soundOn(page), "false");
+    assert.deepEqual(errors, []);
+  });
+
+  test("the fullscreen button requests fullscreen and unmutes", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    await page.getByRole("button", { name: "Fullscreen" }).click();
+    assert.equal(await fullscreenRequests(page), 1);
+    assert.equal(await soundOn(page), "true");
+    assert.deepEqual(errors, []);
+  });
+
+  test("Esc does nothing while fullscreen and returns to the Gallery with pushState otherwise", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.evaluate(() => { (window as any).sameDocument = true; });
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.fullscreenElement !== null);
+    await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    await pause(200);
+    assert.equal(page.url(), `${site}scenes/${id}/`);
+    assert.equal(await page.locator("canvas").count(), 1);
+    await page.evaluate(() => document.exitFullscreen());
+    await page.waitForFunction(() => document.fullscreenElement === null);
+    assert.equal(await isFullscreen(page), false);
+    await page.keyboard.press("Escape");
+    await page.getByRole("link", { name: title }).waitFor();
+    assert.equal(page.url(), site);
+    assert.equal(await page.evaluate(() => (window as any).sameDocument), true);
+    assert.deepEqual(errors, []);
+  });
+
+  test("on an iPhone the fullscreen button is absent, F does nothing and the Scene fills the viewport", async () => {
+    const { page, errors } = await open(`scenes/${id}/`, devices["iPhone 13"]);
+    await page.locator("canvas").waitFor();
+    await page.touchscreen.tap(100, 100);
+    await page.getByRole("button", { name: "Sound" }).waitFor({ state: "visible" });
+    assert.equal(await page.getByRole("button", { name: "Fullscreen", includeHidden: true }).count(), 0);
+    await page.keyboard.press("f");
+    assert.equal(await fullscreenRequests(page), 0);
+    const viewport = page.viewportSize()!;
+    const scene = (await page.locator("main").boundingBox())!;
+    assert.deepEqual([scene.x, scene.y, scene.width, scene.height], [0, 0, viewport.width, viewport.height]);
+    const canvas = (await page.locator("canvas").boundingBox())!;
+    assert.ok(canvas.width <= viewport.width && canvas.height <= viewport.height);
+    assert.ok(canvas.width >= viewport.width / 2, `canvas is ${canvas.width}px wide in a ${viewport.width}px viewport`);
+    assert.deepEqual(errors, []);
+  });
+
+  test("Copy link writes the Scene's Share link to the clipboard", async () => {
+    const { page, errors } = await open("", { permissions: ["clipboard-read", "clipboard-write"] });
+    await page.getByRole("link", { name: title }).click();
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    await page.getByRole("button", { name: "Copy link" }).click();
+    await page.getByRole("button", { name: "Copied" }).waitFor();
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${site}scenes/${id}/`);
+    assert.deepEqual(errors, []);
+  });
+
+  test("I opens the info panel with the Prompt, the AI notice naming every service and one attribution line per curated sound", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    const info = page.getByRole("region", { name: "About this Scene" });
+    assert.equal(await info.count(), 0);
+    await page.keyboard.press("i");
+    await info.waitFor();
+    assert.match(await info.innerText(), /a cosy desk by a rainy window at night, cat asleep/);
+    await info.getByText("Artwork, music and sound effects generated with AI using PixelLab, Stable Audio 3.0 and ElevenLabs.").waitFor();
+    const lines = info.getByRole("listitem");
+    assert.equal(await lines.count(), 2);
+    for (const [n, record] of ["freesound-room-tone-641306", "freesound-thunder-distant-195522"].entries()) {
+      const { attribution, licence, sourceUrl } = readJson(root, `library/ambient/${record}.json`);
+      const line = lines.nth(n);
+      assert.match(await line.innerText(), new RegExp(`${escape(attribution)}.*${escape(licence)}`));
+      assert.equal(await line.getByRole("link", { name: attribution }).getAttribute("href"), sourceUrl);
+    }
+    await page.keyboard.press("i");
+    await info.waitFor({ state: "detached" });
+    assert.equal(await soundOn(page), "false");
+    assert.deepEqual(errors, []);
+  });
+
+  test("the Info button opens the panel and its close button shuts it", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    await page.getByRole("button", { name: "Info" }).click();
+    const info = page.getByRole("region", { name: "About this Scene" });
+    await info.waitFor();
+    await info.getByRole("button", { name: "Close" }).click();
+    await info.waitFor({ state: "detached" });
+    assert.deepEqual(errors, []);
+  });
+
   test("an unknown Scene id shows No such Scene with a link back to the Gallery", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
     await page.locator("canvas").waitFor();
@@ -304,6 +480,10 @@ describe("Published site", { skip: browser ? false : "no Playwright browser inst
     }
   });
 });
+
+function escape(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function rgb(hex: string): number[] {
   const n = parseInt(hex.slice(1), 16);

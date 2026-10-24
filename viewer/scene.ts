@@ -7,25 +7,16 @@ import {
   scenePlanSchema,
   type ScenePlan,
 } from "../schema/index.ts";
+import { mountControls } from "./controls.ts";
+import { loadCredits } from "./credits.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
+import { fetchJson, fetchOk, NotFound } from "./http.ts";
 import { startLoop } from "./loop.ts";
 import { createPrimitives } from "./primitives.ts";
+import type { MuteState } from "./mute.ts";
 import { sceneUrl } from "./site.ts";
 
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-
-class NotFound extends Error {}
-
-async function fetchOk(url: URL): Promise<Response> {
-  const response = await fetch(url);
-  if (response.status === 404) throw new NotFound(url.href);
-  if (!response.ok) throw new Error(`${url.href}: HTTP ${response.status}`);
-  return response;
-}
-
-async function fetchJson(url: URL): Promise<unknown> {
-  return (await fetchOk(url)).json();
-}
 
 async function decode(url: URL): Promise<Pixels> {
   const blob = await (await fetchOk(url)).blob();
@@ -83,7 +74,15 @@ export function renderMissing(host: HTMLElement, root: URL): void {
   document.title = "No such Scene";
 }
 
-export async function renderScene(host: HTMLElement, root: URL, id: string, signal: AbortSignal): Promise<void> {
+export type SceneSession = { mute: MuteState; navigate: (url: URL) => void };
+
+export async function renderScene(
+  host: HTMLElement,
+  root: URL,
+  id: string,
+  signal: AbortSignal,
+  { mute, navigate }: SceneSession,
+): Promise<void> {
   const base = sceneUrl(root, id);
   let plan: ScenePlan;
   try {
@@ -104,6 +103,9 @@ export async function renderScene(host: HTMLElement, root: URL, id: string, sign
   host.replaceChildren(main);
   document.title = plan.title;
   fitToViewport([poster], signal);
+  const credits = loadCredits(root, plan);
+  credits.catch((e) => console.error(e));
+  mountControls(main, { plan, root, mute, credits, navigate, signal });
 
   const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;

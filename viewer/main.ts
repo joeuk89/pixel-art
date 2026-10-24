@@ -1,5 +1,6 @@
 import { scenePlanSchema, type ScenePlan } from "../schema/index.ts";
 import { renderGallery } from "./gallery.ts";
+import { createMuteState } from "./mute.ts";
 import { renderScene } from "./scene.ts";
 import { routeOf, siteRoot, type Route } from "./site.ts";
 import { injectStyle } from "./style.ts";
@@ -10,6 +11,7 @@ export function parseScenePlan(json: unknown): ScenePlan {
 
 function boot(root: URL): void {
   let view: AbortController | undefined;
+  const mute = createMuteState();
 
   const show = (route: Route) => {
     view?.abort();
@@ -18,8 +20,13 @@ function boot(root: URL): void {
     document.body.style.background = "";
     const shown = route.kind === "gallery"
       ? renderGallery(document.body, root, controller.signal)
-      : renderScene(document.body, root, route.id, controller.signal);
+      : renderScene(document.body, root, route.id, controller.signal, { mute, navigate });
     shown.catch((e) => console.error(e));
+  };
+
+  const navigate = (url: URL) => {
+    if (url.href !== location.href) history.pushState(null, "", url);
+    show(routeOf(url, root));
   };
 
   document.addEventListener("click", (e) => {
@@ -28,8 +35,7 @@ function boot(root: URL): void {
     const url = new URL(link.href);
     if (url.origin !== location.origin || !url.pathname.startsWith(root.pathname)) return;
     e.preventDefault();
-    if (url.href !== location.href) history.pushState(null, "", url);
-    show(routeOf(url, root));
+    navigate(url);
   });
   addEventListener("popstate", () => show(routeOf(new URL(location.href), root)));
 
