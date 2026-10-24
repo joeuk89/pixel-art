@@ -94,8 +94,8 @@ export function mountControls(host: HTMLElement, { plan, root, mute, audio, cred
   volume.value = String(audio.volume);
   volume.setAttribute("aria-label", "Volume");
   volume.addEventListener("input", () => {
-    audio.volume = Number(volume.value);
-    storeVolume(Number(volume.value));
+    audio.volume = volume.valueAsNumber;
+    storeVolume(volume.valueAsNumber);
   });
   overlay.append(back, title, sound, volume);
   if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
