@@ -62,9 +62,12 @@ function infoPanel(plan: ScenePlan, credits: Promise<Credits>, close: () => void
 }
 
 function toggleFullscreen(mute: MuteState): void {
-  mute.set(false);
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  else document.documentElement.requestFullscreen().catch(() => {});
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+    return;
+  }
+  if (!mute.everUnmuted) mute.set(false);
+  document.documentElement.requestFullscreen().catch(() => {});
 }
 
 export function mountControls(host: HTMLElement, { plan, root, mute, credits, navigate, signal }: ControlsOptions): void {

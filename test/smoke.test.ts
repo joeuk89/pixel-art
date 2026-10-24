@@ -279,9 +279,16 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.equal(await fullscreenRequests(page), 1);
     assert.equal(await soundOn(page), "true");
     await page.waitForFunction(() => document.fullscreenElement !== null);
+    await page.keyboard.press("m");
+    assert.equal(await soundOn(page), "false");
     await page.keyboard.press("f");
     await page.waitForFunction(() => document.fullscreenElement === null);
     assert.equal(await fullscreenRequests(page), 1);
+    assert.equal(await soundOn(page), "false");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => document.fullscreenElement !== null);
+    assert.equal(await fullscreenRequests(page), 2);
+    assert.equal(await soundOn(page), "false");
     assert.deepEqual(errors, []);
   });
 
