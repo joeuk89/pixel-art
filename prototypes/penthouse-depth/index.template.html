@@ -1,0 +1,364 @@
+<!doctype html>
+<!-- PROTOTYPE, throwaway (wayfinder ticket #66). Four stagings of the penthouse at 192x120, switchable with ?variant=. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>Penthouse depth prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font: 13px/1.4 system-ui, sans-serif; }
+  canvas { position: absolute; image-rendering: pixelated; }
+  #bar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; align-items: center;
+    background: #fff; color: #111; border-radius: 999px; padding: 6px 12px; box-shadow: 0 4px 16px #0008; z-index: 2; }
+  #bar button { border: 0; background: #eee; border-radius: 999px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  #bar button.on { background: #111; color: #fff; }
+  #label { min-width: 220px; text-align: center; font-weight: 600; }
+  #notes { position: fixed; top: 12px; right: 12px; width: 360px; max-height: 75vh; overflow: auto; background: #fffe; color: #111;
+    border-radius: 8px; padding: 10px 14px; box-shadow: 0 4px 16px #0008; z-index: 2; }
+  #notes h3 { margin: 4px 0; font-size: 14px; } #notes ul { margin: 4px 0; padding-left: 18px; }
+  #notes table { border-collapse: collapse; font-size: 12px; } #notes td { padding: 1px 6px 1px 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="192" height="120"></canvas>
+<div id="notes"></div>
+<div id="bar">
+  <button id="prev">‹</button><span id="label"></span><button id="next">›</button>
+  <button id="atmos" title="A">Atmos</button><button id="drift" title="D">Drift</button>
+  <button id="planes" title="P">Planes</button><button id="notesBtn" title="N">Notes</button>
+</div>
+<script>
+const ASSETS = /*ASSETS*/{};
+const PAL = /*PALETTE*/[];
+const W = 192, H = 120, M = 12;
+const img = {};
+const rgbKey = (r, g, b) => (r << 16) | (g << 8) | b;
+const palIndex = new Map(PAL.map((h, i) => [parseInt(h.slice(1), 16), i]));
+const PAL_RGB = PAL.map((h) => [1, 3, 5].map((o) => parseInt(h.slice(o, o + 2), 16)));
+const RAMPS = [[0, 1, 2, 3], [4, 5, 6, 7], [11, 10, 9, 8], [14, 13, 15, 12]];
+const EMISSIVE = new Set([8, 12]);
+const rampOf = new Map(); RAMPS.forEach((r) => r.forEach((c, p) => rampOf.set(c, [r, p])));
+
+function remapIndex(i, mode) {
+  if (mode === "sil") return 0;
+  const [ramp, p] = rampOf.get(i);
+  const mid = (ramp.length - 1) / 2;
+  if (mode === "far") return EMISSIVE.has(i) ? i : ramp[p > mid ? p - 1 : p];
+  if (mode === "near") return ramp[Math.max(0, p - 1)];
+  return i;
+}
+
+function fillPoly(ctx, pts, c) {
+  ctx.fillStyle = PAL[c];
+  const ys = pts.map((p) => p[1]);
+  const y0 = Math.max(-M, Math.floor(Math.min(...ys))), y1 = Math.min(H + M, Math.ceil(Math.max(...ys)));
+  for (let y = y0; y < y1; y++) {
+    const sy = y + 0.5, xs = [];
+    for (let i = 0; i < pts.length; i++) {
+      const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length];
+      if ((ay <= sy && by > sy) || (by <= sy && ay > sy)) xs.push(ax + ((sy - ay) / (by - ay)) * (bx - ax));
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const a = Math.max(-M, Math.round(xs[k])), b = Math.min(W + M, Math.round(xs[k + 1]));
+      if (b > a) ctx.fillRect(a, y, b - a, 1);
+    }
+  }
+}
+function line(ctx, x0, y0, x1, y1, c) {
+  ctx.fillStyle = PAL[c];
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let e = dx + dy;
+  for (let n = 0; n < 2000; n++) {
+    if (x0 >= -M && x0 < W + M && y0 >= -M && y0 < H + M) ctx.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * e;
+    if (e2 >= dy) { e += dy; x0 += sx; }
+    if (e2 <= dx) { e += dx; y0 += sy; }
+  }
+}
+const rect = (ctx, x, y, w, h, c) => { ctx.fillStyle = PAL[c]; ctx.fillRect(x, y, w, h); };
+const put = (ctx, n, x, y) => ctx.drawImage(img[n], x, y);
+
+// Room box in cabinet projection: a back rectangle and a vanishing point; walls, ceiling and floor are rays from the VP through its corners.
+function roomBox(ctx, back, vp, o) {
+  const ext = ([x, y]) => [vp[0] + (x - vp[0]) * 30, vp[1] + (y - vp[1]) * 30];
+  const TL = [back.x0, back.y0], TR = [back.x1, back.y0], BL = [back.x0, back.y1], BR = [back.x1, back.y1];
+  fillPoly(ctx, [ext(TL), ext(TR), TR, TL], o.ceiling ?? 0);
+  fillPoly(ctx, [ext(TL), TL, BL, ext(BL)], o.left ?? 1);
+  fillPoly(ctx, [TR, ext(TR), ext(BR), BR], o.right ?? 1);
+  fillPoly(ctx, [BL, BR, ext(BR), ext(BL)], o.floor ?? 11);
+  if (o.plain) return;
+  for (let x = back.x0 + 6; x < back.x1; x += 10) line(ctx, x, back.y1, ...ext([x, back.y1]), 0);
+  for (let k = 1; k < 6; k++) {
+    const y = back.y1 + k * k * 1.6;
+    if (y < H) line(ctx, -M, y, W + M, y, 5 === k ? 14 : 0);
+  }
+  const yAt = (corner, x) => vp[1] + ((corner[1] - vp[1]) * (x - vp[0])) / (corner[0] - vp[0]);
+  for (const t of [0.35, 0.65, 0.85]) {
+    if (back.x0 > 0) { const x = back.x0 * t; line(ctx, x, yAt(TL, x), x, yAt(BL, x), 0); }
+    if (back.x1 < W) { const x = back.x1 + (W - back.x1) * (1 - t); line(ctx, x, yAt(TR, x), x, yAt(BR, x), 0); }
+  }
+  line(ctx, BL[0], BL[1], BR[0], BR[1], 0);
+}
+
+const drops = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, v: 2 + Math.random() * 2, c: 5 + (Math.random() * 3 | 0) }));
+function rain(ctx, x0, x1, y1) {
+  for (const d of drops) {
+    const x = x0 + (d.x % (x1 - x0)), y = d.y % y1;
+    rect(ctx, Math.round(x), Math.round(y), 1, 2, d.c);
+  }
+}
+function tickRain() { for (const d of drops) { d.y += d.v; d.x += 0.5; if (d.y > H) { d.y -= H; } } }
+
+const VARIANTS = [
+  {
+    key: "v1", name: "v1 original",
+    planes: [
+      { name: "far", mode: "far", factor: 0.25, draw(c) { rect(c, -M, -M, W + 2 * M, H + 2 * M, 0); for (let x = 0; x < W + M; x += 128) { put(c, "sky-storm-clouds-night-01", x, 0); put(c, "city-skyline-river-night-02", x, 32); } rain(c, -M, W + M, 104); } },
+      { name: "glass", mode: "none", factor: 1, draw(c) { put(c, "window-mullion-steel-01", 58, -4); put(c, "window-mullion-steel-01", 122, -4); rect(c, -M, 104, W + 2 * M, 30, 0); } },
+      { name: "furniture", mode: "none", factor: 1, draw(c) { put(c, "lamp-floor-linen-drum-01", 90, 36); put(c, "armchair-back-wool-throw-01", 112, 68); put(c, "table-side-tumbler-whisky-01", 162, 88); } },
+    ],
+    notes: `<p>The live Scene as v1 draws it. One band: everything stands on the sill line, no floor, skyline tiled across the full width.</p>`,
+  },
+  {
+    key: "A", name: "A · Room box",
+    planes: [
+      { name: "far", mode: "far", factor: 0.25, draw(c) { rect(c, -M, -M, W + 2 * M, H + 2 * M, 0); put(c, "sky-storm-clouds-night-01", 24, -6); put(c, "city-skyline-river-night-02", 24, 18); rain(c, 22, 158, 90); } },
+      { name: "shell", mode: "none", factor: 0.6, draw(c) {
+        const back = { x0: 22, y0: 10, x1: 158, y1: 90 };
+        roomBox(c, back, [84, 52], {});
+        rect(c, 22, 10, 136, 4, 1); rect(c, 22, 85, 136, 5, 1); rect(c, 22, 14, 6, 71, 1); rect(c, 152, 14, 6, 71, 1);
+        rect(c, 28, 85, 124, 1, 3);
+        for (const x of [61, 103]) c.drawImage(img["window-mullion-steel-01"], 0, 24, 16, 71, x, 14, 16, 71);
+      } },
+      { name: "mid", mode: "none", factor: 0.8, draw(c) { put(c, "lamp-floor-linen-drum-01", 112, 20); put(c, "table-side-tumbler-whisky-01", 152, 80); } },
+      { name: "near", mode: "near", factor: 1, draw(c) { put(c, "armchair-back-wool-throw-01", 96, 72); } },
+    ],
+    notes: `<p>Cabinet projection: back wall square-on with the window in it; ceiling, two side walls and a floor are rays from a vanishing point at (84,52) through its corners. The skyline sits once inside a 124 px window, so it does not repeat.</p>
+      <h3>The Scene plan would need</h3>
+      <ul><li>A room shell: a back rectangle plus a vanishing point, or five shell Elements (back wall with an opening, two side walls, ceiling, floor).</li>
+      <li>A window opening the far planes show through (a mask or a cut-out in the back wall).</li>
+      <li>A plane per Layer (far, shell, mid, near) that picks the ramp shift.</li>
+      <li>Placements stood on the floor: a foot line (y of the base), which must fall inside the floor band.</li>
+      <li>Backdrops narrower than the canvas, placed once, no <code>tileX</code>.</li></ul>`,
+  },
+  {
+    key: "B", name: "B · Over the shoulder",
+    planes: [
+      { name: "far", mode: "far", factor: 0.25, draw(c) { rect(c, -M, -M, W + 2 * M, H + 2 * M, 0); put(c, "sky-storm-clouds-night-01", -16, -8); put(c, "sky-storm-clouds-night-01", 112, -8); put(c, "city-skyline-river-night-01", -8, 34); put(c, "city-skyline-river-night-02", 120, 26); rain(c, -M, 176, 98); } },
+      { name: "shell", mode: "none", factor: 0.6, draw(c) {
+        const back = { x0: -40, y0: 4, x1: 176, y1: 98 };
+        roomBox(c, back, [118, 58], {});
+        rect(c, -M, 4, 188 + M, 4, 1); rect(c, -M, 95, 188 + M, 3, 1); rect(c, -M, 94, 188 + M, 1, 3);
+        for (const x of [30, 90, 150]) c.drawImage(img["window-mullion-steel-01"], 0, 0, 16, 87, x, 8, 16, 87);
+      } },
+      { name: "mid", mode: "none", factor: 0.8, draw(c) { put(c, "lamp-floor-linen-drum-01", 124, 22); put(c, "table-side-tumbler-whisky-01", 150, 82); } },
+      { name: "near", mode: "near", factor: 1.4, draw(c) { c.drawImage(img["armchair-back-wool-throw-01"], -18, 40, 88, 96); } },
+    ],
+    notes: `<p>The viewer stands behind the armchair. The chair is the near plane, large and cut by the left and bottom edges. The window wall fills the back; one side wall closes the right. Two different skylines sit side by side so neither repeats.</p>
+      <p><b>Stand-in:</b> the armchair is the 44x48 Element drawn at 2x. A real build would generate it at 88x96 (the Viewer never scales).</p>
+      <h3>The Scene plan would need</h3>
+      <ul><li>A near Element larger than its mid-plane size: one subject, two sizes, as the depth research allows (capped at two).</li>
+      <li>Placements allowed to sit past the canvas edge (negative x, bottom beyond 120).</li>
+      <li>A wide window wall with only one side wall: the shell geometry must allow a back rectangle wider than the canvas.</li>
+      <li>Two or more different backdrops side by side instead of <code>tileX</code>.</li>
+      <li>A near plane with a drift factor above 1.</li></ul>`,
+  },
+  {
+    key: "C", name: "C · Through the doorway",
+    planes: [
+      { name: "far", mode: "far", factor: 0.2, draw(c) { rect(c, -M, -M, W + 2 * M, H + 2 * M, 0); put(c, "sky-storm-clouds-night-01", 32, -10); put(c, "city-skyline-river-night-02", 32, 22); rain(c, 40, 152, 96); } },
+      { name: "room", mode: "none", factor: 0.5, draw(c) {
+        const back = { x0: 40, y0: 22, x1: 152, y1: 96 };
+        roomBox(c, back, [100, 58], {});
+        rect(c, 40, 22, 112, 4, 1); rect(c, 40, 92, 112, 4, 1); rect(c, 40, 26, 6, 66, 1); rect(c, 146, 26, 6, 66, 1);
+        c.drawImage(img["window-mullion-steel-01"], 0, 30, 16, 66, 88, 26, 16, 66);
+        put(c, "lamp-floor-linen-drum-01", 62, 22); put(c, "armchair-back-wool-throw-01", 92, 68); put(c, "table-side-tumbler-whisky-01", 132, 88);
+      } },
+      { name: "near", mode: "near", factor: 1.3, draw(c) {
+        rect(c, -M, -M, 52 + M, H + 2 * M, 2); rect(c, 140, -M, 52 + M, H + 2 * M, 2); rect(c, 52, -M, 88, 14 + M, 2);
+        fillPoly(c, [[52, 14], [58, 18], [58, 120 + M], [52, 120 + M]], 3);
+        fillPoly(c, [[52, 14], [140, 14], [136, 18], [58, 18]], 1);
+        rect(c, 49, 11, 3, 109 + M, 13); rect(c, 140, 11, 3, 109 + M, 13); rect(c, 49, 11, 94, 3, 13);
+        rect(c, 12, 30, 24, 30, 3); rect(c, 14, 32, 20, 26, 1);
+        rect(c, 156, 64, 24, 3, 14); rect(c, 160, 67, 2, 53, 14); rect(c, 174, 67, 2, 53, 14);
+      } },
+    ],
+    notes: `<p>Frame within a frame. You stand in a dark hall and look through a doorway into the window room. The door jamb's inner face shows on the left (the vanishing point sits right of the door). The skyline sits once inside the door's width.</p>
+      <h3>The Scene plan would need</h3>
+      <ul><li>A near shell Element with a cut-out (the door) that later planes show through.</li>
+      <li>Two room shells: the near hall and the far room, each with its own geometry.</li>
+      <li>Props in the far room at a smaller size than v1 to read as further away. Here they are v1 size, which is why the room feels close.</li>
+      <li>The far room is the only lit space, which hangs on the lighting model (ticket 69).</li></ul>`,
+  },
+];
+
+// Parallax for a room box: every shell pixel moves at the speed of its own depth (floor and ceiling by row, side
+// walls by column), and each prop moves with the floor row under its feet, so nothing slides across the floor.
+const FB = 0.5;
+function roomPlanes(geo, drawShell, props, drawFar) {
+  const { back: b, vp: [vx, vy] } = geo;
+  const ext = ([x, y]) => [vx + (x - vx) * 30, vy + (y - vy) * 30];
+  const TL = [b.x0, b.y0], TR = [b.x1, b.y0], BL = [b.x0, b.y1], BR = [b.x1, b.y1];
+  const floorF = (y) => (FB * (y - vy)) / (b.y1 - vy);
+  const surf = (name, clip, factor, axis) => ({ name, mode: "none", factor, axis, clip, draw: drawShell });
+  const foot = (p) => p.y + (p.h ?? img[p.el].height);
+  return [
+    { name: "far", mode: "far", factor: 0.1, draw: drawFar },
+    surf("back wall", [TL, TR, BR, BL], FB),
+    surf("ceiling", [ext(TL), ext(TR), TR, TL], (y) => (FB * (vy - y)) / (vy - b.y0), "row"),
+    surf("left wall", [ext(TL), TL, BL, ext(BL)], (x) => (FB * (vx - x)) / (vx - b.x0), "col"),
+    surf("right wall", [TR, ext(TR), ext(BR), BR], (x) => (FB * (x - vx)) / (b.x1 - vx), "col"),
+    surf("floor", [BL, BR, ext(BR), ext(BL)], floorF, "row"),
+    ...[...props].sort((p, q) => foot(p) - foot(q)).map((p) => ({
+      name: p.el.replace(/^gen:/, "").replace(/-01$/, ""), mode: p.mode ?? "none", factor: floorF(Math.min(foot(p), H)),
+      draw: (c) => (p.h ? c.drawImage(img[p.el], p.x, p.y, p.w, p.h) : put(c, p.el, p.x, p.y)),
+    })),
+  ];
+}
+// Pads a 192-wide generated image into the drift margin by repeating its edge columns.
+function putPadded(c, n) {
+  const i = img[n]; c.drawImage(i, 0, 0);
+  c.drawImage(i, 0, 0, 1, H, -M, 0, M, H); c.drawImage(i, W - 1, 0, 1, H, W, 0, M, H);
+}
+const GEO_A = { back: { x0: 22, y0: 10, x1: 158, y1: 90 }, vp: [84, 52] };
+const farA = (c) => { rect(c, -M, -M, W + 2 * M, H + 2 * M, 0); put(c, "sky-storm-clouds-night-01", 24, -6); put(c, "city-skyline-river-night-02", 24, 18); rain(c, 22, 158, 90); };
+const mullionsA = (c) => { for (const x of [61, 103]) c.drawImage(img["window-mullion-steel-01"], 0, 24, 16, 71, x, 14, 16, 71); };
+const propsA = [
+  { el: "lamp-floor-linen-drum-01", x: 112, y: 20 },
+  { el: "table-side-tumbler-whisky-01", x: 152, y: 80 },
+  { el: "armchair-back-wool-throw-01", x: 96, y: 72, mode: "near" },
+];
+const DEPTH_NOTE = `<p>Drift here is depth-correct: the back wall moves at ×${FB}, each floor and ceiling row and each side-wall column at the speed of its own depth, and every prop with the floor row under its feet. Try <b>D</b> (cycles off, pixel, smooth).</p>`;
+function addGeneratedVariants() {
+  const room = (key, name, drawShell, props, notes) => VARIANTS.push({ key, name, planes: roomPlanes(GEO_A, drawShell, props, farA), notes: DEPTH_NOTE + notes });
+  room("A-depth", "A · Room box, depth drift", (c) => {
+    roomBox(c, GEO_A.back, GEO_A.vp, {});
+    rect(c, 22, 10, 136, 4, 1); rect(c, 22, 85, 136, 5, 1); rect(c, 22, 14, 6, 71, 1); rect(c, 152, 14, 6, 71, 1); rect(c, 28, 85, 124, 1, 3);
+    mullionsA(c);
+  }, propsA, `<p>Same staging and shell as A.</p>`);
+  for (const g of ["shell-A-init300", "shell-A-init450", "shell-A-init600", "shell-A-text"]) {
+    if (!img["gen:" + g]) continue;
+    room(g, `A · Generated shell (${g.replace("shell-A-", "")})`, (c) => { putPadded(c, "gen:" + g); c.clearRect(28, 14, 124, 71); mullionsA(c); }, propsA,
+      `<p>The shell is one Bitforge image (192x120, styled on the armchair, cosy-night colours). ${g.includes("init") ? `It was guided by A's plain geometry as an init image at strength ${g.match(/\d+$/)[0]}, so its walls, floor and ceiling follow the same vanishing point.` : "Text only, no init image: its perspective is whatever the model chose, so the drift masks from A's geometry may not match it."} The window is cut out by A's geometry.</p>`);
+  }
+  if (img["gen:chair-96x96"]) {
+    const b = VARIANTS.find((v) => v.key === "B");
+    VARIANTS.push({ ...b, key: "B-gen", name: "B · Over the shoulder, generated chair",
+      planes: b.planes.map((p) => (p.name === "near" ? { ...p, draw: (c) => put(c, "gen:chair-96x96", -18, 40) } : p)),
+      notes: `<p>The near armchair is a real 96x96 Pro Flash Element, styled on the v1 armchair, instead of the 2x stand-in.</p>` + b.notes.replace(/<p><b>Stand-in.*?<\/p>/s, "") });
+  }
+  if (img["gen:near-C-init400"]) {
+    const cv = VARIANTS.find((v) => v.key === "C");
+    VARIANTS.push({ ...cv, key: "C-gen", name: "C · Through the doorway, generated wall",
+      planes: cv.planes.map((p) => (p.name === "near" ? { ...p, draw: (c) => { putPadded(c, "gen:near-C-init400"); c.clearRect(58, 18, 82, 102 + M); } } : p)),
+      notes: `<p>The near wall is one Bitforge image guided by C's near wall as an init image; the door opening is cut out by geometry.</p>` + cv.notes });
+  }
+}
+
+const params = new URLSearchParams(location.search);
+let vi = 0;
+const DRIFTS = ["off", "pixel", "smooth"];
+const state = { atmos: params.get("atmos") !== "0", drift: Math.max(0, DRIFTS.indexOf(params.get("drift"))), planes: false, notes: params.get("notes") !== "0" };
+
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const PW = W + 2 * M, PH = H + 2 * M;
+const layer = Object.assign(document.createElement("canvas"), { width: PW, height: PH });
+const lctx = layer.getContext("2d", { willReadFrequently: true });
+const mask = Object.assign(document.createElement("canvas"), { width: PW, height: PH }), mctx = mask.getContext("2d");
+const TINTS = ["#ff4d4d", "#ffd23f", "#3fd2ff", "#7dff6a", "#ff7dff", "#ffffff"];
+let sd = 1;
+
+function remapCanvas(mode) {
+  if (mode === "none" || !state.atmos) return;
+  const d = lctx.getImageData(0, 0, PW, PH), a = d.data;
+  for (let i = 0; i < a.length; i += 4) {
+    if (!a[i + 3]) continue;
+    const idx = palIndex.get(rgbKey(a[i], a[i + 1], a[i + 2]));
+    if (idx === undefined) continue;
+    const [r, g, b] = PAL_RGB[remapIndex(idx, mode)];
+    a[i] = r; a[i + 1] = g; a[i + 2] = b;
+  }
+  lctx.putImageData(d, 0, 0);
+}
+
+// Each plane is drawn at 192x120 and composited at device resolution; "pixel" drift snaps offsets to art pixels, "smooth" to device pixels.
+function composite(p, cam) {
+  const off = (f) => (state.drift === 2 ? Math.round(cam * f * sd) : Math.round(cam * f) * sd);
+  if (typeof p.factor === "number") ctx.drawImage(layer, 0, 0, PW, PH, off(p.factor) - M * sd, -M * sd, PW * sd, PH * sd);
+  else if (p.axis === "row") for (let y = 0; y < H; y++) ctx.drawImage(layer, 0, y + M, PW, 1, off(p.factor(y + 0.5)) - M * sd, y * sd, PW * sd, sd);
+  else for (let x = -M; x < W + M; x++) ctx.drawImage(layer, x + M, 0, 1, PH, x * sd + off(p.factor(x + 0.5)), -M * sd, sd, PH * sd);
+}
+
+let t0 = performance.now(), lastRain = 0;
+function frame(now) {
+  const v = VARIANTS[vi];
+  const cam = state.drift ? Math.sin(((now - t0) / 40000) * 2 * Math.PI) * 8 : 0;
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height);
+  v.planes.forEach((p, i) => {
+    lctx.clearRect(0, 0, PW, PH);
+    lctx.save(); lctx.translate(M, M); p.draw(lctx);
+    lctx.restore();
+    if (p.clip) {
+      mctx.clearRect(0, 0, PW, PH); mctx.save(); mctx.translate(M, M); fillPoly(mctx, p.clip, 0); mctx.restore();
+      lctx.globalCompositeOperation = "destination-in"; lctx.drawImage(mask, 0, 0); lctx.globalCompositeOperation = "source-over";
+    }
+    remapCanvas(p.mode);
+    composite(p, cam);
+    if (state.planes) {
+      lctx.globalCompositeOperation = "source-in"; lctx.fillStyle = TINTS[i % TINTS.length]; lctx.fillRect(0, 0, PW, PH); lctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 0.45; composite(p, cam); ctx.globalAlpha = 1;
+    }
+  });
+  if (now - lastRain > 1000 / 24) { lastRain = now; tickRain(); }
+}
+
+function layout() {
+  const s = Math.max(1, Math.floor(Math.min(innerWidth / W, innerHeight / H)));
+  sd = s * Math.max(1, Math.round(devicePixelRatio));
+  cv.width = W * sd; cv.height = H * sd;
+  Object.assign(cv.style, { width: W * s + "px", height: H * s + "px", left: (innerWidth - W * s) / 2 + "px", top: (innerHeight - H * s) / 2 + "px" });
+}
+const fmt = (p) => (typeof p.factor === "number" ? `×${+p.factor.toFixed(2)}` : `by ${p.axis}`);
+function render() {
+  const v = VARIANTS[vi];
+  document.getElementById("label").textContent = v.name;
+  for (const k of ["atmos", "planes"]) document.getElementById(k).classList.toggle("on", state[k]);
+  const d = document.getElementById("drift"); d.classList.toggle("on", !!state.drift); d.textContent = "Drift: " + DRIFTS[state.drift];
+  document.getElementById("notesBtn").classList.toggle("on", state.notes);
+  const n = document.getElementById("notes");
+  n.style.display = state.notes ? "" : "none";
+  n.innerHTML = `<h3>${v.name}</h3>${v.notes}<h3>Planes, back to front</h3><table>${v.planes.map((p, i) =>
+    `<tr><td style="color:${TINTS[i % TINTS.length]}">■</td><td>${p.name}</td><td>ramp: ${p.mode}</td><td>drift ${fmt(p)}</td></tr>`).join("")}</table>
+    <p style="color:#666">Atmos: far planes drop their top ramp steps by one (lights kept), near planes darken one step. Drift: ±8 px over 40 s, times each plane's factor.</p>`;
+  const q = new URLSearchParams(location.search); q.set("variant", v.key); history.replaceState(null, "", "?" + q);
+}
+function go(d) { vi = (vi + d + VARIANTS.length) % VARIANTS.length; render(); }
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+const toggle = (k) => { state[k] = k === "drift" ? (state.drift + 1) % 3 : !state[k]; render(); };
+document.getElementById("atmos").onclick = () => toggle("atmos");
+document.getElementById("drift").onclick = () => toggle("drift");
+document.getElementById("planes").onclick = () => toggle("planes");
+document.getElementById("notesBtn").onclick = () => toggle("notes");
+addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1);
+  else if (e.key === "a") toggle("atmos"); else if (e.key === "d") toggle("drift");
+  else if (e.key === "p") toggle("planes"); else if (e.key === "n") toggle("notes");
+});
+addEventListener("resize", layout);
+
+Promise.all(Object.entries(ASSETS).map(([k, src]) => new Promise((ok) => { const i = new Image(); i.onload = () => { img[k] = i; ok(); }; i.src = src; })))
+  .then(() => {
+    addGeneratedVariants();
+    vi = Math.max(0, VARIANTS.findIndex((v) => v.key === (params.get("variant") ?? "A")));
+    layout(); render();
+    const loop = (now) => { frame(now); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+</script>
+
+</body>
+</html>

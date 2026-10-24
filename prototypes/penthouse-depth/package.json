@@ -1,0 +1,10 @@
+{
+  "name": "prototype-penthouse-depth",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #66: what does the penthouse look like staged as a space you are inside (floor, sides, near/mid/far planes)?",
+  "scripts": {
+    "build": "node build.js",
+    "start": "node build.js && open index.html"
+  }
+}
