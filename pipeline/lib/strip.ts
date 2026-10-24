@@ -1,4 +1,4 @@
-import { gateStill, type Pixels } from "./quality-gate.ts";
+import { gateStill, paletteSet, type Pixels } from "./quality-gate.ts";
 
 export const MIN_MOTION = 0.01;
 export const MAX_DRIFT = 0.1;
@@ -33,7 +33,7 @@ export type Snapped = { frame: Pixels; opaque: number; offPalette: number };
 export function snapToPalette(frame: Pixels, palette: string[]): Snapped {
   const colours = palette.map(rgbOf);
   const labs = colours.map(([r, g, b]) => oklab(r, g, b));
-  const exact = new Set(palette.map((hex) => parseInt(hex.slice(1), 16)));
+  const exact = paletteSet(palette);
   const nearest = new Map<number, readonly [number, number, number]>();
   const data = new Uint8Array(frame.data);
   let opaque = 0, offPalette = 0;
@@ -97,14 +97,15 @@ const round = (n: number) => Math.round(n * 10000) / 10000;
 
 export function gateStrip(frames: Pixels[], input: StripGateInput): StripGateReport {
   const { width, height } = input;
-  const strip = buildStrip(frames);
+  const stripWidth = frames.reduce((sum, f) => sum + f.width, 0);
+  const stripHeight = Math.max(0, ...frames.map((f) => f.height));
   const passed: string[] = [], failed: string[] = [], warnings: string[] = [];
   const check = (name: string, problems: string[]) => (problems.length === 0 ? passed.push(name) : failed.push(`${name}: ${problems.join("; ")}`));
 
   const sized = frames.every((f) => f.width === width && f.height === height);
   check("dimensions", frames.length === input.frames && sized
     ? []
-    : [`${frames.length} frames making ${strip.width}x${strip.height}, expected ${input.frames} frames making ${input.frames * width}x${height}`]);
+    : [`${frames.length} frames making ${stripWidth}x${stripHeight}, expected ${input.frames} frames making ${input.frames * width}x${height}`]);
 
   const stillFails = (name: string) => frames.flatMap((f, k) => {
     const gate = gateStill(f, { kind: "backdrop", canvas: { width, height }, palette: input.palette });
@@ -135,7 +136,7 @@ export function gateStrip(frames: Pixels[], input: StripGateInput): StripGateRep
     failed,
     warnings,
     measurements: {
-      width: strip.width, height: strip.height, frames: frames.length,
+      width: stripWidth, height: stripHeight, frames: frames.length,
       steps: steps.map(round), meanStep: round(meanStep), drift: round(drift), seam: round(seam), offPaletteBefore: round(input.offPaletteBefore),
     },
   };

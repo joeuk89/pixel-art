@@ -50,7 +50,7 @@ async function generatePixelLab(still: Buffer, motion: string, frames: number, s
   return { frames: [await decode(still), ...decoded.slice(1)], params, cost: { pixellabGenerations: generations, meteredUsd: 0 } };
 }
 
-// Its frame 0 only approximates the input, so the library still takes its place.
+// Retro Diffusion's frame 0 only approximates the input, so the library still replaces it.
 async function generateRetroDiffusion(still: Buffer, record: Prop, motion: string, frames: number, seed: number, key: string): Promise<Generated> {
   const params = { prompt_style: SUBTLE_MOTION, frames_duration: frames };
   const result = await subtleMotion(
@@ -76,14 +76,15 @@ type Sidecar = {
   gate: StripGateReport;
 };
 
-function nextAttempt(id: string): number {
+function attemptSidecars(dir: string, id: string): { name: string; attempt: number }[] {
   const prefix = `${id}-a`;
-  const taken = readdirSync(SCRATCH)
-    .map((n) => (n.startsWith(prefix) ? n.slice(prefix.length).match(/^(\d+)\.json$/)?.[1] : undefined))
-    .filter((n) => n !== undefined)
-    .map(Number);
-  return 1 + Math.max(0, ...taken);
+  return readdirSync(dir).flatMap((name) => {
+    const n = name.startsWith(prefix) ? name.slice(prefix.length).match(/^(\d+)\.json$/)?.[1] : undefined;
+    return n === undefined ? [] : [{ name, attempt: Number(n) }];
+  });
 }
+
+const nextAttempt = (id: string) => 1 + Math.max(0, ...attemptSidecars(SCRATCH, id).map((a) => a.attempt));
 
 function createExclusive(path: string, data: string): boolean {
   try {
@@ -118,8 +119,9 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
   });
   while (!createExclusive(join(SCRATCH, `${record.id}-a${n}.json`), JSON.stringify(sidecar(n), null, 2) + "\n")) n++;
   const stem = `${SCRATCH}/${record.id}-a${n}`;
-  await sharp(await encode(strip)).toFile(`${stem}.strip.png`);
-  await sharp(await encode(strip)).resize(strip.width * UPSCALE, strip.height * UPSCALE, { kernel: "nearest" }).png().toFile(`${stem}.x8.png`);
+  const png = await encode(strip);
+  writeFileSync(`${stem}.strip.png`, png);
+  await sharp(png).resize(strip.width * UPSCALE, strip.height * UPSCALE, { kernel: "nearest" }).png().toFile(`${stem}.x8.png`);
 
   return {
     element: record.id,
@@ -141,10 +143,7 @@ const round = (n: number) => Math.round(n * 10000) / 10000;
 
 // Every Attempt costs, accepted or not, so all of this Element's Attempts are charged at accept.
 function attemptsCost(dir: string, id: string) {
-  const prefix = `${id}-a`;
-  const attempts = readdirSync(dir)
-    .filter((n) => n.startsWith(prefix) && /^\d+\.json$/.test(n.slice(prefix.length)))
-    .map((n) => JSON.parse(readFileSync(join(dir, n), "utf8")) as Sidecar);
+  const attempts = attemptSidecars(dir, id).map((a) => JSON.parse(readFileSync(join(dir, a.name), "utf8")) as Sidecar);
   const meteredByService: Record<string, number> = {};
   for (const a of attempts) if (a.cost.meteredUsd > 0) meteredByService[a.service] = round((meteredByService[a.service] ?? 0) + a.cost.meteredUsd);
   return {
