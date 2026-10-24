@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import type { z } from "zod";
 import {
   ambientLoopRecordSchema,
@@ -65,11 +65,15 @@ function load<S extends z.ZodType>(kind: Kind, file: string, schema: S): { raw: 
 
 const stem = (file: string) => basename(file, ".json");
 
+function checkStem(file: string, field: string, value: string): void {
+  if (value !== stem(file)) errors.push({ file, path: field, message: `${field} ${value} does not match file name ${stem(file)}` });
+}
+
 const paletteNames = new Set<string>();
 for (const file of jsonFiles(PALETTES)) {
   const { value } = load("palettes", file, paletteSchema);
   paletteNames.add(stem(file));
-  if (value && value.name !== stem(file)) errors.push({ file, path: "name", message: `name ${value.name} does not match file name ${stem(file)}` });
+  if (value) checkStem(file, "name", value.name);
 }
 
 function checkPng(file: string, path: string, png: string, width: number, height: number, what: string): void {
@@ -96,7 +100,7 @@ for (const file of jsonFiles(ELEMENTS)) {
   const { value } = load("elements", file, elementRecordSchema);
   elementIds.add(stem(file));
   if (!value) continue;
-  if (value.id !== stem(file)) errors.push({ file, path: "id", message: `id ${value.id} does not match file name ${stem(file)}` });
+  checkStem(file, "id", value.id);
   elements.set(value.id, value);
   if (!paletteNames.has(value.palette)) errors.push({ file, path: "palette", message: `Palette ${value.palette} does not exist` });
   checkPng(file, "", `${ELEMENTS}/${stem(file)}.png`, value.width, value.height, "Element PNG");
@@ -110,7 +114,7 @@ const sounds = new Map<string, AmbientLoopRecord>();
 for (const file of jsonFiles(AMBIENT)) {
   const { value } = load("ambient", file, ambientLoopRecordSchema);
   if (!value) continue;
-  if (value.id !== stem(file)) errors.push({ file, path: "id", message: `id ${value.id} does not match file name ${stem(file)}` });
+  checkStem(file, "id", value.id);
   sounds.set(value.id, value);
   if (!existsSync(join(root, AMBIENT, value.file))) errors.push({ file, path: "file", message: `${value.file} is missing beside the record` });
 }
@@ -201,10 +205,11 @@ function referencedFiles(plan: ScenePlan): Set<string> {
   return files;
 }
 
+const failedFiles = new Set(errors.map((e) => e.file));
 for (const scene of scenes) {
   const files = dependencies.get(scene.file);
   if (!files) continue;
-  const failing = [...files].filter((dep) => errors.some((e) => e.file === dep));
+  const failing = [...files].filter((dep) => failedFiles.has(dep));
   if (failing.length === 0) continue;
   scene.status = "draft";
   if (scene.declared === "resolved") {
@@ -219,13 +224,13 @@ const reported = (file: string) => {
   return targets.some((t) => abs === t || abs.startsWith(t + sep));
 };
 
+const reportedErrors = errors.filter((e) => reported(e.file));
 const report = {
-  ok: false,
+  ok: reportedErrors.length === 0,
   checked: Object.fromEntries(Object.entries(checked).map(([k, files]) => [k, files.filter(reported).length])),
   scenes: scenes.filter((s) => reported(s.file)),
-  errors: errors.filter((e) => reported(e.file)).map((e) => ({ ...e, file: relative(root, join(root, e.file)).split(sep).join("/") })),
+  errors: reportedErrors,
 };
-report.ok = report.errors.length === 0;
 
 for (const e of report.errors) process.stderr.write(`${e.file}: ${e.path || "(root)"}: ${e.message}\n`);
 process.stdout.write(JSON.stringify(report, null, 2) + "\n");

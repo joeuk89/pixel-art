@@ -7,11 +7,10 @@ import { join } from "node:path";
 import { repo, validate } from "./helpers.ts";
 
 test("validate exits 0 over the repo and prints one JSON object", () => {
-  const run = spawnSync(process.execPath, [join(repo, "pipeline/validate.ts")], { cwd: repo, encoding: "utf8" });
-  assert.equal(run.status, 0, run.stderr);
-  const report = JSON.parse(run.stdout);
+  const { code, report, stderr } = validate(repo);
+  assert.equal(code, 0, stderr);
   assert.equal(report.ok, true);
-  assert.equal(run.stderr, "");
+  assert.equal(stderr, "");
 });
 
 test("the cosy-night Palette validates and index 0 is the background colour", () => {

@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fixtureScene, makeTree, validate } from "./helpers.ts";
+import { copyFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { editJson, fixtureScene, fixtures, makeTree, readJson, validate, writeJson, type ValidateResult } from "./helpers.ts";
 
 test("a resolved fixture Scene validates and is reported resolved", () => {
   const { code, report } = validate(makeTree());
@@ -12,10 +14,6 @@ test("a resolved fixture Scene validates and is reported resolved", () => {
     { id: "fixture-rainy-desk-a1b2", file: fixtureScene, declared: "resolved", status: "resolved", pending: [] },
   ]);
 });
-
-import { copyFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { editJson, fixtures, readJson, writeJson, type ValidateResult } from "./helpers.ts";
 
 const CAT = "library/elements/cat-tabby-asleep-01.json";
 const WINDOW = "library/elements/window-wood-transparent-panes-01.json";
