@@ -1,4 +1,4 @@
-import { primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
+import { placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
 import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
 import { random } from "./random.ts";
 
@@ -16,52 +16,19 @@ type Context = {
   top: number;
 };
 
-type Colours = { r: Uint8Array; g: Uint8Array; b: Uint8Array; lab: Float64Array; indexOf: Map<number, number> };
-
-function srgbToLinear(c: number): number {
-  const v = c / 255;
-  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-}
-
-function oklab(r: number, g: number, b: number, into: Float64Array, at: number): void {
-  const lr = srgbToLinear(r), lg = srgbToLinear(g), lb = srgbToLinear(b);
-  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
-  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
-  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
-  into[at] = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
-  into[at + 1] = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
-  into[at + 2] = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
-}
+type Colours = { r: Uint8Array; g: Uint8Array; b: Uint8Array; indexOf: Map<number, number> };
 
 function coloursOf(palette: Palette): Colours {
   const n = palette.colours.length;
-  const c: Colours = { r: new Uint8Array(n), g: new Uint8Array(n), b: new Uint8Array(n), lab: new Float64Array(n * 3), indexOf: new Map() };
+  const c: Colours = { r: new Uint8Array(n), g: new Uint8Array(n), b: new Uint8Array(n), indexOf: new Map() };
   palette.colours.forEach((hex, i) => {
     const v = parseInt(hex.slice(1), 16);
     c.r[i] = v >> 16;
     c.g[i] = (v >> 8) & 255;
     c.b[i] = v & 255;
-    oklab(c.r[i], c.g[i], c.b[i], c.lab, i * 3);
     if (!c.indexOf.has(v)) c.indexOf.set(v, i);
   });
   return c;
-}
-
-const probe = new Float64Array(3);
-function nearest(c: Colours, r: number, g: number, b: number): number {
-  oklab(r, g, b, probe, 0);
-  let best = 0;
-  let bestD = Infinity;
-  for (let i = 0; i < c.r.length; i++) {
-    const dl = c.lab[i * 3] - probe[0], da = c.lab[i * 3 + 1] - probe[1], db = c.lab[i * 3 + 2] - probe[2];
-    const d = dl * dl + da * da + db * db;
-    if (d < bestD) (bestD = d), (best = i);
-  }
-  return best;
-}
-
-function indexAt(c: Colours, out: Uint8ClampedArray, i: number): number {
-  return c.indexOf.get((out[i] << 16) | (out[i + 1] << 8) | out[i + 2]) ?? nearest(c, out[i], out[i + 1], out[i + 2]);
 }
 
 function paint(out: Uint8ClampedArray, c: Colours, pixel: number, colour: number): void {
@@ -163,141 +130,6 @@ function snow(p: Of<"snow">, ctx: Context): PrimitiveDraw {
       }
     },
   };
-}
-
-const GLOW_DISCS = [[24 / 28, 0.05], [17 / 28, 0.07], [11 / 28, 0.1], [6 / 28, 0.14]] as const;
-const POOL_RINGS = [[34 / 28, 6 / 28, 0.07], [24 / 28, 4 / 28, 0.09], [14 / 28, 2 / 28, 0.12]] as const;
-const GLOW_LEVELS = 64;
-const FLICKER_CHANCE = 0.08;
-const DIM_SHARE = 0.15;
-const FLICKER_SETTLE_STEPS = 12;
-const FLICKER_LOOKBACK = 64;
-
-type Rings = { dx: Int16Array; dy: Int16Array; alpha: Float64Array };
-
-function rings(levelOf: (dx: number, dy: number) => number, alphas: readonly number[], rx: number, ry: number): Rings {
-  const cumulative = [0];
-  for (const a of alphas) cumulative.push(1 - (1 - cumulative[cumulative.length - 1]) * (1 - a));
-  const dx: number[] = [], dy: number[] = [], alpha: number[] = [];
-  for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
-    const level = levelOf(x, y);
-    if (level === 0) continue;
-    dx.push(x);
-    dy.push(y);
-    alpha.push(cumulative[level]);
-  }
-  return { dx: Int16Array.from(dx), dy: Int16Array.from(dy), alpha: Float64Array.from(alpha) };
-}
-
-function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
-  const { seed, salt, colours: c } = ctx;
-  const { placement, layer } = ctx.anchor(p.anchor);
-  const { radius, flicker, colour, pool } = p;
-  const cx = placement.x + p.offset.x, cy = placement.y + p.offset.y;
-  const disc = rings((x, y) => GLOW_DISCS.filter(([r]) => Math.hypot(x, y) <= r * radius).length, GLOW_DISCS.map(([, a]) => a), radius, radius);
-  const poolRx = Math.ceil(POOL_RINGS[0][0] * radius), poolRy = Math.max(1, Math.ceil(POOL_RINGS[0][1] * radius));
-  const poolRings = pool
-    ? rings(
-        (x, y) => POOL_RINGS.filter(([rx, ry]) => (x / (rx * radius)) ** 2 + (y / Math.max(1, ry * radius)) ** 2 <= 1).length,
-        POOL_RINGS.map(([, , a]) => a),
-        poolRx,
-        poolRy,
-      )
-    : undefined;
-  const n = c.r.length;
-  const lut = new Int16Array(n * n * (GLOW_LEVELS + 1)).fill(-1);
-  const slotOf = new Map<number, number>();
-  const opSlot: number[] = [], opAlpha: number[] = [], opLight: number[] = [];
-  const addOps = (r: Rings, x0: number, y0: number, light: number) => {
-    for (let k = 0; k < r.dx.length; k++) {
-      const x = x0 + r.dx[k], y = y0 + r.dy[k];
-      if (x < 0 || x >= SCENE_WIDTH || y < 0 || y >= SCENE_HEIGHT) continue;
-      const pixel = y * SCENE_WIDTH + x;
-      if (!slotOf.has(pixel)) slotOf.set(pixel, slotOf.size);
-      opSlot.push(slotOf.get(pixel)!);
-      opAlpha.push(r.alpha[k]);
-      opLight.push(light);
-    }
-  };
-  addOps(disc, cx, cy, colour);
-  if (poolRings) addOps(poolRings, cx, pool.y, pool.colour);
-  const slotPixel = Int32Array.from(slotOf.keys());
-  const slots = slotPixel.length;
-  const base = new Int16Array(slots).fill(-1);
-
-  const changesAt = (j: number) => random(seed, salt, j, 0, 0) < FLICKER_CHANCE;
-  const targetAt = (j: number) => {
-    const dip = random(seed, salt, j, 0, 2);
-    return random(seed, salt, j, 0, 1) < DIM_SHARE ? Math.max(0, 1 - flicker * (5 / 6 + (2 / 3) * dip)) : 1 - flicker * 0.5 * dip;
-  };
-  const level = (s: number) => {
-    const from = s - FLICKER_SETTLE_STEPS;
-    let target = 1;
-    for (let j = from; j > from - FLICKER_LOOKBACK; j--) if (changesAt(j)) { target = targetAt(j); break; }
-    let alpha = target;
-    for (let j = from + 1; j <= s; j++) {
-      if (changesAt(j)) target = targetAt(j);
-      alpha += (target - alpha) * 0.5;
-    }
-    return Math.round(alpha * GLOW_LEVELS);
-  };
-
-  // Flicker levels that snap to the same Palette colours share one state, so tick skips them.
-  const groups: Int16Array[] = [];
-  let groupCount = 0;
-  let epoch = 0;
-  const groupOfLevel = new Int16Array(GLOW_LEVELS + 1).fill(-1);
-  const lit = (into: Int16Array, strength: number) => {
-    into.fill(-1);
-    for (let k = 0; k < opSlot.length; k++) {
-      const q = Math.round(opAlpha[k] * strength * GLOW_LEVELS);
-      if (q === 0) continue;
-      const slot = opSlot[k];
-      const under = into[slot] >= 0 ? into[slot] : base[slot];
-      const key = (under * n + opLight[k]) * (GLOW_LEVELS + 1) + q;
-      if (lut[key] < 0) {
-        const a = q / GLOW_LEVELS;
-        lut[key] = nearest(c, Math.min(255, c.r[under] + c.r[opLight[k]] * a), Math.min(255, c.g[under] + c.g[opLight[k]] * a), Math.min(255, c.b[under] + c.b[opLight[k]] * a));
-      }
-      into[slot] = lut[key];
-    }
-  };
-  const groupAt = (timeMs: number) => {
-    const L = level(step(timeMs, PROP_FPS));
-    if (groupOfLevel[L] >= 0) return groupOfLevel[L];
-    if (groups.length === groupCount) groups.push(new Int16Array(slots));
-    const fresh = groups[groupCount];
-    lit(fresh, L / GLOW_LEVELS);
-    let g = 0;
-    while (g < groupCount && !equal(groups[g], fresh)) g++;
-    if (g === groupCount) groupCount++;
-    return (groupOfLevel[L] = g);
-  };
-
-  return {
-    after: layer,
-    fps: PROP_FPS,
-    state: (timeMs) => epoch * (GLOW_LEVELS + 1) + groupAt(timeMs),
-    draw(out, timeMs) {
-      let moved = false;
-      for (let k = 0; k < slots; k++) {
-        const under = indexAt(c, out, slotPixel[k] * 4);
-        if (under !== base[k]) (base[k] = under), (moved = true);
-      }
-      if (moved) {
-        epoch++;
-        groupCount = 0;
-        groupOfLevel.fill(-1);
-      }
-      const colours = groups[groupAt(timeMs)];
-      for (let k = 0; k < slots; k++) if (colours[k] >= 0) paint(out, c, slotPixel[k], colours[k]);
-    },
-  };
-}
-
-function equal(a: Int16Array, b: Int16Array): boolean {
-  for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return false;
-  return true;
 }
 
 const STEAM_LIFE = 23;
@@ -559,7 +391,7 @@ function birds(p: Of<"birds">, ctx: Context): PrimitiveDraw {
 export function createPrimitives({ plan, elements, palette, seed = plan.seed }: PrimitivesInput): PrimitiveDraw[] {
   const colours = coloursOf(palette);
   const placements = new Map<string, { placement: Placement; layer: number }>();
-  plan.layers.forEach((layer, li) => layer.placements?.forEach((placement) => placements.set(placement.id, { placement, layer: li })));
+  plan.layers.forEach((layer, li) => placementsOf(layer).forEach((placement) => placements.set(placement.id, { placement, layer: li })));
   return plan.primitives.map((raw, salt) => {
     const primitive = primitiveSchema.parse(raw);
     const ctx: Context = {
@@ -578,7 +410,6 @@ export function createPrimitives({ plan, elements, palette, seed = plan.seed }: 
     switch (primitive.type) {
       case "rain": return rain(primitive, ctx);
       case "snow": return snow(primitive, ctx);
-      case "glow": return glow(primitive, ctx);
       case "steam": return steam(primitive, ctx);
       case "twinkle": return twinkle(primitive, ctx);
       case "blink": return blink(primitive, ctx);

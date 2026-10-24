@@ -13,7 +13,7 @@ Read `docs/adr/` before changing Palettes, Share links or Element sizing. In sho
 - Palettes in `library/palettes/` are immutable once an Element is locked to one. Add a new Palette instead of editing.
 - Elements are generated at display size. The Viewer never scales a Placement.
 - Each Scene has its own `scenes/<id>/index.html` stub; the Viewer stays one document and swaps Scenes with `history.pushState`, so sound permission survives.
-- The Scene canvas stays 192x120. Higher resolutions were tried and rejected.
+- The Scene canvas is 384x240, drawn at an integer scale. ADR 0005 reverses the earlier 192x120.
 
 ## Working in the code
 

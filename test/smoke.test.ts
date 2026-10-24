@@ -8,7 +8,7 @@ import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
 import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import { SITE_URL } from "../pipeline/lib/site.ts";
-import { editJson, fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
+import { editJson, fixturePalette, fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
 const title = "Fixture rainy desk";
@@ -69,10 +69,10 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       Object.assign(plan.soundtrack, { ambient: [], oneshots: [] });
     });
     for (const scene of [`${quiet}/scene.json`, fixtureScene]) {
-      const staged = runScript(root, "stage", scene);
+      const staged = runScript(root, "stub", scene);
       assert.equal(staged.code, 0, staged.stderr);
     }
-    palette = readJson(root, "library/palettes/cosy-night.json").colours;
+    palette = readJson(root, `library/palettes/${fixturePalette}.json`).colours;
     ({ server, url: site } = await startDevServer(root));
   });
 
@@ -129,7 +129,15 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await card.waitFor();
     const poster = card.getByRole("img", { name: title });
     await poster.waitFor();
-    assert.equal(await poster.evaluate(async (img: HTMLImageElement) => { await img.decode(); return img.naturalWidth; }), 192);
+    const shown = await poster.evaluate(async (img: HTMLImageElement) => {
+      await img.decode();
+      const box = img.getBoundingClientRect();
+      return { natural: [img.naturalWidth, img.naturalHeight], device: [box.width * devicePixelRatio, box.height * devicePixelRatio] };
+    });
+    assert.deepEqual(shown.natural, [384, 240]);
+    const scale = shown.device[0] / 384;
+    assert.ok(Number.isInteger(scale) && scale >= 1, `the Poster shows at ${shown.device[0]} device px, not a whole multiple of 384`);
+    assert.equal(shown.device[1], 240 * scale);
     assert.match(await card.innerText(), new RegExp(title));
     assert.match(await page.locator("footer").innerText(), /generated with AI/);
     assert.deepEqual(errors, []);
@@ -150,7 +158,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       for (let i = 0; i < data.length; i += 4) colours.add((data[i] << 16) | (data[i + 1] << 8) | data[i + 2]);
       return { width: c.width, height: c.height, first: [data[0], data[1], data[2]], colours: colours.size };
     });
-    assert.deepEqual([pixels.width, pixels.height], [192, 120]);
+    assert.deepEqual([pixels.width, pixels.height], [384, 240]);
     assert.deepEqual(pixels.first, rgb(palette[1]));
     assert.ok(pixels.colours > 4, `canvas shows only ${pixels.colours} colours`);
     assert.deepEqual(errors, []);
@@ -170,7 +178,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.goto(`${site}scenes/${id}/`);
     const poster = page.getByRole("img", { name: title });
     await poster.waitFor();
-    assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 192);
+    assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 384);
     assert.equal(await page.locator("canvas").count(), 0);
     await pause(300);
     assert.deepEqual(audioFetched, [], "audio loaded before the visuals");
@@ -180,8 +188,9 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
   });
 
   for (const size of [
-    { viewport: { width: 1000, height: 700 }, deviceScaleFactor: 1, scale: 5 },
-    { viewport: { width: 500, height: 900 }, deviceScaleFactor: 2, scale: 5 },
+    { viewport: { width: 1000, height: 700 }, deviceScaleFactor: 1, scale: 2 },
+    { viewport: { width: 500, height: 900 }, deviceScaleFactor: 2, scale: 2 },
+    { viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, scale: 4 },
   ]) {
     test(`at ${size.viewport.width}x${size.viewport.height} @${size.deviceScaleFactor}x the canvas scale is the integer ${size.scale} and the letterbox is Palette index 0`, async () => {
       const { page, errors } = await open(`scenes/${id}/`, size);
@@ -190,7 +199,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       const box = (await canvas.boundingBox())!;
       assert.deepEqual(
         [box.width * size.deviceScaleFactor, box.height * size.deviceScaleFactor],
-        [192 * size.scale, 120 * size.scale],
+        [384 * size.scale, 240 * size.scale],
       );
       const { data, info } = await sharp(await page.screenshot()).raw().toBuffer({ resolveWithObject: true });
       const at = (x: number, y: number) => {
@@ -245,8 +254,9 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     const { page, errors } = await open(`scenes/${id}/`);
     const canvas = page.locator("canvas");
     await canvas.waitFor();
+    const { region } = readJson(root, fixtureScene).primitives.find((p: any) => p.type === "rain");
     const rainRegion = () =>
-      canvas.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(75, 17, 42, 42).data).join(","));
+      canvas.evaluate((c: HTMLCanvasElement, r) => Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data).join(","), region);
     const first = await rainRegion();
     let changed = false;
     for (let k = 0; k < 10 && !changed; k++) {
@@ -261,7 +271,8 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     const { page, errors } = await open(`scenes/${id}/`);
     const canvas = page.locator("canvas");
     await canvas.waitFor();
-    const cat = () => canvas.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(140, 96, 24, 16).data).join(","));
+    const at = readJson(root, fixtureScene).layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === "cat");
+    const cat = () => canvas.evaluate((c: HTMLCanvasElement, p) => Array.from(c.getContext("2d")!.getImageData(p.x, p.y, 24, 16).data).join(","), at);
     const first = await cat();
     let changed = false;
     for (let k = 0; k < 10 && !changed; k++) {
@@ -636,7 +647,7 @@ describe("Published site", { skip: browser ? false : "no Playwright browser inst
     for (const dir of ["viewer", "schema", "node_modules", "package.json"]) symlinkSync(join(repo, dir), join(root, dir));
     cpSync(join(repo, "index.html"), join(root, "index.html"));
     writeFileSync(join(root, "NOTICE.md"), readFileSync(join(repo, "NOTICE.md")));
-    assert.equal(runScript(root, "stage", fixtureScene).code, 0);
+    assert.equal(runScript(root, "stub", fixtureScene).code, 0);
     const bundle = spawnSync("npm", ["run", "bundle"], { cwd: root, encoding: "utf8" });
     assert.equal(bundle.status, 0, bundle.stderr);
     const assembled = runScript(root, "assemble");
@@ -683,7 +694,7 @@ describe("Published site", { skip: browser ? false : "no Playwright browser inst
   });
 
   test("nothing outside the published folders is served", async () => {
-    for (const path of ["prototypes/", "docs/adr/0002-scene-share-links.md", "pipeline/stage.ts", "schema/index.ts", "package.json"]) {
+    for (const path of ["prototypes/", "docs/adr/0002-scene-share-links.md", "pipeline/stub.ts", "schema/index.ts", "package.json"]) {
       assert.equal((await fetch(site + path)).status, 404, path);
     }
   });

@@ -5,7 +5,8 @@ import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
 
 function generateFrom(record: ElementRecord) {
-  if (record.kind === "backdrop") return { kind: "backdrop", brief: record.brief, tags: record.tags };
+  if (record.kind === "backdrop") return { kind: "backdrop", brief: record.brief, tags: record.tags, size: { w: record.width, h: record.height } };
+  if (record.kind === "texture") throw new Error(`Element ${record.id} is a Seamless texture, which reopen does not regenerate`);
   const animation = record.animation;
   const keepFrames = animation && (animation.service !== "pixellab" || isPixelLabFrames(animation.frames));
   const strip = animation ? { service: animation.service, ...(keepFrames ? { frames: animation.frames } : {}) } : undefined;

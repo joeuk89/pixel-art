@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { editJson, makeTree, readJson, repo, writeJson } from "./helpers.ts";
+import { editJson, fixturePalette, makeTree, readJson, repo, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { pixellabState } from "./fixtures/services/pixellab.ts";
 
@@ -16,24 +16,24 @@ after(() => server.close());
 beforeEach(() => pixellabState.reset());
 
 const draft = {
-  schemaVersion: 1, id: ID, title: "Lamp desk in the rain", prompt: "a desk lamp on by a rainy window, cat asleep",
+  schemaVersion: 2, id: ID, title: "Lamp desk in the rain", prompt: "a desk lamp on by a rainy window, cat asleep",
   description: "A desk lamp glows by a rainy window while a grey cat sleeps beneath it.",
-  createdAt: "2026-10-24T21:00:00Z", seed: 4242, status: "draft", palette: "cosy-night", scale: 48, styleAnchor: null,
+  createdAt: "2026-10-24T21:00:00Z", seed: 4242, status: "draft", palette: fixturePalette, scale: 48, dither: false, styleAnchor: null,
   layers: [
-    { name: "sky", fill: 1 },
-    { name: "city", placements: [
-      { id: "skyline", element: "skyline-rainy-roofs-01", x: 0, y: 30, tileX: true,
-        generate: { kind: "backdrop", brief: "distant rooftops at night", tags: ["skyline", "night"] } }] },
-    { name: "room", placements: [
-      { id: "lamp", element: "lamp-brass-desk-01", x: 20, y: 60,
+    { name: "sky", kind: "fill", plane: "far", colour: 1 },
+    { name: "city", kind: "placements", plane: "far", placements: [
+      { id: "skyline", element: "skyline-rainy-roofs-01", x: 0, y: 30,
+        generate: { kind: "backdrop", brief: "distant rooftops at night", tags: ["skyline", "night"], size: { w: 384, h: 96 } } }] },
+    { name: "room", kind: "placements", plane: "mid", placements: [
+      { id: "lamp", element: "lamp-brass-desk-01", x: 40, y: 140,
         generate: { kind: "prop", brief: "brass desk lamp", realSize: { w: 1, h: 1 }, tags: ["lamp"] } },
-      { id: "cat", element: "cat-grey-asleep-01", x: 140, y: 96, animation: { fps: 4 },
+      { id: "cat", element: "cat-grey-asleep-01", x: 280, y: 200, animation: { fps: 4 },
         generate: { kind: "prop", brief: "grey cat asleep, curled up", realSize: { w: 0.5, h: 0.25 }, tags: ["cat"], strip: { service: "pixellab" } } }] },
   ],
   primitives: [
-    { type: "rain", region: { x: 70, y: 16, w: 52, h: 60 }, colours: [4, 5] },
-    { type: "glow", anchor: "lamp", offset: { x: 12, y: 6 }, colour: 6 },
+    { type: "rain", region: { x: 140, y: 32, w: 104, h: 116 }, colours: [4, 5] },
   ],
+  variants: [{ id: "night", title: "Night", ambient: { level: -2.5 }, lights: [], emissiveOff: [] }],
   soundtrack: {
     music: { brief: "slow piano, rain on a window", service: "stable-audio-3" },
     ambient: [{ source: { kind: "curated", id: "freesound-room-tone-641306" }, file: "room.ogg", distance: "mid" }],
@@ -78,7 +78,7 @@ async function strip(root: string, id: string): Promise<void> {
 
 async function finish(root: string) {
   await step(root, "poster", PLAN);
-  await step(root, "stage", PLAN);
+  await step(root, "stub", PLAN);
   return step(root, "preview", PLAN);
 }
 

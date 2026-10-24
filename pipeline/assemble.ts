@@ -32,8 +32,8 @@ main(() => {
   }
   const scenes = validatedScenes();
   const resolved = scenes.filter((s) => s.status === "resolved");
-  const unstaged = resolved.filter((s) => !existsSync(join(root, dirname(s.file), "index.html"))).map((s) => s.id);
-  if (unstaged.length > 0) throw new Error(`resolved Scenes have no index.html stub; run stage on: ${unstaged.join(", ")}`);
+  const unstubbed = resolved.filter((s) => !existsSync(join(root, dirname(s.file), "index.html"))).map((s) => s.id);
+  if (unstubbed.length > 0) throw new Error(`resolved Scenes have no index.html stub; run stub on: ${unstubbed.join(", ")}`);
   const published = new Set(resolved.map((s) => s.id));
   const hasGallery = existsSync(galleryPath);
   const gallery: GalleryEntry[] = hasGallery ? JSON.parse(readFileSync(galleryPath, "utf8")) : [];

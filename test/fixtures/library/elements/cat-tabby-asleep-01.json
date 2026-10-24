@@ -13,7 +13,7 @@
   "model": "pro-flash",
   "params": { "no_background": true, "style_options": { "color_palette": true, "outline": true, "detail": true, "shading": true } },
   "seed": 1202,
-  "palette": "cosy-night",
+  "palette": "fixture-night-v2",
   "styleAnchor": "window-wood-transparent-panes-01",
   "createdAt": "2026-10-24T20:08:00Z",
   "firstScene": "fixture-rainy-desk-a1b2",
@@ -28,7 +28,7 @@
     "prompt": "cat breathing slowly while asleep",
     "seed": 1203,
     "params": { "frame_count": 3 },
-    "snappedTo": "cosy-night",
+    "snappedTo": "fixture-night-v2",
     "offPaletteBefore": 0,
     "cost": { "pixellabGenerations": 1, "meteredUsd": 0 },
     "checks": { "attempt": 1, "passed": ["dimensions", "alpha", "palette", "motion", "drift", "seam"], "warnings": [] }

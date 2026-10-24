@@ -1,4 +1,4 @@
-import { ambientLoopRecordSchema, elementRecordSchema, type AmbientLoopRecord, type ScenePlan } from "../schema/index.ts";
+import { allPlacements, ambientLoopRecordSchema, elementRecordSchema, type AmbientLoopRecord, type ScenePlan } from "../schema/index.ts";
 import { fetchJson } from "./http.ts";
 
 const SERVICE_NAMES: Record<string, string> = {
@@ -11,6 +11,8 @@ const SERVICE_NAMES: Record<string, string> = {
   fal: "fal.ai",
 };
 
+const LOCAL_FINISH = "local";
+
 export const AI_NOTICE = "Artwork, music and sound effects generated with AI.";
 
 export type Attribution = Pick<AmbientLoopRecord, "attribution" | "licence" | "licenceUrl" | "sourceUrl">;
@@ -21,7 +23,7 @@ function serviceName(service: string): string {
 }
 
 export async function loadCredits(root: URL, plan: ScenePlan): Promise<Credits> {
-  const elementIds = new Set(plan.layers.flatMap((layer) => (layer.placements ?? []).map((p) => p.element)));
+  const elementIds = new Set(allPlacements(plan).map((p) => p.element));
   const sounds = [...plan.soundtrack.ambient, ...plan.soundtrack.oneshots].map((s) => s.source);
   const curatedIds = new Set(sounds.flatMap((s) => (s.kind === "curated" ? [s.id] : [])));
 
@@ -32,7 +34,7 @@ export async function loadCredits(root: URL, plan: ScenePlan): Promise<Credits> 
 
   const services = new Set<string>();
   for (const element of elements) {
-    services.add(element.service);
+    if (element.service !== LOCAL_FINISH) services.add(element.service);
     if (element.kind === "prop" && element.animation) services.add(element.animation.service);
   }
   services.add(plan.soundtrack.music.service);

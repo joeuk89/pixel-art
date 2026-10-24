@@ -23,7 +23,7 @@ async function fixtureFrameZero(root: string): Promise<Uint8ClampedArray> {
   const plan = readJson(root, fixtureScene);
   const palette = readJson(root, `library/palettes/${plan.palette}.json`);
   const elements = new Map<string, ElementPixels>();
-  for (const id of ["skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"]) {
+  for (const id of ["sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"]) {
     const record = readJson(root, `library/elements/${id}.json`);
     const still = await rgba(join(root, `library/elements/${id}.png`));
     const strip = record.animation && {
@@ -51,26 +51,27 @@ test("poster run against the fixture Scene prints one JSON object, exits 0 and w
   });
   const small = await sharp(join(root, sceneDir, "poster.png")).metadata();
   const og = await sharp(join(root, sceneDir, "poster-og.png")).metadata();
-  assert.deepEqual([small.format, small.width, small.height], ["png", 192, 120]);
+  assert.deepEqual([small.format, small.width, small.height], ["png", 384, 240]);
   assert.deepEqual([og.format, og.width, og.height], ["png", 768, 480]);
 });
 
-test("the 192x120 Poster equals the compositor's frame 0 with Primitives off", async () => {
+test("the 384x240 Poster equals the compositor's frame 0 with Primitives off", async () => {
   const root = makeTree();
   assert.equal(poster(root, fixtureScene).code, 0);
   const written = await rgba(join(root, sceneDir, "poster.png"));
   assert.deepEqual(Buffer.from(written.data), Buffer.from(await fixtureFrameZero(root)));
 });
 
-test("the Open Graph copy is the Poster at 4x, every 4x4 block one Poster pixel", async () => {
+test("the Open Graph copy is the Poster at 2x, every 2x2 block one Poster pixel", async () => {
   const root = makeTree();
   assert.equal(poster(root, fixtureScene).code, 0);
   const small = await rgba(join(root, sceneDir, "poster.png"));
   const og = await rgba(join(root, sceneDir, "poster-og.png"));
+  assert.deepEqual([og.width, og.height], [768, 480]);
   for (let y = 0; y < 480; y++) for (let x = 0; x < 768; x++) {
     const o = (y * 768 + x) * 4;
-    const s = ((y >> 2) * 192 + (x >> 2)) * 4;
-    for (let c = 0; c < 4; c++) if (og.data[o + c] !== small.data[s + c]) assert.fail(`OG pixel ${x},${y} differs from Poster pixel ${x >> 2},${y >> 2}`);
+    const s = ((y >> 1) * 384 + (x >> 1)) * 4;
+    for (let c = 0; c < 4; c++) if (og.data[o + c] !== small.data[s + c]) assert.fail(`OG pixel ${x},${y} differs from Poster pixel ${x >> 1},${y >> 1}`);
   }
 });
 
@@ -99,14 +100,14 @@ test("poster fails with a JSON error when the Scene plan does not parse", () => 
   assert.equal(JSON.parse(stdout).ok, false);
 });
 
-test("adding all nine Primitives to the plan leaves the Poster and its Open Graph copy byte-identical", () => {
+test("adding all eight Primitives to the plan leaves the Poster and its Open Graph copy byte-identical", () => {
   const root = makeTree();
   const files = () => [readFileSync(join(root, sceneDir, "poster.png")), readFileSync(join(root, sceneDir, "poster-og.png"))];
   editJson(root, fixtureScene, (plan) => { plan.primitives = []; });
   assert.equal(poster(root, fixtureScene).code, 0);
   const without = files();
   editJson(root, fixtureScene, (plan) => { plan.primitives = readJson(join(fixtures, "primitives"), "scene.json").primitives; });
-  assert.equal(readJson(root, fixtureScene).primitives.length, 9);
+  assert.equal(readJson(root, fixtureScene).primitives.length, 8);
   assert.equal(poster(root, fixtureScene).code, 0);
   assert.deepEqual(files(), without);
 });

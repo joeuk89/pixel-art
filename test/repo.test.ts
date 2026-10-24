@@ -6,11 +6,33 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ambientRecordCount, repo, validate } from "./helpers.ts";
 
-test("validate exits 0 over the repo and prints one JSON object", () => {
-  const { code, report, stderr } = validate(repo);
+test("validate exits 0 over the repo's library and prints one JSON object", () => {
+  const { code, report, stderr } = validate(repo, "library");
   assert.equal(code, 0, stderr);
   assert.equal(report.ok, true);
   assert.equal(stderr, "");
+});
+
+for (const name of ["cosy-night", "golden-hour"]) {
+  test(`the ${name}-v2 Palette copies ${name}'s colours and carries a complete Ramp table that validates`, () => {
+    const file = `library/palettes/${name}-v2.json`;
+    const { code, report, stderr } = validate(repo, file);
+    assert.equal(code, 0, stderr);
+    assert.equal(report.checked.palettes, 1);
+    const original = JSON.parse(readFileSync(join(repo, `library/palettes/${name}.json`), "utf8"));
+    const copy = JSON.parse(readFileSync(join(repo, file), "utf8"));
+    assert.equal(copy.name, `${name}-v2`);
+    assert.deepEqual(copy.colours, original.colours);
+    assert.equal(copy.ramps.length, copy.colours.length);
+    for (const ramp of copy.ramps) assert.deepEqual(Object.keys(ramp).sort(), ["cool", "dark", "warm"]);
+  });
+}
+
+test("no v1 canvas or Backdrop size survives in schema, pipeline, viewer or tests", () => {
+  // Built from parts so the pattern does not match this file.
+  const pattern = `(^|[^0-9A-Za-z_#])(${2 * 96}|${2 * 60})([^0-9A-Za-z_]|$)|${2 ** 7}x${2 ** 6}|${"BACKDROP"}_`;
+  const run = spawnSync("git", ["grep", "-nIE", "--untracked", pattern, "--", "schema", "pipeline", "viewer", "test"], { cwd: repo, encoding: "utf8" });
+  assert.equal(run.stdout, "", run.stdout);
 });
 
 test("the cosy-night Palette validates and index 0 is the background colour", () => {
@@ -34,7 +56,7 @@ test("esbuild bundles the Viewer entry with the shared schema", () => {
   const esbuild = join(repo, "node_modules/.bin/esbuild");
   const run = spawnSync(esbuild, [join(repo, "viewer/main.ts"), "--bundle", `--outfile=${out}`], { encoding: "utf8" });
   assert.equal(run.status, 0, run.stderr);
-  assert.match(readFileSync(out, "utf8"), /a layer has either fill or placements, never both/);
+  assert.match(readFileSync(out, "utf8"), /a Scene needs at least one Variant/);
 });
 
 test("git tracks the Element library and scenes folders", () => {

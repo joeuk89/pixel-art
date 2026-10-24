@@ -30,7 +30,7 @@ test("library-search ranks a subject match above a tags match above a brief matc
 test("library-search prints id, kind, subject, tags, Palette, size and whether a Frame strip exists", () => {
   const { out } = runScript(makeTree(), "library-search", "cat");
   assert.deepEqual(out.results, [
-    { id: "cat-tabby-asleep-01", kind: "prop", subject: "cat", tags: ["cat", "asleep", "tabby"], palette: "cosy-night", size: "24x16", hasStrip: true, matched: ["subject", "tags", "brief"] },
+    { id: "cat-tabby-asleep-01", kind: "prop", subject: "cat", tags: ["cat", "asleep", "tabby"], palette: "fixture-night-v2", size: "24x16", hasStrip: true, matched: ["subject", "tags", "brief"] },
   ]);
 });
 
@@ -40,13 +40,13 @@ test("a subject match outranks a record that matches more words in its tags and 
 });
 
 test("library-search filters by Palette", () => {
-  const { code, out } = runScript(treeWithCurtain(), "library-search", "window", "--palette", "cosy-night");
+  const { code, out } = runScript(treeWithCurtain(), "library-search", "window", "--palette", "fixture-night-v2");
   assert.equal(code, 0);
   assert.deepEqual(ids(out), ["window-wood-transparent-panes-01", "skyline-night-warm-windows-01"]);
 });
 
 test("library-search filters by canvas size", () => {
-  const { code, out } = runScript(treeWithCurtain(), "library-search", "window", "--size", "128x64");
+  const { code, out } = runScript(treeWithCurtain(), "library-search", "window", "--size", "256x128");
   assert.equal(code, 0);
   assert.deepEqual(ids(out), ["skyline-night-warm-windows-01"]);
 });
@@ -77,7 +77,7 @@ for (const [what, args, message] of [
   ["the size is not WxH", ["window", "--size", "big"], /--size must be WxH/],
   ["a flag has no value", ["window", "--palette"], /--palette needs a value/],
   ["a flag is unknown", ["window", "--colour", "red"], /unknown option --colour/],
-  ["--sounds is given a Palette", ["--sounds", "rain", "--palette", "cosy-night"], /--sounds does not take --palette or --size/],
+  ["--sounds is given a Palette", ["--sounds", "rain", "--palette", "fixture-night-v2"], /--sounds does not take --palette or --size/],
   ["no words and no filters are given", [], /usage/],
 ] as const) {
   test(`library-search exits non-zero with one JSON object when ${what}`, () => {

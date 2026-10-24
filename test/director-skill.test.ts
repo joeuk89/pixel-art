@@ -179,9 +179,9 @@ test("Generate runs unattended in the agreed order and never asks the owner", ()
   for (const needle of ["pipeline/budget.ts", "--abandon", "--substitute", "--scene", "rubric.md", "8x"]) assert.ok(text.includes(needle), `Generate names ${needle}`);
 });
 
-test("Hard checks render the Poster and stage before check-scene, and a failure stops with the Scene draft", () => {
+test("Hard checks render the Poster and stub before check-scene, and a failure stops with the Scene draft", () => {
   const text = step("Hard checks").text;
-  const order = ["pipeline/poster.ts", "pipeline/stage.ts", "pipeline/check-scene.ts"].map((s) => text.indexOf(s));
+  const order = ["pipeline/poster.ts", "pipeline/stub.ts", "pipeline/check-scene.ts"].map((s) => text.indexOf(s));
   for (const at of order) assert.ok(at >= 0);
   assert.deepEqual([...order].sort((a, b) => a - b), order);
   assert.match(text, /draft/);

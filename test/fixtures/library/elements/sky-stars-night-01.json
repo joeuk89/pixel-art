@@ -1,0 +1,23 @@
+{
+  "id": "sky-stars-night-01",
+  "kind": "texture",
+  "width": 32,
+  "height": 32,
+  "transparent": false,
+  "seamless": true,
+  "subject": "sky",
+  "tags": ["sky", "stars", "night"],
+  "brief": "night sky with a few scattered stars, seamless",
+  "prompt": "night sky with a few scattered stars, seamless",
+  "service": "local",
+  "model": "sky-stars",
+  "params": { "density": 5 },
+  "seed": 1204,
+  "palette": "fixture-night-v2",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T20:09:00Z",
+  "firstScene": "fixture-rainy-desk-a1b2",
+  "cost": { "pixellabGenerations": 0, "meteredUsd": 0 },
+  "checks": { "attempt": 1, "passed": ["dimensions", "alpha", "palette", "seam"], "warnings": [] },
+  "emissive": [7]
+}

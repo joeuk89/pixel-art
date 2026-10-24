@@ -7,7 +7,7 @@ import { hardChecks } from "./lib/hard-checks.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { DEV_URL } from "./lib/site.ts";
-import type { ScenePlan } from "../schema/index.ts";
+import { allPlacements, type ScenePlan } from "../schema/index.ts";
 
 const root = process.cwd();
 const ledgerScript = join(dirname(fileURLToPath(import.meta.url)), "ledger.ts");
@@ -39,7 +39,7 @@ async function listening(url: string): Promise<boolean> {
 
 function elementsOf(plan: ScenePlan) {
   const records = new Map(readElements(root).map((e) => [e.id, e]));
-  const placed = [...new Set(plan.layers.flatMap((l) => (l.placements ?? []).map((p) => p.element)))];
+  const placed = [...new Set(allPlacements(plan).map((p) => p.element))];
   return {
     generated: placed.filter((id) => records.get(id)?.firstScene === plan.id),
     reused: placed.filter((id) => records.get(id)?.firstScene !== plan.id),

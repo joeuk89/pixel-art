@@ -9,13 +9,178 @@ test("a resolved fixture Scene validates and is reported resolved", () => {
   assert.equal(code, 0);
   assert.equal(report.ok, true);
   assert.deepEqual(report.errors, []);
-  assert.deepEqual(report.checked, { scenes: 1, elements: 3, palettes: paletteCount, ambient: ambientRecordCount });
+  assert.deepEqual(report.checked, { scenes: 1, elements: 4, palettes: paletteCount, ambient: ambientRecordCount });
   assert.deepEqual(report.scenes, [
     { id: "fixture-rainy-desk-a1b2", file: fixtureScene, declared: "resolved", status: "resolved", pending: [] },
   ]);
 });
 
 const CAT = "library/elements/cat-tabby-asleep-01.json";
+const SKYLINE = "library/elements/skyline-night-warm-windows-01.json";
+const PALETTE = "library/palettes/fixture-night-v2.json";
+
+test("a v1 Scene plan fails with a message naming schemaVersion", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.schemaVersion = 1; });
+  failsWith(validate(root), fixtureScene, "schemaVersion", /schemaVersion 1 .*2/);
+});
+
+test("Layers out of Plane order fail", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[2].plane = "near"; });
+  failsWith(validate(root), fixtureScene, "layers[3].plane", /Plane order: mid after near/);
+});
+
+test("two Layers with the same name fail", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[2].name = "stars"; });
+  failsWith(validate(root), fixtureScene, "layers[2].name", /duplicate Layer name stars/);
+});
+
+test("a Layer name that is not a slug fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[2].name = "City Lights"; });
+  failsWith(validate(root), fixtureScene, "layers[2].name", /slug/);
+});
+
+test("a Layer scale is allowed on a far placements Layer only", () => {
+  const ok = makeTree();
+  editJson(ok, fixtureScene, (plan) => { plan.layers[2].scale = 8; });
+  assert.equal(validate(ok).code, 0);
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].scale = 8; });
+  failsWith(validate(root), fixtureScene, "layers[3].scale", /only a far Layer/);
+});
+
+test("tileX on an Element that is not seamless fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[0].tileX = true; });
+  failsWith(validate(root), fixtureScene, "layers[2].placements[0].tileX", /skyline-night-warm-windows-01 is not seamless/);
+});
+
+for (const [what, side] of [["under 16", 12], ["over 256", 260], ["not a multiple of 4", 30]] as const) {
+  test(`a prop side ${what} fails`, () => {
+    const root = makeTree();
+    editJson(root, WINDOW, (record) => { record.width = side; });
+    failsWith(validate(root), WINDOW, "width", /./);
+  });
+}
+
+test("a prop side of 256 is allowed by the record schema", () => {
+  const root = makeTree();
+  editJson(root, WINDOW, (record) => { record.width = 256; });
+  const { report } = validate(root);
+  assert.deepEqual(report.errors.filter((e: any) => e.file === WINDOW).map((e: any) => e.path), [""]);
+});
+
+for (const [axis, size] of [["width", 388], ["height", 244]] as const) {
+  test(`a Backdrop ${axis} over the 384x240 canvas fails`, () => {
+    const root = makeTree();
+    editJson(root, SKYLINE, (record) => { record[axis] = size; });
+    failsWith(validate(root), SKYLINE, axis, /./);
+  });
+}
+
+test("a Backdrop generate size over 384x240 or off the 4 px grid fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.status = "draft";
+    plan.layers[2].placements[0].generate = { kind: "backdrop", brief: "city at night", tags: ["city"], size: { w: 400, h: 124 } };
+  });
+  failsWith(validate(root), fixtureScene, "layers[2].placements[0].generate.size.w", /./);
+  editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[0].generate.size = { w: 256, h: 126 }; });
+  failsWith(validate(root), fixtureScene, "layers[2].placements[0].generate.size.h", /./);
+});
+
+test("a texture record must be seamless", () => {
+  const root = makeTree();
+  editJson(root, "library/elements/sky-stars-night-01.json", (record) => { delete record.seamless; });
+  failsWith(validate(root), "library/elements/sky-stars-night-01.json", "seamless", /./);
+});
+
+test("a v2 Scene naming a Palette without ramps fails", () => {
+  const root = makeTree();
+  editJson(root, PALETTE, (palette) => { delete palette.ramps; });
+  failsWith(validate(root), fixtureScene, "palette", /Palette fixture-night-v2 has no ramps/);
+});
+
+test("a Ramp table with the wrong length or an index off the Palette fails", () => {
+  const root = makeTree();
+  editJson(root, PALETTE, (palette) => { palette.ramps.pop(); });
+  failsWith(validate(root), PALETTE, "ramps", /one ramp per colour: 16 colours, 15 ramps/);
+  editJson(root, PALETTE, (palette) => { palette.ramps.push({ dark: 0, warm: 16, cool: 1 }); });
+  failsWith(validate(root), PALETTE, "ramps[15].warm", /colour index 16 is not in this Palette/);
+});
+
+test("a companionPalette with a different colour count fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].companionPalette = "golden-hour-v2"; });
+  failsWith(validate(root), fixtureScene, "variants[0].companionPalette", /golden-hour-v2 has 20 colours, the Scene's Palette has 16/);
+});
+
+test("a companionPalette with the same colour count and ramps passes", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].companionPalette = "cosy-night-v2"; });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("a companionPalette without ramps or that does not exist fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].companionPalette = "cosy-night"; plan.variants[1].companionPalette = "moonlight-v2"; });
+  const result = validate(root);
+  failsWith(result, fixtureScene, "variants[0].companionPalette", /Palette cosy-night has no ramps/);
+  failsWith(result, fixtureScene, "variants[1].companionPalette", /Palette moonlight-v2 does not exist/);
+});
+
+test("a Variant offset naming a missing Layer fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[0].ambient.layers.curtains = -3; });
+  failsWith(validate(root), fixtureScene, "variants[0].ambient.layers.curtains", /no Layer curtains/);
+});
+
+test("a Scene with zero Variants fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants = []; });
+  failsWith(validate(root), fixtureScene, "variants", /at least one Variant/);
+});
+
+test("two Variants with the same id fail", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[1].id = plan.variants[0].id; });
+  failsWith(validate(root), fixtureScene, "variants[1].id", /duplicate Variant id night-rain/);
+});
+
+test("a glow Primitive fails: glow is retired", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.primitives.push({ type: "glow", anchor: "window", offset: { x: 24, y: 24 }, colour: 8 }); });
+  failsWith(validate(root), fixtureScene, "primitives[2].type", /./);
+});
+
+test("a glow Primitive in a Variant fails too", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[1].primitives = [{ type: "glow", anchor: "window", offset: { x: 24, y: 24 }, colour: 8 }]; });
+  failsWith(validate(root), fixtureScene, "variants[1].primitives[0].type", /./);
+});
+
+test("a Primitive takes an optional emissive flag", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.primitives[0].emissive = true; plan.primitives[1].emissive = false; });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("a Variant Primitive colour beyond the Palette fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.variants[1].primitives = [{ type: "twinkle", anchor: "skyline", colours: [16] }]; });
+  failsWith(validate(root), fixtureScene, "variants[1].primitives[0].colours[0]", /colour index 16 is not in Palette fixture-night-v2/);
+});
+
+test("an Element record's emissive colours must be on its Palette", () => {
+  const root = makeTree();
+  editJson(root, "library/elements/sky-stars-night-01.json", (record) => { record.emissive = [7, 16]; });
+  failsWith(validate(root), "library/elements/sky-stars-night-01.json", "emissive[1]", /colour index 16 is not in Palette fixture-night-v2/);
+});
 const WINDOW = "library/elements/window-wood-transparent-panes-01.json";
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
 
@@ -29,8 +194,8 @@ function failsWith(result: ValidateResult, file: string, path: string, message: 
 
 test("a Placement whose Element is not in the Element library fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[0].element = "lamp-brass-desk-01"; });
-  failsWith(validate(root), fixtureScene, "layers[2].placements[0].element", /lamp-brass-desk-01 is not in the Element library/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].element = "lamp-brass-desk-01"; });
+  failsWith(validate(root), fixtureScene, "layers[3].placements[0].element", /lamp-brass-desk-01 is not in the Element library/);
 });
 
 test("a Scene plan naming a Palette that does not exist fails", () => {
@@ -120,7 +285,7 @@ for (const [what, breakIt] of [
   ["an Element PNG is missing", (root: string) => rmSync(join(root, "library/elements/window-wood-transparent-panes-01.png"))],
   ["an Element record fails its schema", (root: string) => editJson(root, WINDOW, (record) => { record.width = "wide"; })],
   ["a Frame strip is missing", (root: string) => rmSync(join(root, "library/elements/cat-tabby-asleep-01.strip.png"))],
-  ["its Palette file fails its schema", (root: string) => editJson(root, "library/palettes/cosy-night.json", (palette) => { palette.colours = []; })],
+  ["its Palette file fails its schema", (root: string) => editJson(root, PALETTE, (palette) => { palette.colours = []; })],
   ["a curated Sound library record has no file beside it", (root: string) => editJson(root, "library/ambient/freesound-room-tone-641306.json", (record) => { record.file = "gone.ogg"; })],
 ] as const) {
   test(`a Scene is reported draft when ${what}`, () => {
@@ -142,7 +307,7 @@ test("a Frame strip whose width does not match frames x width fails", () => {
 test("a Frame strip record claiming more frames than the strip holds fails", () => {
   const root = makeTree();
   editJson(root, CAT, (record) => { record.animation.frames = 5; });
-  failsWith(validate(root), CAT, "animation.frames", /is 96x16, record says 120x16/);
+  failsWith(validate(root), CAT, "animation.frames", new RegExp(`is 96x16, record says ${5 * 24}x16`));
 });
 
 test("an Element whose Frame strip file is missing fails", () => {
@@ -153,32 +318,32 @@ test("an Element whose Frame strip file is missing fails", () => {
 
 test("an Element PNG whose size does not match the record fails", () => {
   const root = makeTree();
-  editJson(root, WINDOW, (record) => { record.width = 64; });
-  failsWith(validate(root), WINDOW, "", /Element PNG .* is 48x48, record says 64x48/);
+  editJson(root, WINDOW, (record) => { record.width = 56; });
+  failsWith(validate(root), WINDOW, "", /Element PNG .* is 48x48, record says 56x48/);
 });
 
 test("an animation override on a Placement whose Element has no Frame strip fails a resolved Scene", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[0].animation = { fps: 4 }; });
-  failsWith(validate(root), fixtureScene, "layers[2].placements[0].animation", /declared resolved but .*has no Frame strip/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].animation = { fps: 4 }; });
+  failsWith(validate(root), fixtureScene, "layers[3].placements[0].animation", /declared resolved but .*has no Frame strip/);
 });
 
 test("an animation override waiting on a Frame strip keeps a draft Scene pending", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[2].placements[0].animation = { fps: 4 };
+    plan.layers[3].placements[0].animation = { fps: 4 };
   });
   const { code, report } = validate(root);
   assert.equal(code, 0, JSON.stringify(report.errors));
   assert.equal(report.scenes[0].status, "draft");
-  assert.match(report.scenes[0].pending.find((p: any) => p.path === "layers[2].placements[0].animation")?.message ?? "", /has no Frame strip/);
+  assert.match(report.scenes[0].pending.find((p: any) => p.path === "layers[3].placements[0].animation")?.message ?? "", /has no Frame strip/);
 });
 
 test("an explicit frame order past the end of the Frame strip fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[2].placements[2].animation.order = [0, 1, 4]; });
-  failsWith(validate(root), fixtureScene, "layers[2].placements[2].animation.order[2]", /frame 4 is beyond the 4-frame strip/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[2].animation.order = [0, 1, 4]; });
+  failsWith(validate(root), fixtureScene, "layers[3].placements[2].animation.order[2]", /frame 4 is beyond the 4-frame strip/);
 });
 
 test("a record whose id does not match its file name fails", () => {
@@ -207,13 +372,13 @@ test("the example Scene plan from the spec validates as a draft", () => {
   assert.equal(code, 0, stderr);
   const scene = report.scenes.find((s: any) => s.id === "rainy-desk-night-k7f2");
   assert.equal(scene.status, "draft");
-  assert.ok(scene.pending.some((p: any) => p.path === "layers[1].placements[0].generate"));
+  assert.ok(scene.pending.some((p: any) => p.path === "layers[2].placements[0].generate"));
 });
 
-test("a layer with both fill and placements fails", () => {
+test("a fill Layer with placements fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[1].fill = 2; });
-  failsWith(validate(root), fixtureScene, "layers[1]", /either fill or placements, never both/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[0].placements = []; });
+  failsWith(validate(root), fixtureScene, "layers[0]", /placements/);
 });
 
 const ambientAt = (distance: string, id = "freesound-room-tone-641306") => ({ source: { kind: "curated", id }, file: "room.ogg", distance });
@@ -244,7 +409,7 @@ test("more than 2 One-shots in one Scene fails", () => {
 test("an unknown Primitive type fails", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { plan.primitives.push({ type: "fog" }); });
-  failsWith(validate(root), fixtureScene, "primitives[3].type", /./);
+  failsWith(validate(root), fixtureScene, "primitives[2].type", /./);
 });
 
 test("given paths, validate reports only the files under them", () => {

@@ -20,9 +20,9 @@ function copyScene(root: string, newId: string, edit: (plan: any) => void): void
   });
 }
 
-test("stage writes the Scene stub with Open Graph title and Poster tags and a relative script tag", () => {
+test("stub writes the Scene stub with Open Graph title and Poster tags and a relative script tag", () => {
   const root = makeTree();
-  const { code, out, stderr } = runScript(root, "stage", fixtureScene);
+  const { code, out, stderr } = runScript(root, "stub", fixtureScene);
   assert.equal(code, 0, stderr);
   assert.deepEqual(out, {
     ok: true,
@@ -38,19 +38,21 @@ test("stage writes the Scene stub with Open Graph title and Poster tags and a re
   assert.equal(meta(html, "og:description"), "A cosy desk by a rainy window at night, with a cat asleep in the lamplight.");
   assert.equal(meta(html, "og:image"), `${SITE}${sceneDir}/poster-og.png`);
   assert.equal(meta(html, "og:url"), `${SITE}${sceneDir}/`);
+  assert.equal(meta(html, "og:image:width"), "768");
+  assert.equal(meta(html, "og:image:height"), "480");
   assert.match(html, /<script src="\.\.\/\.\.\/viewer\.js" defer><\/script>/);
 });
 
-test("stage escapes the title in the stub", () => {
+test("stub escapes the title in the stub", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { plan.title = `Tom & Jerry's "<desk>"`; });
-  assert.equal(runScript(root, "stage", fixtureScene).code, 0);
+  assert.equal(runScript(root, "stub", fixtureScene).code, 0);
   const html = readFileSync(join(root, sceneDir, "index.html"), "utf8");
   assert.match(html, /<title>Tom &amp; Jerry&#39;s &quot;&lt;desk&gt;&quot;<\/title>/);
   assert.equal(meta(html, "og:title"), "Tom &amp; Jerry&#39;s &quot;&lt;desk&gt;&quot;");
 });
 
-test("stage rewrites gallery.json with only resolved Scenes, newest first", () => {
+test("stub rewrites gallery.json with only resolved Scenes, newest first", () => {
   const root = makeTree();
   copyScene(root, "snowy-street-dusk-b3c4", (plan) => {
     plan.title = "Snowy street at dusk";
@@ -64,7 +66,7 @@ test("stage rewrites gallery.json with only resolved Scenes, newest first", () =
   rmSync(join(root, "scenes/unfinished-garden-c5d6/poster.png"));
   writeJson(root, "gallery.json", [{ id: "deleted-scene-z9z9", title: "Gone", createdAt: "2026-10-27T00:00:00Z", description: "gone" }]);
 
-  const { code, stderr } = runScript(root, "stage", fixtureScene);
+  const { code, stderr } = runScript(root, "stub", fixtureScene);
   assert.equal(code, 0, stderr);
   assert.deepEqual(readJson(root, "gallery.json"), [
     { id: "snowy-street-dusk-b3c4", title: "Snowy street at dusk", createdAt: "2026-10-25T09:00:00Z", description: "Snow settles on a quiet street at dusk." },
@@ -72,10 +74,10 @@ test("stage rewrites gallery.json with only resolved Scenes, newest first", () =
   ]);
 });
 
-test("stage fails with a JSON error and writes nothing when the Scene plan does not parse", () => {
+test("stub fails with a JSON error and writes nothing when the Scene plan does not parse", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { delete plan.title; });
-  const { code, out } = runScript(root, "stage", fixtureScene);
+  const { code, out } = runScript(root, "stub", fixtureScene);
   assert.equal(code, 1);
   assert.equal(out.ok, false);
   assert.match(out.error, /title/);

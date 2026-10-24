@@ -1,3 +1,4 @@
+import { allPlacements } from "../schema/index.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScenes, readSounds } from "./lib/library.ts";
 
@@ -7,7 +8,7 @@ main(() => {
   const usedSounds = new Set<string>();
   for (const { plan } of readScenes()) {
     if (plan.styleAnchor) usedElements.add(plan.styleAnchor);
-    for (const layer of plan.layers) for (const p of layer.placements ?? []) usedElements.add(p.element);
+    for (const p of allPlacements(plan)) usedElements.add(p.element);
     for (const { source } of [...plan.soundtrack.ambient, ...plan.soundtrack.oneshots]) {
       if (source.id !== undefined) usedSounds.add(source.id);
     }

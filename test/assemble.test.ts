@@ -11,7 +11,7 @@ function siteTree(): string {
   cpSync(join(repo, "index.html"), join(root, "index.html"));
   writeFileSync(join(root, "viewer.js"), "console.log('viewer');\n");
   writeFileSync(join(root, "NOTICE.md"), "# Notice\n");
-  assert.equal(runScript(root, "stage", fixtureScene).code, 0);
+  assert.equal(runScript(root, "stub", fixtureScene).code, 0);
   for (const dir of ["prototypes/scene-engine", "docs/adr", "pipeline", "schema", "test", ".claude/skills/director"]) {
     mkdirSync(join(root, dir), { recursive: true });
     writeFileSync(join(root, dir, "index.html"), "private");
@@ -93,7 +93,7 @@ for (const [name, breakTree, message] of [
     (root: string) => writeJson(root, "gallery.json", [{ id: "deleted-scene-z9z9", title: "Gone", createdAt: "2026-10-27T00:00:00Z", description: "gone" }]),
     /deleted-scene-z9z9/,
   ],
-  ["a resolved Scene has no stub", (root: string) => rmSync(join(root, "scenes", id, "index.html")), /index\.html.*stage/],
+  ["a resolved Scene has no stub", (root: string) => rmSync(join(root, "scenes", id, "index.html")), /index\.html.*stub/],
   ["a record fails validation", (root: string) => editJson(root, "library/palettes/cosy-night.json", (p) => { p.colours = []; }), /validate/],
 ] as const) {
   test(`assemble fails with a JSON error and keeps the earlier dist/ when ${name}`, () => {

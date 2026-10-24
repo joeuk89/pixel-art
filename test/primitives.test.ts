@@ -2,18 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { scenePlanSchema, type Primitive, type ScenePlan } from "../schema/index.ts";
+import { allPlacements, placementsOf, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema, type Primitive, type ScenePlan } from "../schema/index.ts";
 import { createCompositor, type Compositor } from "../viewer/compositor.ts";
 import { createPrimitives, PROP_FPS, WEATHER_FPS } from "../viewer/primitives.ts";
 import { loadElementPixels } from "../pipeline/lib/element-pixels.ts";
-import { fixtures, repo } from "./helpers.ts";
+import { fixturePalette, fixtures } from "./helpers.ts";
 
-const W = 192;
-const palette = JSON.parse(readFileSync(join(repo, "library/palettes/cosy-night.json"), "utf8"));
+const W = SCENE_WIDTH;
+const palette = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixturePalette}.json`), "utf8"));
 const paletteRgb = new Set<number>(palette.colours.map((hex: string) => parseInt(hex.slice(1), 16)));
 const catalogue: ScenePlan = scenePlanSchema.parse(JSON.parse(readFileSync(join(fixtures, "primitives/scene.json"), "utf8")));
 const elements = await loadElementPixels(fixtures, catalogue);
-const TYPES = ["rain", "snow", "glow", "steam", "twinkle", "blink", "dust", "sway", "birds"] as const;
+const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds"] as const;
 const TIMES = Array.from({ length: 60 }, (_, k) => k * 137);
 
 function only(type: string): Primitive[] {
@@ -81,10 +81,11 @@ for (const type of TYPES) {
 }
 
 function stillScene(primitives: Primitive[]): Compositor {
-  const layers = catalogue.layers.map((layer) => ({
-    ...layer,
-    placements: layer.placements?.map((p) => (p.id === "cat" ? { ...p, animation: { enabled: false } } : p)),
-  }));
+  const layers = catalogue.layers.map((layer) =>
+    layer.kind === "placements"
+      ? { ...layer, placements: placementsOf(layer).map((p) => (p.id === "cat" ? { ...p, animation: { enabled: false } } : p)) }
+      : layer,
+  );
   const plan = { ...catalogue, layers, primitives };
   return createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
 }
@@ -137,9 +138,9 @@ for (const [type, fps, idles] of [["sway", PROP_FPS, false], ["birds", WEATHER_F
   });
 }
 
+const windowAt = allPlacements(catalogue).find((p) => p.id === "window")!;
 const [twinkleOf, blinkOf] = [only("twinkle")[0], only("blink")[0]];
 const exactCases: [string, Primitive, boolean][] = [
-  ["glow", only("glow")[0], true],
   ["blink", blinkOf, true],
   ["twinkle", twinkleOf, true],
   ["twinkle with one light at a time", { ...twinkleOf, count: 1 } as Primitive, true],
@@ -164,21 +165,6 @@ for (const [name, primitive, moves] of exactCases) {
     }
     if (moves) assert.ok(due > 0 && idle > 0, `due ${due}, idle ${idle}`);
     else assert.equal(due, 0);
-  });
-}
-
-for (const flicker of [0, 0.7, 1]) {
-  test(`glow at flicker ${flicker} only ever lightens the Scene under it`, () => {
-    const lit = stillScene([{ ...only("glow")[0], flicker } as Primitive]);
-    const unlit = stillScene([]);
-    const sum = (px: Uint8ClampedArray, i: number) => px[i] + px[i + 1] + px[i + 2];
-    for (let k = 0; k < 3000; k++) {
-      const a = lit.render(k * 100);
-      const b = unlit.render(k * 100);
-      for (let i = 0; i < a.length; i += 4) {
-        if (sum(a, i) < sum(b, i)) assert.fail(`step ${k}: pixel ${(i / 4) % W},${Math.floor(i / 4 / W)} is darker with glow`);
-      }
-    }
   });
 }
 
@@ -209,7 +195,7 @@ test("rain stays inside its region and, anchored to the skyline, draws under the
   const { region } = rain as Extract<Primitive, { type: "rain" }>;
   const window = elements.get("window-wood-transparent-panes-01")!.still;
   const frameAt = (x: number, y: number) => {
-    const sx = x - 72, sy = y - 14;
+    const sx = x - windowAt.x, sy = y - windowAt.y;
     return sx >= 0 && sy >= 0 && sx < window.width && sy < window.height && window.data[(sy * window.width + sx) * 4 + 3] >= 128;
   };
   const anchored = changedPixels([rain]);
@@ -229,7 +215,7 @@ test("blink swaps only the anchored Placement's from colour, and twinkle only th
   const wood = palette.colours[10];
   assert.ok(swapped.size > 0);
   for (const pixel of swapped) {
-    const sx = (pixel % W) - 72, sy = Math.floor(pixel / W) - 14;
+    const sx = (pixel % W) - windowAt.x, sy = Math.floor(pixel / W) - windowAt.y;
     const i = (sy * window.width + sx) * 4;
     const hex = "#" + [...window.data.subarray(i, i + 3)].map((v) => v.toString(16).padStart(2, "0")).join("");
     assert.equal(hex, wood, `blink changed ${sx},${sy} of the window, which is ${hex}`);
@@ -275,7 +261,8 @@ test("sway shifts only the anchor's leaf colours inside its region, by at most i
   const c = stillScene([sway]);
   const times = Array.from({ length: 100 }, (_, k) => k * 100);
   const changed = changedPixels([sway], times);
-  assert.ok([...changed].some((p) => p % W < 128) && [...changed].some((p) => p % W >= 128), "sway moved only one tiled copy");
+  const tile = elements.get("sky-stars-night-01")!.still.width;
+  assert.ok(new Set([...changed].map((p) => Math.floor((p % W) / tile))).size > 1, "sway moved only one tiled copy");
   for (const t of times) {
     const out = c.render(t);
     for (const pixel of changedPixels([sway], [t])) {
@@ -319,7 +306,7 @@ test("the Primitives module bundles for a neutral platform and draws where no No
     assert.equal(name in sandbox, false, `${name} leaked into the sandbox`);
   }
   const draws = sandbox.primitives.createPrimitives({ plan: catalogue, elements, palette });
-  const out = new Uint8ClampedArray(W * 120 * 4);
+  const out = new Uint8ClampedArray(W * SCENE_HEIGHT * 4);
   for (const d of draws) d.draw(out, 500);
-  assert.equal(draws.length, 9);
+  assert.equal(draws.length, 8);
 });

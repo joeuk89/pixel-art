@@ -4,7 +4,7 @@ Cosy, animated pixel-art scenes with matching music and ambient sound, made to b
 
 **Watch them at <https://joeuk89.github.io/pixel-art/>.**
 
-Each Scene is a small pixel-art picture (192x120) that the browser draws live: rain runs down the glass, lamps glow, steam rises, and a looping Soundtrack of music and ambient sound plays under it. AI services generate the artwork and sound; a Claude Code skill called the Director plans each Scene and drives the generation.
+Each Scene is a small pixel-art picture (384x240) that the browser draws live: rain runs down the glass, lamps glow, steam rises, and a looping Soundtrack of music and ambient sound plays under it. AI services generate the artwork and sound; a Claude Code skill called the Director plans each Scene and drives the generation.
 
 ## Watching a Scene
 

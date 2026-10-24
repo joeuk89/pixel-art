@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { elementRecordSchema, paletteSchema, type Palette, type ScenePlan } from "../../schema/index.ts";
+import { allPlacements, elementRecordSchema, paletteSchema, type Palette, type ScenePlan } from "../../schema/index.ts";
 import type { ElementPixels, Pixels } from "../../viewer/compositor.ts";
 
 const ELEMENTS = "library/elements";
@@ -30,7 +30,7 @@ export function loadPalette(root: string, name: string): Palette {
 }
 
 export async function loadElementPixels(root: string, plan: ScenePlan): Promise<Map<string, ElementPixels>> {
-  const ids = new Set(plan.layers.flatMap((layer) => (layer.placements ?? []).map((p) => p.element)));
+  const ids = new Set(allPlacements(plan).map((p) => p.element));
   const loaded = new Map<string, ElementPixels>();
   for (const id of ids) {
     const record = elementRecordSchema.parse(readJson(join(root, ELEMENTS, `${id}.json`)));

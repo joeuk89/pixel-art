@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "rainy-desk-night-k7f2",
   "title": "Rainy desk at night",
   "prompt": "a cosy desk by a rainy window at night, lamp on, cat asleep",
@@ -7,24 +7,32 @@
   "createdAt": "2026-10-24T20:00:00Z",
   "seed": 1337,
   "status": "draft",
-  "palette": "cosy-night",
+  "palette": "fixture-night-v2",
   "scale": 48,
+  "dither": false,
   "styleAnchor": "window-wood-transparent-panes-01",
   "layers": [
-    { "name": "sky", "fill": 1 },
-    { "name": "city", "placements": [
-      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 0, "y": 30, "tileX": true,
-        "generate": { "brief": "distant city skyline at night, a few warm lit windows", "kind": "backdrop", "tags": ["skyline", "night", "city"] } } ] },
-    { "name": "room", "placements": [
-      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 64, "y": 10 },
-      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 140, "y": 90, "flipX": true,
+    { "name": "sky", "kind": "fill", "plane": "far", "colour": 1 },
+    { "name": "stars", "kind": "placements", "plane": "far", "placements": [
+      { "id": "stars", "element": "sky-stars-night-01", "x": 0, "y": 0, "tileX": true } ] },
+    { "name": "city", "kind": "placements", "plane": "far", "placements": [
+      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 64, "y": 40,
+        "generate": { "brief": "distant city skyline at night, a few warm lit windows", "kind": "backdrop", "tags": ["skyline", "night", "city"], "size": { "w": 256, "h": 128 } } } ] },
+    { "name": "room", "kind": "placements", "plane": "mid", "placements": [
+      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 160, "y": 24 },
+      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 280, "y": 196, "flipX": true,
         "animation": { "fps": 4, "order": "cycle" },
         "generate": { "brief": "tabby cat asleep, curled up", "kind": "prop", "realSize": { "w": 0.5, "h": 0.25 }, "tags": ["cat", "asleep"], "strip": { "service": "pixellab", "frames": 5 } } } ] }
   ],
   "primitives": [
-    { "type": "rain", "region": { "x": 70, "y": 16, "w": 52, "h": 60 }, "colours": [4, 5] },
-    { "type": "glow", "anchor": "lamp", "offset": { "x": 12, "y": 6 }, "colour": 6, "pool": { "y": 100, "colour": 7 } },
-    { "type": "blink", "anchor": "sign", "swaps": [[6, 2]], "rate": 0.5, "longShare": 0.3, "longFrames": [4, 9] }
+    { "type": "rain", "region": { "x": 164, "y": 28, "w": 40, "h": 40 }, "colours": [4, 5] },
+    { "type": "blink", "anchor": "sign", "swaps": [[6, 2]], "rate": 0.5, "longShare": 0.3, "longFrames": [4, 9], "emissive": true }
+  ],
+  "variants": [
+    { "id": "night-rain", "title": "Rainy night",
+      "ambient": { "level": -2.5 },
+      "lights": [],
+      "emissiveOff": [] }
   ],
   "soundtrack": {
     "music": { "brief": "slow piano, rain on a window, warm and sparse", "service": "stable-audio-3", "file": "music.mp3", "loopStart": 0, "loopEnd": 110.4, "gain": 0.6 },
