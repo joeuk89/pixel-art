@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import type { Shades } from "./colours.ts";
 import type { Raster } from "./raster.ts";
 
@@ -12,3 +12,5 @@ export type Generator<S extends z.ZodType = z.ZodType> = {
 };
 
 export const generator = <S extends z.ZodType>(g: Generator<S>): Generator => g as unknown as Generator;
+
+export const seed = z.coerce.number().int().default(1);

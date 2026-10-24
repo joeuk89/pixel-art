@@ -19,23 +19,21 @@ export function generatorOf(name: string): Generator {
   return g;
 }
 
-export function paramIssues(name: string, params: unknown): ParamIssue[] {
+function parseParams(name: string, params: unknown) {
   const parsed = generatorOf(name).params.safeParse(params);
-  return parsed.success ? [] : parsed.error.issues.map((i) => ({ path: i.path.map(String), message: i.message }));
+  const issues: ParamIssue[] = parsed.success ? [] : parsed.error.issues.map((i) => ({ path: i.path.map(String), message: i.message }));
+  return { issues, resolved: parsed.data as Record<string, unknown> };
 }
 
-export function resolveParams(name: string, params: unknown): Record<string, unknown> {
-  const issues = paramIssues(name, params);
-  if (issues.length > 0) throw new Error(`generator ${name}: ${issues.map((i) => `params.${i.path.join(".")}: ${i.message}`).join("; ")}`);
-  return generatorOf(name).params.parse(params) as Record<string, unknown>;
-}
+export const paramIssues = (name: string, params: unknown): ParamIssue[] => parseParams(name, params).issues;
 
 export type Drawn = { pixels: Pixels; params: Record<string, unknown> };
 
 // A prop is drawn into its target box, bottom-centred on the canvas, so its trimmed box matches its real size; a texture fills the canvas.
 export function drawLocal(name: string, params: unknown, opts: { canvas: { width: number; height: number }; target?: { width: number; height: number }; palette: Palette }): Drawn {
   const g = generatorOf(name);
-  const resolved = resolveParams(name, params);
+  const { issues, resolved } = parseParams(name, params);
+  if (issues.length > 0) throw new Error(`generator ${name}: ${issues.map((i) => `params.${i.path.join(".")}: ${i.message}`).join("; ")}`);
   const { canvas } = opts;
   const width = g.kind === "prop" && opts.target ? Math.min(canvas.width, Math.max(1, Math.round(opts.target.width))) : canvas.width;
   const height = g.kind === "prop" && opts.target ? Math.min(canvas.height, Math.max(1, Math.round(opts.target.height))) : canvas.height;

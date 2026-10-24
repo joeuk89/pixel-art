@@ -11,11 +11,10 @@ const fromText = (v: unknown) => (typeof v === "string" && /^\d+$/.test(v) ? Num
 export const colour = z.preprocess(fromText, one);
 export const colourList = z.preprocess(
   (v) => (typeof v === "string" ? (v === "" ? [] : v.split(",")) : v),
-  z.array(z.preprocess(fromText, one)),
+  z.array(colour),
 );
 
-// Shading steps come from the Palette's Ramp table. A hex colour off the Palette has no ramp and stays itself,
-// so the engine draws it as given and the Quality gate's Palette check catches it.
+// A hex colour off the Palette has no Ramp, so shading leaves it as given and the Quality gate's Palette check catches it.
 export type Shades = { rgb: (c: Colour) => Rgb; dark: (c: Colour) => Colour; warm: (c: Colour) => Colour };
 
 export function shadesOf(palette: Palette): Shades {

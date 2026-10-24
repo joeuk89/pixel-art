@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { colour, colourList } from "./colours.ts";
-import { generator } from "./kit.ts";
+import { generator, seed } from "./kit.ts";
 import { between, seeded } from "./raster.ts";
 
 const count = (fallback: number) => z.coerce.number().int().min(0).default(fallback);
 const positive = (fallback: number) => z.coerce.number().int().min(1).default(fallback);
 const share = (fallback: number) => z.coerce.number().min(0).max(1).default(fallback);
-const seed = z.coerce.number().int().default(1);
 
 export const rect = generator({
   kind: "prop",

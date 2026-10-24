@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { colour, colourList } from "./colours.ts";
-import { generator } from "./kit.ts";
+import { generator, seed } from "./kit.ts";
 import { between, seeded } from "./raster.ts";
-
-const seed = z.coerce.number().int().default(1);
 
 // The wrap-seam check compares the first and last columns, so every texture keeps those two columns equal.
 const innerColumn = (random: () => number, width: number, span = 1) => between(random, 1, width - 2 - span);
