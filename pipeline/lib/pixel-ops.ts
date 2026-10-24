@@ -94,7 +94,7 @@ function oklab(r: number, g: number, b: number): Lab {
   ];
 }
 
-const rgbOf = (hex: string) => {
+export const rgbOf = (hex: string) => {
   const n = parseInt(hex.slice(1), 16);
   return [n >> 16, (n >> 8) & 255, n & 255] as const;
 };

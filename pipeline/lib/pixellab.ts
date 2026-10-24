@@ -8,16 +8,6 @@ const MAX_429_RETRIES = 20;
 
 type Base64Png = { type: "base64"; base64: string; format: "png" };
 
-export type ProRequest = {
-  description: string;
-  image_size: { width: number; height: number };
-  seed: number;
-  no_background: boolean;
-  target_palette: { colors: string[]; name: string };
-  style_image?: { image: Base64Png; size: { width: number; height: number }; usage_description: string };
-  style_options?: { color_palette: boolean; outline: boolean; detail: boolean; shading: boolean };
-};
-
 export type PixfluxRequest = {
   description: string;
   image_size: { width: number; height: number };
@@ -35,6 +25,8 @@ export type ProFlashRequest = {
   style_image?: { image: Base64Png; size: { width: number; height: number }; usage_description: string };
   style_options?: { color_palette: boolean; outline: boolean; detail: boolean; shading: boolean };
 };
+
+export type ProRequest = ProFlashRequest;
 
 export class PixelLabError extends Error {
   status: number;

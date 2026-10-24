@@ -40,9 +40,9 @@ export function stillAttempts(dir: string, placementId?: string): StillAttempt[]
     .filter((a) => placementId === undefined || a.placement === placementId);
 }
 
-// Every Attempt costs, accepted or not; marking them charged keeps a later accept or abandon from charging them again.
-export const METERED_VENDOR = "retro-diffusion";
+const METERED_VENDOR = "retro-diffusion";
 
+// Every Attempt costs, accepted or not; marking them charged keeps a later accept or abandon from charging them again.
 export function chargeStillAttempts(dir: string, placementId: string): { generations: number; meteredByService: Record<string, number>; attempts: number; commit: () => void } {
   const open = sidecars(dir, (n) => n.startsWith(`${placementId}-a`)).filter((f) => f.value.placement === placementId && !f.value.charged);
   const metered = open.reduce((sum, f) => sum + (f.value.meteredUsd ?? 0), 0);

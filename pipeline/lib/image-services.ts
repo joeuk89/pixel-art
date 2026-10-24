@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { fitsProFlash, PRO_FLASH_MAX_SIDE, type Canvas } from "./canvas.ts";
+import { rgbOf } from "./pixel-ops.ts";
 import { createImagePixflux, createImageProFlash, generateImageV2, STYLE_OPTIONS, STYLE_USAGE } from "./pixellab.ts";
 import { RD_PLUS_ENVIRONMENT, rdPlusEnvironment } from "./retro-diffusion.ts";
 import { withFreshKey } from "./retry.ts";
@@ -57,10 +58,7 @@ export type ImageResult = { png: Buffer; generations: number; meteredUsd: number
 const base64Png = (png: Buffer) => ({ type: "base64" as const, base64: png.toString("base64"), format: "png" as const });
 
 async function palettePng(colours: string[]): Promise<Buffer> {
-  const rgb = Buffer.from(colours.flatMap((hex) => {
-    const n = parseInt(hex.slice(1), 16);
-    return [n >> 16, (n >> 8) & 255, n & 255];
-  }));
+  const rgb = Buffer.from(colours.flatMap((hex) => [...rgbOf(hex)]));
   return sharp(rgb, { raw: { width: colours.length, height: 1, channels: 3 } }).png().toBuffer();
 }
 
