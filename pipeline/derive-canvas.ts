@@ -1,3 +1,4 @@
+import { placementsOf } from "../schema/index.ts";
 import { anchorFits, deriveCanvas, type Canvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScene } from "./lib/library.ts";
@@ -15,7 +16,7 @@ main(() => {
   }
 
   const placements = plan.layers.flatMap((layer) =>
-    (layer.placements ?? []).flatMap((p) => {
+    placementsOf(layer).flatMap((p) => {
       if (!p.generate) return [];
       const canvas = deriveCanvas(plan.scale, p.generate);
       return [{

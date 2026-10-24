@@ -1,33 +1,38 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "fixture-primitives-c3d4",
   "title": "Fixture Primitives",
-  "prompt": "a snowy, rainy desk by a window at night, lamp on, tea steaming, a sign blinking",
+  "prompt": "a snowy, rainy desk by a window at night, tea steaming, a sign blinking",
   "description": "Snow and rain fall past a window at night while tea steams on the desk and a sign blinks outside.",
   "createdAt": "2026-10-24T21:00:00Z",
   "seed": 2024,
   "status": "draft",
-  "palette": "cosy-night",
+  "palette": "fixture-night-v2",
   "scale": 48,
+  "dither": false,
   "styleAnchor": "window-wood-transparent-panes-01",
   "layers": [
-    { "name": "sky", "fill": 1 },
-    { "name": "city", "placements": [
-      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 0, "y": 30, "tileX": true } ] },
-    { "name": "room", "placements": [
-      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 72, "y": 14 },
-      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 140, "y": 96 } ] }
+    { "name": "sky", "kind": "fill", "plane": "far", "colour": 1 },
+    { "name": "stars", "kind": "placements", "plane": "far", "placements": [
+      { "id": "stars", "element": "sky-stars-night-01", "x": 0, "y": 0, "tileX": true } ] },
+    { "name": "city", "kind": "placements", "plane": "far", "placements": [
+      { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 64, "y": 40 } ] },
+    { "name": "room", "kind": "placements", "plane": "mid", "placements": [
+      { "id": "window", "element": "window-wood-transparent-panes-01", "x": 168, "y": 28 },
+      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 280, "y": 200 } ] }
   ],
   "primitives": [
-    { "type": "rain", "anchor": "skyline", "region": { "x": 75, "y": 17, "w": 42, "h": 42 }, "colours": [6, 7], "density": 40, "drift": 0.3 },
-    { "type": "snow", "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 70, "h": 60 }, "colours": [15, 12], "density": 30, "drift": 1.5, "wind": 0.2 },
-    { "type": "glow", "anchor": "window", "offset": { "x": 24, "y": 24 }, "colour": 8, "radius": 24, "flicker": 0.4, "pool": { "y": 100, "colour": 9 } },
-    { "type": "steam", "anchor": "cat", "offset": { "x": 12, "y": 0 }, "colours": [12, 15], "count": 12 },
-    { "type": "twinkle", "anchor": "skyline", "colours": [8], "count": 5 },
-    { "type": "blink", "anchor": "window", "swaps": [[10, 14]], "rate": 2, "longShare": 0.4, "longFrames": [3, 6] },
-    { "type": "dust", "region": { "x": 20, "y": 70, "w": 40, "h": 30 }, "colours": [13, 12], "count": 12 },
-    { "type": "sway", "anchor": "skyline", "region": { "x": 120, "y": 30, "w": 60, "h": 34 }, "colours": [2], "amplitude": 1, "rate": 0.5 },
-    { "type": "birds", "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 70, "h": 30 }, "colours": [0], "count": 3, "every": [6, 8] }
+    { "type": "rain", "emissive": false, "anchor": "skyline", "region": { "x": 171, "y": 31, "w": 42, "h": 42 }, "colours": [6, 7], "density": 40, "drift": 0.3 },
+    { "type": "snow", "emissive": false, "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 140, "h": 116 }, "colours": [15, 12], "density": 30, "drift": 1.5, "wind": 0.2 },
+    { "type": "steam", "emissive": true, "anchor": "cat", "offset": { "x": 12, "y": 0 }, "colours": [12, 15], "count": 12 },
+    { "type": "twinkle", "emissive": true, "anchor": "skyline", "colours": [8], "count": 5 },
+    { "type": "blink", "emissive": true, "anchor": "window", "swaps": [[10, 14]], "rate": 2, "longShare": 0.4, "longFrames": [3, 6] },
+    { "type": "dust", "emissive": false, "region": { "x": 40, "y": 140, "w": 80, "h": 60 }, "colours": [13, 12], "count": 12 },
+    { "type": "sway", "emissive": false, "anchor": "stars", "region": { "x": 0, "y": 0, "w": 96, "h": 32 }, "colours": [7], "amplitude": 1, "rate": 0.5 },
+    { "type": "birds", "emissive": false, "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 140, "h": 60 }, "colours": [0], "count": 3, "every": [6, 8] }
+  ],
+  "variants": [
+    { "id": "night", "title": "Night", "ambient": { "level": -2.5 }, "lights": [], "emissiveOff": [] }
   ],
   "soundtrack": {
     "music": { "brief": "slow piano, warm and sparse", "service": "stable-audio-3", "gain": 0.6 },

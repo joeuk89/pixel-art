@@ -13,7 +13,7 @@
   "model": "pro-flash",
   "params": { "no_background": true },
   "seed": 1200,
-  "palette": "cosy-night",
+  "palette": "fixture-night-v2",
   "styleAnchor": null,
   "createdAt": "2026-10-24T20:01:00Z",
   "firstScene": "fixture-rainy-desk-a1b2",

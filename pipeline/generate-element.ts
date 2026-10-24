@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { basename, dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { elementRecordSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
+import { allPlacements, elementRecordSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
 import { budget } from "./lib/budget.ts";
 import { anchorFits, deriveCanvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
@@ -30,7 +30,7 @@ function styleAnchor(plan: ScenePlan): { id: string; width: number; height: numb
 }
 
 function findPlacement(plan: ScenePlan, id: string): Placement {
-  const placement = plan.layers.flatMap((l) => l.placements ?? []).find((p) => p.id === id);
+  const placement = allPlacements(plan).find((p) => p.id === id);
   if (!placement) throw new Error(`no Placement ${id} in Scene ${plan.id}`);
   if (!placement.generate) throw new Error(`Placement ${id} has no generate block; its Element ${placement.element} is already in the library`);
   return placement;

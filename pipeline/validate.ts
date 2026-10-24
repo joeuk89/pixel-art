@@ -2,14 +2,17 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import type { z } from "zod";
 import {
+  allPlacements,
   ambientLoopRecordSchema,
   elementRecordSchema,
   paletteSchema,
+  placementsOf,
   POSTER_FILE,
   scenePlanSchema,
   type AmbientLoopRecord,
   type ElementRecord,
   type Palette,
+  type Primitive,
   type ScenePlan,
 } from "../schema/index.ts";
 import { pngSize } from "./lib/png.ts";
@@ -80,12 +83,16 @@ for (const file of jsonFiles(PALETTES)) {
   palettes.set(value.name, value);
 }
 
+function scenePrimitives(plan: ScenePlan): { primitive: Primitive; at: string }[] {
+  return [
+    ...plan.primitives.map((primitive, i) => ({ primitive, at: `primitives[${i}]` })),
+    ...plan.variants.flatMap((v, vi) => (v.primitives ?? []).map((primitive, i) => ({ primitive, at: `variants[${vi}].primitives[${i}]` }))),
+  ];
+}
+
 function primitiveColours(plan: ScenePlan): { path: string; index: number }[] {
-  return plan.primitives.flatMap((p, i) => {
-    const at = `primitives[${i}]`;
+  return scenePrimitives(plan).flatMap(({ primitive: p, at }) => {
     switch (p.type) {
-      case "glow":
-        return [{ path: `${at}.colour`, index: p.colour }, ...(p.pool ? [{ path: `${at}.pool.colour`, index: p.pool.colour }] : [])];
       case "blink":
         return p.swaps.flatMap((pair, k) => pair.map((index, j) => ({ path: `${at}.swaps[${k}][${j}]`, index })));
       default:
@@ -122,6 +129,12 @@ for (const file of jsonFiles(ELEMENTS)) {
   elements.set(value.id, value);
   if (!paletteNames.has(value.palette)) errors.push({ file, path: "palette", message: `Palette ${value.palette} does not exist` });
   checkPng(file, "", `${ELEMENTS}/${stem(file)}.png`, value.width, value.height, "Element PNG");
+  const lockedSize = palettes.get(value.palette)?.colours.length;
+  value.emissive?.forEach((index, i) => {
+    if (lockedSize !== undefined && index >= lockedSize) {
+      errors.push({ file, path: `emissive[${i}]`, message: `colour index ${index} is not in Palette ${value.palette} (${lockedSize} colours)` });
+    }
+  });
   if (value.kind === "prop" && value.animation) {
     const { frames } = value.animation;
     checkPng(file, "animation.frames", `${ELEMENTS}/${stem(file)}.strip.png`, frames * value.width, value.height, "Frame strip");
@@ -144,8 +157,22 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
   const beside = (name: string) => existsSync(join(root, dirname(file), name));
 
   if (plan.id !== folder) problems.push({ path: "id", message: `id ${plan.id} does not match Scene folder ${folder}` });
-  if (!paletteNames.has(plan.palette)) problems.push({ path: "palette", message: `Palette ${plan.palette} does not exist` });
+  const checkRamped = (path: string, name: string) => {
+    const palette = palettes.get(name);
+    if (!paletteNames.has(name)) problems.push({ path, message: `Palette ${name} does not exist` });
+    else if (palette && !palette.ramps) problems.push({ path, message: `Palette ${name} has no ramps; a v2 Scene needs a Palette with a Ramp table` });
+  };
+  checkRamped("palette", plan.palette);
   const paletteSize = palettes.get(plan.palette)?.colours.length;
+  plan.variants.forEach((v, vi) => {
+    if (v.companionPalette === undefined) return;
+    const path = `variants[${vi}].companionPalette`;
+    checkRamped(path, v.companionPalette);
+    const companionSize = palettes.get(v.companionPalette)?.colours.length;
+    if (companionSize !== undefined && paletteSize !== undefined && companionSize !== paletteSize) {
+      problems.push({ path, message: `companion Palette ${v.companionPalette} has ${companionSize} colours, the Scene's Palette has ${paletteSize}` });
+    }
+  });
   if (paletteSize !== undefined) {
     for (const { path, index } of primitiveColours(plan)) {
       if (index >= paletteSize) problems.push({ path, message: `colour index ${index} is not in Palette ${plan.palette} (${paletteSize} colours)` });
@@ -153,11 +180,15 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
   }
 
   plan.layers.forEach((layer, li) =>
-    layer.placements?.forEach((p, pi) => {
+    placementsOf(layer).forEach((p, pi) => {
       const at = `layers[${li}].placements[${pi}]`;
       const element = elements.get(p.element);
       if (p.generate) pending.push({ path: `${at}.generate`, message: `Element ${p.element} is not generated yet` });
       else if (!elementIds.has(p.element)) problems.push({ path: `${at}.element`, message: `Element ${p.element} is not in the Element library` });
+      if (p.tileX && element?.seamless !== true) {
+        const what = element ? `Element ${p.element} is not seamless` : `Element ${p.element} is not a Seamless texture yet`;
+        problems.push({ path: `${at}.tileX`, message: `${what}; tileX repeats only a Seamless texture` });
+      }
 
       const stripFrames = (element?.kind === "prop" ? element.animation?.frames : undefined) ??
         (p.generate?.kind === "prop" ? p.generate.strip?.frames : undefined);
@@ -173,12 +204,12 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
     }),
   );
 
-  const placementIds = new Set(plan.layers.flatMap((layer) => (layer.placements ?? []).map((p) => p.id)));
-  plan.primitives.forEach((primitive, i) => {
+  const placementIds = new Set(allPlacements(plan).map((p) => p.id));
+  for (const { primitive, at } of scenePrimitives(plan)) {
     if (primitive.anchor !== undefined && !placementIds.has(primitive.anchor)) {
-      pending.push({ path: `primitives[${i}].anchor`, message: `no Placement ${primitive.anchor} in this plan to anchor to` });
+      pending.push({ path: `${at}.anchor`, message: `no Placement ${primitive.anchor} in this plan to anchor to` });
     }
-  });
+  }
 
   const { music, ambient, oneshots } = plan.soundtrack;
   if (music.file === undefined || music.loopEnd === undefined) {
@@ -227,12 +258,11 @@ for (const file of sceneFiles()) {
 
 function referencedFiles(plan: ScenePlan): Set<string> {
   const files = new Set([`${PALETTES}/${plan.palette}.json`]);
-  for (const layer of plan.layers) {
-    for (const p of layer.placements ?? []) {
-      files.add(`${ELEMENTS}/${p.element}.json`);
-      const element = elements.get(p.element);
-      if (element) files.add(`${PALETTES}/${element.palette}.json`);
-    }
+  for (const v of plan.variants) if (v.companionPalette !== undefined) files.add(`${PALETTES}/${v.companionPalette}.json`);
+  for (const p of allPlacements(plan)) {
+    files.add(`${ELEMENTS}/${p.element}.json`);
+    const element = elements.get(p.element);
+    if (element) files.add(`${PALETTES}/${element.palette}.json`);
   }
   const { ambient, oneshots } = plan.soundtrack;
   for (const { source } of [...ambient, ...oneshots]) {

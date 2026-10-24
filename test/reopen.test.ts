@@ -23,10 +23,20 @@ test("reopen puts a generate block rebuilt from the Element record back on each 
     strip: { service: "pixellab" },
   });
   assert.deepEqual(cat.animation, { fps: 4, order: "pingpong" });
-  assert.deepEqual(placementIn(plan, "skyline").generate, { kind: "backdrop", brief: readJson(root, "library/elements/skyline-night-warm-windows-01.json").brief, tags: readJson(root, "library/elements/skyline-night-warm-windows-01.json").tags });
+  const skyline = readJson(root, "library/elements/skyline-night-warm-windows-01.json");
+  assert.deepEqual(placementIn(plan, "skyline").generate, { kind: "backdrop", brief: skyline.brief, tags: skyline.tags, size: { w: 256, h: 128 } });
   assert.equal(placementIn(plan, "cat-2").generate, undefined);
   assert.equal(placementIn(plan, "window").generate, undefined);
   assert.equal(validate(root).code, 0);
+});
+
+test("reopen refuses a Seamless texture and changes nothing", () => {
+  const root = makeTree();
+  const before = readFileSync(join(root, fixtureScene), "utf8");
+  const { code, out } = runScript(root, "reopen", fixtureScene, "stars");
+  assert.equal(code, 1);
+  assert.match(out.error, /sky-stars-night-01 is a Seamless texture/);
+  assert.equal(readFileSync(join(root, fixtureScene), "utf8"), before);
 });
 
 test("reopen refuses an unknown Placement and changes nothing", () => {

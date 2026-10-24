@@ -5,8 +5,8 @@ import { join } from "node:path";
 import sharp from "sharp";
 import { createCompositor } from "../viewer/compositor.ts";
 import { loadElementPixels, loadPalette } from "../pipeline/lib/element-pixels.ts";
-import { scenePlanSchema } from "../schema/index.ts";
-import { editJson, fixtureScene, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
+import { allPlacements, SCENE_WIDTH, scenePlanSchema } from "../schema/index.ts";
+import { editJson, fixturePalette, fixtureScene, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { INFERENCE_FAILED, retroDiffusionState } from "./fixtures/services/retro-diffusion.ts";
 import { decodePng, encodePng, OFF_PALETTE_ACTION, pixellabState, type Rgba } from "./fixtures/services/pixellab.ts";
@@ -14,6 +14,7 @@ import { decodePng, encodePng, OFF_PALETTE_ACTION, pixellabState, type Rgba } fr
 const script = join(repo, "pipeline/generate-strip.ts");
 const ELEMENT = "cat-tabby-twitching-01";
 const ELEMENTS = "library/elements";
+const CAT_WIDTH = 24;
 
 let server: FixtureServer;
 before(async () => { server = await startFixtureServer(); });
@@ -52,7 +53,7 @@ test("a PixelLab run yields exactly the asked frames with the still as frame 0 a
   assert.equal(pixellabState.animateRequests[0].frame_count, 4);
 
   const strip = await decode(join(root, result.json.scratch.strip));
-  assert.deepEqual([strip.width, strip.height], [120, 16]);
+  assert.deepEqual([strip.width, strip.height], [5 * CAT_WIDTH, 16]);
   const still = await decode(join(root, `${ELEMENTS}/${ELEMENT}.png`));
   assert.deepEqual(frameOf(strip, 0, 24), still.data);
   for (let k = 1; k < 5; k++) assert.notDeepEqual(frameOf(strip, k, 24), still.data, `frame ${k} repeats the still`);
@@ -81,11 +82,11 @@ test("PixelLab --frames outside the odd numbers 5 to 15 is refused before any ca
 
 function planWithStrip(strip: Record<string, unknown>): unknown {
   const plan = JSON.parse(readFileSync(join(repo, "test/fixtures/spec-example-scene.json"), "utf8"));
-  plan.layers[2].placements[1].generate.strip = strip;
+  plan.layers[3].placements[1].generate.strip = strip;
   return plan;
 }
 
-const stripOf = (plan: any) => plan.layers[2].placements[1].generate.strip;
+const stripOf = (plan: any) => plan.layers[3].placements[1].generate.strip;
 
 test("a planned strip with no frames defaults per service to a count generate-strip accepts", async () => {
   const pixellab = stripOf(scenePlanSchema.parse(planWithStrip({ service: "pixellab" })));
@@ -105,7 +106,7 @@ test("a planned PixelLab strip outside the odd numbers 5 to 15 fails validate", 
     const check = validate(root);
     assert.equal(check.code, 1, String(frames));
     assert.ok(
-      check.report.errors.some((e: any) => e.path === "layers[2].placements[1].generate.strip.frames" && /odd number from 5 to 15/.test(e.message)),
+      check.report.errors.some((e: any) => e.path === "layers[3].placements[1].generate.strip.frames" && /odd number from 5 to 15/.test(e.message)),
       JSON.stringify(check.report.errors),
     );
   }
@@ -114,7 +115,7 @@ test("a planned PixelLab strip outside the odd numbers 5 to 15 fails validate", 
   assert.equal(validate(root).code, 0);
 });
 
-const COSY = JSON.parse(readFileSync(join(repo, "library/palettes/cosy-night.json"), "utf8")).colours as string[];
+const PALETTE = JSON.parse(readFileSync(join(repo, `test/fixtures/library/palettes/${fixturePalette}.json`), "utf8")).colours as string[];
 const MOVED: [number, number, number] = [0xf7, 0xd3, 0x5c];
 
 async function stillOf(root: string): Promise<{ still: Rgba; opaque: number[] }> {
@@ -149,7 +150,7 @@ test("a strip with too few frames or a frame of the wrong size fails dimensions"
   const { still, opaque } = await stillOf(root);
   const few = await gateOf(root, [recolour(still, opaque.slice(0, 6)), recolour(still, opaque.slice(6, 12))]);
   assert.deepEqual(failedNames(few), ["dimensions"]);
-  assert.match(few.failed[0], /3 frames making 72x16, expected 5 frames making 120x16/);
+  assert.match(few.failed[0], new RegExp(`3 frames making 72x16, expected 5 frames making ${5 * CAT_WIDTH}x16`));
 
   const tall: Rgba = { width: 24, height: 20, data: new Uint8Array(24 * 20 * 4) };
   tall.data.set(still.data);
@@ -219,7 +220,7 @@ test("the off-palette strip passes once snapped and records the pre-snap share a
   assert.deepEqual(gate.warnings, ["80% of opaque pixels were off the Palette before snapping"]);
 
   const strip = await decode(join(root, result.json.scratch.strip));
-  const allowed = new Set(COSY.map((h) => parseInt(h.slice(1), 16)));
+  const allowed = new Set(PALETTE.map((h) => parseInt(h.slice(1), 16)));
   for (let i = 0; i < strip.data.length; i += 4) {
     if (strip.data[i + 3] !== 0) assert.ok(allowed.has((strip.data[i] << 16) | (strip.data[i + 1] << 8) | strip.data[i + 2]), "a snapped pixel is off the Palette");
   }
@@ -235,7 +236,7 @@ test("a Retro Diffusion run makes 8 frames from the still with frame 0 the still
   assert.equal(retroDiffusionState.submits[0].body.height, 16);
   assert.deepEqual(result.json.cost, { pixellabGenerations: 0, meteredUsd: 0.25 });
   const strip = await decode(join(root, result.json.scratch.strip));
-  assert.deepEqual([strip.width, strip.height], [192, 16]);
+  assert.deepEqual([strip.width, strip.height], [8 * CAT_WIDTH, 16]);
   assert.deepEqual(frameOf(strip, 0, 24), (await decode(join(root, `${ELEMENTS}/${ELEMENT}.png`))).data);
   assert.equal(result.json.gate.ok, true, JSON.stringify(result.json.gate));
 });
@@ -320,7 +321,7 @@ test("--accept writes the sidecar strip and the animation block, and validate ch
     prompt: "tail twitches",
     seed: 41,
     params: { frame_count: 4, no_background: true },
-    snappedTo: "cosy-night",
+    snappedTo: fixturePalette,
     offPaletteBefore: 0,
     cost: { pixellabGenerations: 1, meteredUsd: 0 },
     checks: { attempt: 1, passed: ["dimensions", "alpha", "palette", "motion", "drift", "seam"], warnings: [] },
@@ -332,7 +333,7 @@ test("--accept writes the sidecar strip and the animation block, and validate ch
   writeFileSync(join(root, `${ELEMENTS}/${ELEMENT}.strip.png`), narrow);
   const invalid = validate(root);
   assert.equal(invalid.code, 1);
-  assert.match(JSON.stringify(invalid.report), /Frame strip .*is 96x16, record says 120x16/);
+  assert.match(JSON.stringify(invalid.report), new RegExp(`Frame strip .*is 96x16, record says ${5 * CAT_WIDTH}x16`));
 });
 
 test("--accept records the off-palette share and warning, and charges every Attempt for the Element", async () => {
@@ -398,11 +399,11 @@ test("a Placement with animation overrides on the accepted Element passes valida
   const first = await run(root);
   assert.equal((await run(root, "--accept", first.json.scratch.strip)).code, 0);
   editJson(root, fixtureScene, (plan) => {
-    for (const layer of plan.layers) for (const p of layer.placements ?? []) if (p.element === "cat-tabby-asleep-01") p.element = ELEMENT;
+    for (const p of allPlacements(plan)) if (p.element === "cat-tabby-asleep-01") p.element = ELEMENT;
     plan.primitives = [];
   });
   const plan = scenePlanSchema.parse(readJson(root, fixtureScene));
-  const cat = plan.layers.flatMap((l) => l.placements ?? []).find((p) => p.id === "cat")!;
+  const cat = allPlacements(plan).find((p) => p.id === "cat")!;
   assert.deepEqual(cat.animation, { fps: 4, order: "pingpong" });
   const valid = validate(root);
   assert.equal(valid.code, 0, JSON.stringify(valid.report));
@@ -412,7 +413,7 @@ test("a Placement with animation overrides on the accepted Element passes valida
   for (let t = 0; t < 1500; t += 250) {
     const frame = compositor.render(t);
     const rows: number[] = [];
-    for (let y = cat.y; y < cat.y + 16; y++) rows.push(...frame.subarray((y * 192 + cat.x) * 4, (y * 192 + cat.x + 24) * 4));
+    for (let y = cat.y; y < cat.y + 16; y++) rows.push(...frame.subarray((y * SCENE_WIDTH + cat.x) * 4, (y * SCENE_WIDTH + cat.x + CAT_WIDTH) * 4));
     seen.add(rows.join(","));
   }
   assert.equal(seen.size, 5, "a 5-frame pingpong strip shows all five frames over one cycle");

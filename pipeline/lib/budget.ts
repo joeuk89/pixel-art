@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ScenePlan } from "../../schema/index.ts";
+import { allPlacements, type ScenePlan } from "../../schema/index.ts";
 import { stillAttempts, stillAttemptsDir } from "./attempts.ts";
 import { readElements } from "./library.ts";
 
@@ -32,7 +32,7 @@ const round = (n: number) => Math.round(n * 1e4) / 1e4;
 type Planned = { kind: "prop" | "backdrop"; pixellabStrip: boolean };
 
 export function budget(plan: ScenePlan) {
-  const placements = plan.layers.flatMap((l) => l.placements ?? []);
+  const placements = allPlacements(plan);
   const attempts = stillAttempts(stillAttemptsDir(plan.id));
 
   const planned = new Map<string, Planned>();

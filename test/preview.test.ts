@@ -18,7 +18,7 @@ const git = (root: string, ...args: string[]) => {
 function repoTree(tests: "pass" | "fail" = "pass"): string {
   const root = makeTree();
   writeJson(root, "package.json", { private: true, scripts: { test: `node -e "process.exit(${tests === "pass" ? 0 : 1})"` } });
-  for (const name of ["cat-tabby-asleep-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01"]) {
+  for (const name of ["cat-tabby-asleep-01", "sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01"]) {
     editJson(root, `library/elements/${name}.json`, (record) => { record.firstScene = "older-scene-x1y2"; });
   }
   git(root, "init", "-q");
@@ -28,10 +28,10 @@ function repoTree(tests: "pass" | "fail" = "pass"): string {
   writeJson(root, `library/elements/${NEW_ELEMENT}.json`, { ...readJson(root, "library/elements/cat-tabby-asleep-01.json"), id: NEW_ELEMENT, firstScene: id });
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[2].placements[1].element = NEW_ELEMENT;
+    plan.layers[3].placements[1].element = NEW_ELEMENT;
   });
   assert.equal(runScript(root, "poster", fixtureScene).code, 0);
-  assert.equal(runScript(root, "stage", fixtureScene).code, 0);
+  assert.equal(runScript(root, "stub", fixtureScene).code, 0);
   return root;
 }
 
@@ -64,7 +64,7 @@ test("preview marks the Scene resolved, stages its files and prints the URL, cos
   assert.equal(out.ledger.metered.ceilingGbp, 50);
   assert.deepEqual(out.ledger.afterCommit, { pixellabGenerations: 4, meteredUsd: 0.2 });
   assert.deepEqual(out.abandoned, []);
-  assert.deepEqual(out.elements, { generated: [NEW_ELEMENT], reused: ["skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"] });
+  assert.deepEqual(out.elements, { generated: [NEW_ELEMENT], reused: ["sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"] });
   assert.match(out.commitMessage, /^Add the Scene "Fixture rainy desk"\n\n/);
   assert.match(out.commitMessage, new RegExp(`Scene id: ${id}`));
   assert.match(out.commitMessage, new RegExp(`Generated: ${NEW_ELEMENT}`));
@@ -74,13 +74,13 @@ test("preview marks the Scene resolved, stages its files and prints the URL, cos
 test("the preview report says which Elements were substituted, dropped or left as stills", () => {
   const root = repoTree();
   editJson(root, fixtureScene, (plan) => {
-    plan.layers[2].placements[2].element = "cat-tabby-curled-01";
-    plan.layers[2].placements[2].generate = { kind: "prop", brief: "tabby cat curled up", realSize: { w: 0.5, h: 0.25 }, tags: ["cat"] };
+    plan.layers[3].placements[2].element = "cat-tabby-curled-01";
+    plan.layers[3].placements[2].generate = { kind: "prop", brief: "tabby cat curled up", realSize: { w: 0.5, h: 0.25 }, tags: ["cat"] };
   });
   const abandoned = runScript(root, "generate-element", fixtureScene, "cat-2", "--abandon", "--substitute", NEW_ELEMENT);
   assert.equal(abandoned.code, 0, abandoned.stderr);
   assert.equal(runScript(root, "poster", fixtureScene).code, 0);
-  assert.equal(runScript(root, "stage", fixtureScene).code, 0);
+  assert.equal(runScript(root, "stub", fixtureScene).code, 0);
 
   const { code, out, stderr } = runScript(root, "preview", fixtureScene);
   assert.equal(code, 0, stderr + JSON.stringify(out));
@@ -105,7 +105,7 @@ test("a failed hard check after a direct edit to a resolved Scene puts the Scene
   const root = repoTree("fail");
   editJson(root, fixtureScene, (plan) => {
     plan.status = "resolved";
-    plan.layers[1].placements[0].x += 4;
+    plan.layers[2].placements[0].x += 4;
   });
   const { code, out } = runScript(root, "preview", fixtureScene);
   assert.equal(code, 1);

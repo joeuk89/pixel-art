@@ -28,7 +28,7 @@ test("a draft Scene's Style anchor, ambient and One-shots count as references", 
   const example = JSON.parse(readFileSync(join(fixtures, "spec-example-scene.json"), "utf8"));
   example.styleAnchor = "curtain-red-velvet-01";
   example.soundtrack.ambient = [{ source: { kind: "curated", id: "freesound-vent-hum-753540" }, file: "vent.ogg", distance: "mid" }];
-  example.soundtrack.oneshots = [{ source: { kind: "curated", id: "freesound-owl-tawny-454842" }, file: "owl.ogg", distance: "far", every: [60, 120] }];
+  example.soundtrack.oneshots = [{ source: { kind: "curated", id: "freesound-owl-tawny-454842" }, file: "owl.ogg", distance: "far", every: [60, 150] }];
   writeJson(root, "scenes/rainy-desk-night-k7f2/scene.json", example);
   const { code, out } = runScript(root, "orphans");
   assert.equal(code, 0);

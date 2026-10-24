@@ -4,13 +4,13 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import sharp from "sharp";
-import { fixtures, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
+import { fixturePalette, fixtures, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { encodePng, pixellabState } from "./fixtures/services/pixellab.ts";
 
 const script = join(repo, "pipeline/generate-element.ts");
 const PLAN = "scenes/rainy-desk-night-k7f2/scene.json";
-const COSY = JSON.parse(readFileSync(join(repo, "library/palettes/cosy-night.json"), "utf8")).colours as string[];
+const PALETTE = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixturePalette}.json`), "utf8")).colours as string[];
 
 let server: FixtureServer;
 before(async () => { server = await startFixtureServer(); });
@@ -44,7 +44,7 @@ test("one run writes the raw PNG and an 8x upscale to scratch and prints a gate 
   const raw = await sharp(join(root, png)).metadata();
   assert.deepEqual([raw.width, raw.height], [24, 16]);
   const big = await sharp(join(root, upscale)).metadata();
-  assert.deepEqual([big.width, big.height], [192, 128]);
+  assert.deepEqual([big.width, big.height], [24 * 8, 16 * 8]);
 });
 
 const placementIn = (plan: any, id: string) => plan.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
@@ -70,7 +70,7 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   assert.equal(record.prompt, "tabby cat asleep, curled up");
   assert.equal(record.service, "pixellab");
   assert.equal(record.seed, 77);
-  assert.equal(record.palette, "cosy-night");
+  assert.equal(record.palette, fixturePalette);
   assert.equal(record.styleAnchor, null);
   assert.equal(record.firstScene, "rainy-desk-night-k7f2");
   assert.deepEqual(record.cost, { pixellabGenerations: 5, meteredUsd: 0 });
@@ -80,7 +80,7 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   const cat = placementIn(plan, "cat");
   assert.equal(cat.element, "cat-tabby-curled-01");
   assert.equal(cat.generate, undefined);
-  assert.equal(cat.x, 140);
+  assert.equal(cat.x, 280);
   assert.equal(plan.cost.pixellabGenerations, 5);
   assert.deepEqual(cat.animation, { fps: 4, order: "cycle" });
   assert.equal("animationRemoved" in accepted.json, false);
@@ -118,7 +118,7 @@ type Rect = { x: number; y: number; w: number; h: number; colour?: string; alpha
 function handMade(width: number, height: number, rects: Rect[]): Buffer {
   const data = new Uint8Array(width * height * 4);
   for (const r of rects) {
-    const [red, green, blue] = rgb(r.colour ?? COSY[5]);
+    const [red, green, blue] = rgb(r.colour ?? PALETTE[5]);
     for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) data.set([red, green, blue, r.alpha ?? 255], (y * width + x) * 4);
   }
   return encodePng(width, height, data);
@@ -193,13 +193,13 @@ test("pixels touching only at a corner are separate islands", async () => {
 });
 
 test("a backdrop with transparent pixels warns", async () => {
-  const gate = await gateOf(tree(), "skyline", handMade(128, 64, [{ x: 0, y: 0, w: 128, h: 64 }, { x: 10, y: 10, w: 4, h: 2, alpha: 0 }]));
+  const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }, { x: 10, y: 10, w: 4, h: 2, alpha: 0 }]));
   assert.equal(gate.ok, true);
   assert.deepEqual(gate.warnings, ["backdrop has 8 transparent pixels"]);
 });
 
 test("a fully opaque backdrop passes with no warnings", async () => {
-  const gate = await gateOf(tree(), "skyline", handMade(128, 64, [{ x: 0, y: 0, w: 128, h: 64 }]));
+  const gate = await gateOf(tree(), "skyline", handMade(256, 128, [{ x: 0, y: 0, w: 256, h: 128 }]));
   assert.equal(gate.ok, true);
   assert.deepEqual(gate.warnings, []);
 });
@@ -218,9 +218,9 @@ test("style_image with all four style_options is sent only when the Style anchor
 
   const [backdrop, prop] = sentBodies();
   const anchorPng = readFileSync(join(root, "library/elements/window-wood-transparent-panes-01.png"));
-  assert.deepEqual(backdrop.image_size, { width: 128, height: 64 });
+  assert.deepEqual(backdrop.image_size, { width: 256, height: 128 });
   assert.equal(backdrop.no_background, false);
-  assert.deepEqual(backdrop.target_palette, { colors: COSY, name: "cosy-night" });
+  assert.deepEqual(backdrop.target_palette, { colors: PALETTE, name: fixturePalette });
   assert.equal(backdrop.style_image.image.base64, anchorPng.toString("base64"));
   assert.deepEqual(backdrop.style_image.size, { width: 48, height: 48 });
   assert.deepEqual(backdrop.style_options, { color_palette: true, outline: true, detail: true, shading: true });
@@ -271,7 +271,7 @@ test("the 422 'style image must fit' surfaces as a clear error and writes nothin
   assert.equal(result.code, 1);
   assert.equal(result.json.ok, false);
   assert.equal(result.json.error,
-    "PixelLab rejected the Style anchor window-wood-transparent-panes-01 (48x48): it must fit the 128x64 canvas. Send this Attempt without a style image or choose a smaller anchor.");
+    "PixelLab rejected the Style anchor window-wood-transparent-panes-01 (48x48): it must fit the 256x128 canvas. Send this Attempt without a style image or choose a smaller anchor.");
   assert.equal(existsSync(join(root, "scratch/attempts")), false);
 });
 
@@ -401,7 +401,7 @@ test("--attempt n refuses an Attempt number already in scratch before calling Pi
 const withLamp = (plan: any) => {
   plan.styleAnchor = null;
   placementIn(plan, "window").x = 64;
-  plan.layers[2].placements.push({ id: "lamp", element: "lamp-brass-desk-01", x: 20, y: 60,
+  plan.layers[3].placements.push({ id: "lamp", element: "lamp-brass-desk-01", x: 20, y: 60,
     generate: { brief: "brass desk lamp", kind: "prop", realSize: { w: 1, h: 1 }, tags: ["lamp"] } });
 };
 
@@ -514,7 +514,7 @@ test("--abandon --substitute refuses an Element of another size and changes noth
 test("eight parallel abandons into one Scene all land in the abandoned log", async () => {
   const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
   const root = tree((plan) => {
-    plan.layers[2].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
+    plan.layers[3].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
       generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
   });
   const abandoned = await Promise.all(ids.map((id) => run(root, id, "--abandon")));
@@ -525,7 +525,7 @@ test("eight parallel abandons into one Scene all land in the abandoned log", asy
 test("eight parallel accepts into one plan all land in it", async () => {
   const ids = Array.from({ length: 8 }, (_, k) => `mug-${k}`);
   const root = tree((plan) => {
-    plan.layers[2].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
+    plan.layers[3].placements.push(...ids.map((id, k) => ({ id, element: `mug-white-plain${k}-01`, x: k * 10, y: 100,
       generate: { brief: "white mug", kind: "prop", realSize: { w: 0.1, h: 0.1 }, tags: ["mug"] } })));
     plan.cost.approvedOverage = { reason: "eight mugs", pixellabGenerations: 40 };
   });

@@ -21,7 +21,7 @@ test("derive-canvas prints the canvas and anchor fit for every unresolved genera
   assert.equal(out.scale, 48);
   assert.deepEqual(out.styleAnchor, { id: "window-wood-transparent-panes-01", width: 48, height: 48 });
   assert.deepEqual(out.placements, [
-    { layer: "city", placement: "skyline", element: "skyline-night-warm-windows-01", kind: "backdrop", canvas: { width: 128, height: 64 }, anchorFits: true },
+    { layer: "city", placement: "skyline", element: "skyline-night-warm-windows-01", kind: "backdrop", canvas: { width: 256, height: 128 }, anchorFits: true },
     { layer: "room", placement: "cat", element: "cat-tabby-asleep-01", kind: "prop", realSize: { w: 0.5, h: 0.25 }, canvas: { width: 24, height: 16 }, anchorFits: false },
   ]);
 });
@@ -43,13 +43,14 @@ for (const [scale, w, h, width, height] of [
   [8, 3, 0.5, 24, 16],
   [48, 2.6, 1, 128, 48],
   [64, 2, 1, 128, 64],
-  [64, 2.5, 3, 128, 128],
+  [64, 2.5, 2.9, 160, 188],
+  [96, 3, 2.7, 256, 256],
 ] as const) {
   test(`derive-canvas gives a ${w} x ${h} m prop at Scale ${scale} a ${width}x${height} canvas`, () => {
     const root = treeWithExample((plan) => {
       plan.scale = scale;
       plan.styleAnchor = null;
-      plan.layers = [{ name: "room", placements: [prop("thing", w, h)] }];
+      plan.layers = [{ name: "room", kind: "placements", plane: "mid", placements: [prop("thing", w, h)] }];
     });
     const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
     assert.equal(code, 0, stderr);
@@ -58,17 +59,24 @@ for (const [scale, w, h, width, height] of [
   });
 }
 
-test("a 64x64 Style anchor fits a 128x64 backdrop and does not fit a 48x48 prop", () => {
+test("a Backdrop's canvas is the size its generate block names", () => {
+  const root = treeWithExample((plan) => { plan.layers[2].placements[0].generate.size = { w: 384, h: 148 }; });
+  const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(out.placements[0].canvas, { width: 384, height: 148 });
+});
+
+test("a 64x64 Style anchor fits a 256x128 backdrop and does not fit a 48x48 prop", () => {
   const root = treeWithExample((plan) => {
     plan.styleAnchor = "window-wood-large-panes-01";
-    plan.layers[2].placements.push(prop("armchair", 1, 1));
+    plan.layers[3].placements.push(prop("armchair", 1, 1));
   });
   const window = JSON.parse(readFileSync(join(fixtures, "library/elements/window-wood-transparent-panes-01.json"), "utf8"));
   writeJson(root, "library/elements/window-wood-large-panes-01.json", { ...window, id: "window-wood-large-panes-01", width: 64, height: 64 });
   const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
   assert.equal(code, 0, stderr);
   const fit = Object.fromEntries(out.placements.map((p: any) => [p.placement, [p.canvas, p.anchorFits]]));
-  assert.deepEqual(fit.skyline, [{ width: 128, height: 64 }, true]);
+  assert.deepEqual(fit.skyline, [{ width: 256, height: 128 }, true]);
   assert.deepEqual(fit.armchair, [{ width: 48, height: 48 }, false]);
 });
 
