@@ -26,7 +26,7 @@
     { "type": "twinkle", "anchor": "skyline", "colours": [8, 9] }
   ],
   "soundtrack": {
-    "music": { "brief": "slow piano, rain on a window, warm and sparse", "service": "stable-audio-3", "file": "music.mp3", "loopStart": 0, "loopEnd": 2, "gain": 0.6 },
+    "music": { "brief": "slow piano, rain on a window, warm and sparse", "service": "stable-audio-3", "file": "music.mp3", "loopStart": 0, "loopEnd": 2, "seam": { "seamJump": 0.0044, "maxInnerJump": 0.0095 }, "gain": 0.6 },
     "ambient": [
       { "source": { "kind": "curated", "id": "freesound-room-tone-641306" }, "file": "room.ogg", "distance": "mid" } ],
     "oneshots": [

@@ -4,7 +4,7 @@ A Soundtrack is one music loop, Ambient loops at three Distances and up to two O
 
 ## Music
 
-- Every Scene gets new music; music is never reused across Scenes. `service` is `stable-audio-3`; leave `file`, `loopStart` and `loopEnd` for the music script.
+- Every Scene gets new music; music is never reused across Scenes. `service` is `stable-audio-3`; leave `file`, `loopStart`, `loopEnd` and `seam` for the music script. The script adds "instrumental, no vocals, no intro or outro, constant mood" to the brief itself.
 - The brief names instruments, tempo and mood in a few plain words drawn from the Concept: "slow piano, rain on a window, warm and sparse".
 - Ask for something sparse and calm enough to leave on for hours. No vocals, no drops, no build-ups.
 

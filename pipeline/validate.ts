@@ -185,6 +185,8 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
     pending.push({ path: "soundtrack.music", message: "music is not generated yet" });
   } else if (!beside(music.file)) {
     pending.push({ path: "soundtrack.music.file", message: `${music.file} is missing beside the plan` });
+  } else if (music.seam === undefined) {
+    pending.push({ path: "soundtrack.music.seam", message: "music loop seam is not measured" });
   }
   const entries = [
     ...ambient.map((entry, i) => ({ entry, at: `soundtrack.ambient[${i}]` })),
