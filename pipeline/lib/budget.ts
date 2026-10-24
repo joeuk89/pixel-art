@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { allPlacements, placementsOf, type ScenePlan } from "../../schema/index.ts";
 import { stillAttempts, stillAttemptsDir } from "./attempts.ts";
-import { BACKDROP_ALTERNATIVES, deriveCanvas, layerScale, tier, type Canvas } from "./canvas.ts";
+import { OVER_CAP_SERVICES, deriveCanvas, layerScale, tier, type Canvas } from "./canvas.ts";
 import { readElements } from "./library.ts";
 
 export const ATTEMPTS_PER_STILL = 4;
@@ -12,11 +12,11 @@ export const RETRO_DIFFUSION_ATTEMPTS_PER_PROP = 2;
 export const RETRO_DIFFUSION_PROPS_PER_SCENE = 4;
 export const STRIPS_DIR = "scratch/strips";
 const PIXELLAB_STRIP_GENERATIONS = 1;
-const OVER_CAP_BACKDROP_GENERATIONS = BACKDROP_ALTERNATIVES[0].generations;
+const OVER_CAP_GENERATIONS = OVER_CAP_SERVICES[0].generations;
 
 function firstAttemptGenerations(canvas: Canvas): number {
   const t = tier(canvas);
-  return t.service === null ? OVER_CAP_BACKDROP_GENERATIONS : t.generations;
+  return t.service === null ? OVER_CAP_GENERATIONS : t.generations;
 }
 
 export type StripAttempt = {
