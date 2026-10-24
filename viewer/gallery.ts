@@ -1,4 +1,4 @@
-import { SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry } from "../schema/index.ts";
+import { POSTER_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry } from "../schema/index.ts";
 import { sceneUrl } from "./site.ts";
 
 export const AI_NOTICE = "Artwork, music and sound effects generated with AI.";
@@ -26,7 +26,7 @@ export async function renderGallery(host: HTMLElement, root: URL, signal: AbortS
     link.href = href.href;
     link.dataset.scene = entry.id;
     const poster = document.createElement("img");
-    poster.src = new URL("poster.png", href).href;
+    poster.src = new URL(POSTER_FILE, href).href;
     poster.alt = entry.title;
     poster.width = (SCENE_WIDTH * scale) / dpr;
     poster.height = (SCENE_HEIGHT * scale) / dpr;

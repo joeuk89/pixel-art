@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { POSTER_OG_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry, type ScenePlan } from "../schema/index.ts";
@@ -62,7 +62,6 @@ main(() => {
   const gallery = resolvedScenes();
 
   const stubPath = join(dirname(planPath), "index.html");
-  mkdirSync(dirname(stubPath), { recursive: true });
   writeFileSync(stubPath, stub(plan));
   writeFileSync(join(root, "gallery.json"), JSON.stringify(gallery, null, 2) + "\n");
   return { scene: plan.id, stub: relative(root, stubPath), gallery: "gallery.json", previewUrl: `${DEV_URL}scenes/${plan.id}/` };

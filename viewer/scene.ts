@@ -5,7 +5,6 @@ import {
   SCENE_HEIGHT,
   SCENE_WIDTH,
   scenePlanSchema,
-  type Palette,
   type ScenePlan,
 } from "../schema/index.ts";
 import { createCompositor, type ElementPixels, type Pixels } from "./compositor.ts";
@@ -23,6 +22,10 @@ async function fetchOk(url: URL): Promise<Response> {
   return response;
 }
 
+async function fetchJson(url: URL): Promise<unknown> {
+  return (await fetchOk(url)).json();
+}
+
 async function decode(url: URL): Promise<Pixels> {
   const blob = await (await fetchOk(url)).blob();
   const bitmap = await createImageBitmap(blob, { colorSpaceConversion: "none", premultiplyAlpha: "none" });
@@ -38,7 +41,7 @@ async function loadElements(root: URL, plan: ScenePlan): Promise<Map<string, Ele
   const loaded = await Promise.all(
     [...ids].map(async (id): Promise<[string, ElementPixels]> => {
       const base = new URL(`library/elements/${id}`, root);
-      const record = elementRecordSchema.parse(await (await fetchOk(new URL(`${base.href}.json`))).json());
+      const record = elementRecordSchema.parse(await fetchJson(new URL(`${base.href}.json`)));
       const still = await decode(new URL(`${base.href}.png`));
       if (record.kind !== "prop" || !record.animation) return [id, { still }];
       const { frames, fps, order } = record.animation;
@@ -83,7 +86,7 @@ export async function renderScene(host: HTMLElement, root: URL, id: string, sign
   const base = sceneUrl(root, id);
   let plan: ScenePlan;
   try {
-    plan = scenePlanSchema.parse(await (await fetchOk(new URL("scene.json", base))).json());
+    plan = scenePlanSchema.parse(await fetchJson(new URL("scene.json", base)));
   } catch (e) {
     if (signal.aborted) return;
     if (e instanceof NotFound) return renderMissing(host, root);
@@ -101,7 +104,7 @@ export async function renderScene(host: HTMLElement, root: URL, id: string, sign
   document.title = plan.title;
   fitToViewport([poster], signal);
 
-  const palette: Palette = paletteSchema.parse(await (await fetchOk(new URL(`library/palettes/${plan.palette}.json`, root))).json());
+  const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;
   document.body.style.background = palette.colours[0];
   if (reducedMotion.matches) return;
