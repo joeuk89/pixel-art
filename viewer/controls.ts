@@ -1,8 +1,8 @@
 import type { ScenePlan } from "../schema/index.ts";
-import type { Audio } from "./audio.ts";
+import { hasAmbientSound, type Audio } from "./audio.ts";
 import { aiNotice, type Credits } from "./credits.ts";
 import type { MuteState } from "./mute.ts";
-import { storeVolume } from "./settings.ts";
+import { storeLevel, type Channel } from "./settings.ts";
 import { sceneUrl } from "./site.ts";
 
 const OVERLAY_HIDE_MS = 3000;
@@ -24,6 +24,24 @@ function button(label: string, onClick: () => void): HTMLButtonElement {
   el.textContent = label;
   el.addEventListener("click", onClick);
   return el;
+}
+
+function levelSlider(name: string, channel: Channel, audio: Audio): { label: HTMLLabelElement; input: HTMLInputElement } {
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "0";
+  input.max = "1";
+  input.step = "0.05";
+  input.value = String(audio.level(channel));
+  input.setAttribute("aria-label", name);
+  input.addEventListener("input", () => {
+    audio.setLevel(channel, input.valueAsNumber);
+    storeLevel(channel, input.valueAsNumber);
+  });
+  const label = document.createElement("label");
+  label.className = "level";
+  label.append(name, input);
+  return { label, input };
 }
 
 function fullscreenSupported(): boolean {
@@ -86,18 +104,10 @@ export function mountControls(host: HTMLElement, { plan, root, mute, audio, cred
   title.textContent = plan.title;
   const sound = button("Sound", () => mute.toggle());
   const canFullscreen = fullscreenSupported();
-  const volume = document.createElement("input");
-  volume.type = "range";
-  volume.min = "0";
-  volume.max = "1";
-  volume.step = "0.05";
-  volume.value = String(audio.volume);
-  volume.setAttribute("aria-label", "Volume");
-  volume.addEventListener("input", () => {
-    audio.volume = volume.valueAsNumber;
-    storeVolume(volume.valueAsNumber);
-  });
-  overlay.append(back, title, sound, volume);
+  const music = levelSlider("Music", "music", audio);
+  const ambient = levelSlider("Ambient", "ambient", audio);
+  ambient.input.disabled = !hasAmbientSound(plan);
+  overlay.append(back, title, sound, music.label, ambient.label);
   if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
   const copy = button("Copy link", () => {
     navigator.clipboard.writeText(sceneUrl(root, plan.id).href).then(

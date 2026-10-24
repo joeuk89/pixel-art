@@ -12,6 +12,7 @@ import { editJson, fixtureScene, makeTree, readJson, repo, runScript, writeJson 
 
 const id = "fixture-rainy-desk-a1b2";
 const title = "Fixture rainy desk";
+const quietId = "fixture-quiet-desk-c3d4";
 
 let browser: Browser | undefined;
 try {
@@ -61,8 +62,16 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
         { source: { kind: "generated", service: "elevenlabs-fal", brief: "distant wind", id: "elevenlabs-wind-01" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
       );
     });
-    const staged = runScript(root, "stage", fixtureScene);
-    assert.equal(staged.code, 0, staged.stderr);
+    const quiet = `scenes/${quietId}`;
+    cpSync(join(root, `scenes/${id}`), join(root, quiet), { recursive: true });
+    editJson(root, `${quiet}/scene.json`, (plan) => {
+      Object.assign(plan, { id: quietId, title: "Fixture quiet desk" });
+      Object.assign(plan.soundtrack, { ambient: [], oneshots: [] });
+    });
+    for (const scene of [`${quiet}/scene.json`, fixtureScene]) {
+      const staged = runScript(root, "stage", scene);
+      assert.equal(staged.code, 0, staged.stderr);
+    }
     palette = readJson(root, "library/palettes/cosy-night.json").colours;
     ({ server, url: site } = await startDevServer(root));
   });
@@ -393,27 +402,54 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
-  const masterVolume = (page: Page) =>
+  const channelLevels = (page: Page) =>
     page.evaluate(() => {
-      const edge = ((window as any).audio.edges as [AudioNode, AudioNode][]).find(([, to]) => to instanceof AudioDestinationNode);
-      return Math.round((edge![0] as GainNode).gain.value * 1000) / 1000;
+      const { edges } = (window as any).audio as { edges: [AudioNode, AudioNode][] };
+      return edges
+        .filter(([, to]) => to instanceof AudioDestinationNode)
+        .map(([from]) => Math.round((from as GainNode).gain.value * 1000) / 1000);
     });
 
-  test("sound on and master volume survive a reload, and sound off brings the hint back", async () => {
+  test("the Music and Ambient sliders sit beside the Sound button, each with a visible label", async () => {
     const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    for (const name of ["Music", "Ambient"]) {
+      const slider = page.getByRole("slider", { name, exact: true });
+      assert.equal(await slider.getAttribute("aria-label"), name);
+      assert.equal(await slider.inputValue(), "1");
+      assert.equal(await slider.isEnabled(), true);
+      assert.equal(await page.locator("label", { has: slider }).innerText(), name);
+    }
+    const row = await page.locator(".overlay").evaluate((nav) =>
+      [...nav.children].map((el) => el.querySelector("input")?.getAttribute("aria-label") ?? el.textContent));
+    assert.deepEqual(row.slice(2, 6), ["Sound", "Music", "Ambient", "Fullscreen"]);
+    assert.equal(await page.getByRole("slider", { name: "Volume" }).count(), 0);
+    assert.deepEqual(errors, []);
+  });
+
+  test("sound on and both sliders survive a reload, an old volume is ignored, and sound off brings the hint back", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.evaluate(() => localStorage.setItem("pixel-art:volume", "0.1"));
+    await page.reload();
     await page.locator("canvas").waitFor();
     await page.keyboard.press("m");
     await page.mouse.move(300, 300);
-    const volume = page.getByRole("slider", { name: "Volume", includeHidden: true });
-    await volume.fill("0.4");
-    assert.equal(await masterVolume(page), 0.4);
+    const music = page.getByRole("slider", { name: "Music", exact: true, includeHidden: true });
+    const ambient = page.getByRole("slider", { name: "Ambient", exact: true, includeHidden: true });
+    assert.deepEqual(await channelLevels(page), [1, 1]);
+    await music.fill("0.4");
+    await ambient.fill("0.75");
+    assert.deepEqual(await channelLevels(page), [0.4, 0.75]);
 
     await page.reload();
     await page.locator("canvas").waitFor();
     assert.equal(await soundOn(page), "true");
     assert.equal(await page.getByText("Click for sound").isVisible(), false);
-    assert.equal(await volume.inputValue(), "0.4");
-    assert.equal(await masterVolume(page), 0.4);
+    assert.equal(await music.inputValue(), "0.4");
+    assert.equal(await ambient.inputValue(), "0.75");
+    assert.deepEqual(await channelLevels(page), [0.4, 0.75]);
     await page.mouse.click(500, 400);
     assert.equal(await soundOn(page), "true");
     await page.waitForFunction(() => (window as any).audio.contexts[0].state === "running");
@@ -424,6 +460,18 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.equal(await soundOn(page), "false");
     assert.equal(await page.getByText("Click for sound").isVisible(), true);
     assert.equal(await page.evaluate(() => (window as any).audio.contexts[0].state), "suspended");
+    assert.equal(await music.inputValue(), "0.4");
+    assert.deepEqual(errors, []);
+  });
+
+  test("a Scene with no Ambient loops or One-shots shows the Ambient slider disabled", async () => {
+    const { page, errors } = await open(`scenes/${quietId}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    const ambient = page.getByRole("slider", { name: "Ambient", exact: true });
+    assert.equal(await ambient.isVisible(), true);
+    assert.equal(await ambient.isDisabled(), true);
+    assert.equal(await page.getByRole("slider", { name: "Music", exact: true }).isEnabled(), true);
     assert.deepEqual(errors, []);
   });
 

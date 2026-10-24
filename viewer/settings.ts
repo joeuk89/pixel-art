@@ -1,18 +1,29 @@
-const SOUND_ON_KEY = "pixel-art:sound-on";
-const VOLUME_KEY = "pixel-art:volume";
-const DEFAULT_VOLUME = 1;
+export type Channel = "music" | "ambient";
+export type Store = Pick<Storage, "getItem" | "setItem">;
 
-function read(key: string): string | null {
+const SOUND_ON_KEY = "pixel-art:sound-on";
+const LEVEL_KEYS: Record<Channel, string> = { music: "pixel-art:music", ambient: "pixel-art:ambient" };
+const DEFAULT_LEVEL = 1;
+
+function browserStore(): Store | undefined {
   try {
-    return localStorage.getItem(key);
+    return localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+function read(key: string, store = browserStore()): string | null {
+  try {
+    return store?.getItem(key) ?? null;
   } catch {
     return null;
   }
 }
 
-function write(key: string, value: string): void {
+function write(key: string, value: string, store = browserStore()): void {
   try {
-    localStorage.setItem(key, value);
+    store?.setItem(key, value);
   } catch {}
 }
 
@@ -24,12 +35,12 @@ export function storeSoundOn(on: boolean): void {
   write(SOUND_ON_KEY, String(on));
 }
 
-export function storedVolume(): number {
-  const stored = read(VOLUME_KEY);
-  const volume = stored === null ? NaN : Number(stored);
-  return volume >= 0 && volume <= 1 ? volume : DEFAULT_VOLUME;
+export function storedLevel(channel: Channel, store?: Store): number {
+  const stored = read(LEVEL_KEYS[channel], store);
+  const level = stored === null || stored.trim() === "" ? NaN : Number(stored);
+  return level >= 0 && level <= 1 ? level : DEFAULT_LEVEL;
 }
 
-export function storeVolume(volume: number): void {
-  write(VOLUME_KEY, String(volume));
+export function storeLevel(channel: Channel, level: number, store?: Store): void {
+  write(LEVEL_KEYS[channel], String(level), store);
 }
