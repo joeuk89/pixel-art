@@ -273,3 +273,4 @@ export type Primitive = z.infer<typeof primitiveSchema>;
 export type ElementRecord = z.infer<typeof elementRecordSchema>;
 export type Palette = z.infer<typeof paletteSchema>;
 export type AmbientLoopRecord = z.infer<typeof ambientLoopRecordSchema>;
+export type GalleryEntry = Pick<ScenePlan, "id" | "title" | "createdAt" | "prompt">;
