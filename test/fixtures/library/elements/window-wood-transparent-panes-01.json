@@ -1,0 +1,22 @@
+{
+  "id": "window-wood-transparent-panes-01",
+  "kind": "prop",
+  "width": 48,
+  "height": 48,
+  "realSize": { "w": 1, "h": 1 },
+  "transparent": true,
+  "subject": "window",
+  "tags": ["window", "wood", "panes"],
+  "brief": "wooden window frame with four transparent panes",
+  "prompt": "wooden window frame with four transparent panes",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": { "no_background": true },
+  "seed": 1200,
+  "palette": "cosy-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T20:01:00Z",
+  "firstScene": "fixture-rainy-desk-a1b2",
+  "cost": { "pixellabGenerations": 1, "meteredUsd": 0 },
+  "checks": { "attempt": 1, "passed": ["dimensions", "alpha", "palette"], "warnings": [] }
+}

@@ -4,3 +4,6 @@
 .playwright-mcp/
 node_modules/
 .agent/
+dist/
+scratch/
+/viewer.js

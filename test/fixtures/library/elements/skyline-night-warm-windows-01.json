@@ -1,0 +1,21 @@
+{
+  "id": "skyline-night-warm-windows-01",
+  "kind": "backdrop",
+  "width": 128,
+  "height": 64,
+  "transparent": false,
+  "subject": "skyline",
+  "tags": ["skyline", "night", "city"],
+  "brief": "distant city skyline at night, a few warm lit windows",
+  "prompt": "distant city skyline at night, a few warm lit windows",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": { "no_background": false, "style_options": { "color_palette": true, "outline": true, "detail": true, "shading": true } },
+  "seed": 1201,
+  "palette": "cosy-night",
+  "styleAnchor": "window-wood-transparent-panes-01",
+  "createdAt": "2026-10-24T20:05:00Z",
+  "firstScene": "fixture-rainy-desk-a1b2",
+  "cost": { "pixellabGenerations": 1, "meteredUsd": 0 },
+  "checks": { "attempt": 1, "passed": ["dimensions", "alpha", "palette"], "warnings": [] }
+}
