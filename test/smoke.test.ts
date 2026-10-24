@@ -7,6 +7,7 @@ import type { AddressInfo } from "node:net";
 import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
+import { SITE_URL } from "../pipeline/lib/site.ts";
 import { fixtureScene, makeTree, readJson, repo, runScript } from "./helpers.ts";
 
 const id = "fixture-rainy-desk-a1b2";
@@ -226,7 +227,6 @@ function servePages(dist: string, prefix: string): Promise<{ pages: Server; url:
 }
 
 describe("Published site", { skip: browser ? false : "no Playwright browser installed" }, () => {
-  const SITE = "https://joeuk89.github.io/pixel-art/";
   let root: string;
   let pages: Server;
   let site: string;
@@ -272,10 +272,10 @@ describe("Published site", { skip: browser ? false : "no Playwright browser inst
     await page.locator("canvas").waitFor();
     const og = (property: string) => page.locator(`meta[property="${property}"]`).getAttribute("content");
     assert.equal(await og("og:title"), title);
-    assert.equal(await og("og:url"), `${SITE}scenes/${id}/`);
+    assert.equal(await og("og:url"), `${SITE_URL}scenes/${id}/`);
     const image = (await og("og:image"))!;
-    assert.ok(image.startsWith(SITE), image);
-    const local = await fetch(site + image.slice(SITE.length));
+    assert.ok(image.startsWith(SITE_URL), image);
+    const local = await fetch(site + image.slice(SITE_URL.length));
     assert.equal(local.status, 200);
     const { width, height } = await sharp(Buffer.from(await local.arrayBuffer())).metadata();
     assert.deepEqual([width, height], [768, 480]);
