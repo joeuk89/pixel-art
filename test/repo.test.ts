@@ -37,3 +37,10 @@ test("esbuild bundles the Viewer entry with the shared schema", () => {
   assert.equal(run.status, 0, run.stderr);
   assert.match(readFileSync(out, "utf8"), /a layer has either fill or placements, never both/);
 });
+
+test("git tracks the Element library and scenes folders", () => {
+  for (const dir of ["library/elements", "scenes"]) {
+    const run = spawnSync("git", ["ls-files", "--error-unmatch", dir], { cwd: repo, encoding: "utf8" });
+    assert.equal(run.status, 0, `${dir} is not tracked`);
+  }
+});
