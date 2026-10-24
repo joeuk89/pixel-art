@@ -1,9 +1,15 @@
-# Elements are generated at display size, never scaled
+# Elements are generated at display size, with Scale per depth, and Features are projected by the pipeline
 
-Every prop in a Scene is drawn at the size it is shown, so each Element is generated at that canvas size from PixelLab's native sizes and the Viewer never scales a Placement. The Director sets one Scale (pixels per metre) per Scene and a real-world size per generated prop; the pipeline derives the canvas size from the two, rounding up to the smallest native size that contains it. Backdrops are exempt and keep their fixed canvas. The cost is that one subject may exist in the Element library at several sizes, each a separate Element, and reuse must match size as well as subject and Palette.
+Every Element in a Scene is drawn at the size it is shown, and the Viewer never scales. The Viewer and the Poster renderer draw every pixel 1:1.
+
+A Scene's `scale` is pixels per metre at the back of its Stage. A prop standing on the floor takes the Scale at its foot, `scale × (foot.y − vanishingPoint.y) / (back.y + back.h − vanishingPoint.y)`, and is generated at that size, so a chair at the back of the room is a smaller Element than one at the front. A far Layer beyond the room may set its own Scale. A Scene without a Stage has one Scale for every prop. `derive-canvas` does the arithmetic, rounding each side up to a multiple of 4 within 16 to 256 px. A Backdrop is generated at the size of the Opening or region it covers.
+
+A Feature on the back wall is drawn 1:1. A Feature on a side wall or the floor is generated square-on at the Scale of its nearest edge. The pipeline then projects it onto its Surface through the Stage into a derived file in the Scene folder, so projection only ever shrinks it. The library keeps the square-on source, and the derived file can be rebuilt from the source and the Stage.
+
+One subject at two depths is two Elements, and reuse must match size as well as subject and Palette.
 
 ## Considered options
 
-- Generate every prop at 64x64 and nearest-neighbour downscale to its target: makes reuse cheap, but a 64 to 24 px downscale breaks the 1 px outlines and shading the Style anchor exists to protect.
-- A composition rule that only places same-scale props together: hides the problem rather than solving it, and rules out most cosy interiors.
-- Per-Placement or per-Layer scale in the Viewer: pushes set-design reasoning into the engine and reintroduces scaling artefacts.
+- Generate every prop at one size and nearest-neighbour downscale it in the Viewer by depth: makes reuse cheap, but a downscale breaks the 1 px outlines and shading the Style anchor exists to protect.
+- One Scale for the whole Scene, ignoring depth: a chair at the back is as large as one at the front, so the room reads as a flat collage again.
+- Project Features in the Viewer at play time: the Viewer would resample pixels every frame. The pipeline projects once, snaps the result to the Palette, and the owner judges it at the preview.
