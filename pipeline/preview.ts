@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAbandoned, type Abandoned } from "./lib/attempts.ts";
+import { main } from "./lib/cli.ts";
 import { hardChecks } from "./lib/hard-checks.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
@@ -11,6 +12,7 @@ import type { ScenePlan } from "../schema/index.ts";
 const root = process.cwd();
 const ledgerScript = join(dirname(fileURLToPath(import.meta.url)), "ledger.ts");
 const round = (n: number) => Math.round(n * 1e4) / 1e4;
+const sceneMeteredUsd = (plan: ScenePlan) => Object.values(plan.cost.meteredUsd).reduce((sum, usd) => sum + usd, 0);
 
 function git(...args: string[]): string {
   const run = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -22,9 +24,8 @@ function ledger(plan: ScenePlan) {
   const run = spawnSync(process.execPath, [ledgerScript], { cwd: root, encoding: "utf8" });
   const month = JSON.parse(run.stdout);
   if (!month.ok) throw new Error(`ledger failed: ${month.error}`);
-  const sceneUsd = Object.values(plan.cost.meteredUsd).reduce((sum, usd) => sum + usd, 0);
   const { ok, ...rest } = month;
-  return { ...rest, afterCommit: { pixellabGenerations: month.pixellabGenerations.used + plan.cost.pixellabGenerations, meteredUsd: round(month.metered.usd + sceneUsd) } };
+  return { ...rest, afterCommit: { pixellabGenerations: month.pixellabGenerations.used + plan.cost.pixellabGenerations, meteredUsd: round(month.metered.usd + sceneMeteredUsd(plan)) } };
 }
 
 async function listening(url: string): Promise<boolean> {
@@ -52,7 +53,7 @@ function describe(a: Abandoned): string {
 }
 
 function commitMessage(plan: ScenePlan, elements: ReturnType<typeof elementsOf>, abandoned: Abandoned[]): string {
-  const usd = round(Object.values(plan.cost.meteredUsd).reduce((sum, n) => sum + n, 0));
+  const usd = round(sceneMeteredUsd(plan));
   const lines = [
     `Scene id: ${plan.id}`,
     ...(elements.generated.length ? [`Generated: ${elements.generated.join(", ")}`] : []),
@@ -93,15 +94,10 @@ async function preview(file: string) {
   };
 }
 
-const [file, ...rest] = process.argv.slice(2);
-try {
+main(async () => {
+  const [file, ...rest] = process.argv.slice(2);
   if (!file || rest.length > 0) throw new Error("usage: preview <scene.json>");
   const out = await preview(file);
   if (!out.ok) for (const c of out.checks.filter((c) => !c.ok)) for (const p of c.problems) process.stderr.write(`${c.name}: ${p}\n`);
-  process.stdout.write(JSON.stringify(out, null, 2) + "\n");
-  process.exitCode = out.ok ? 0 : 1;
-} catch (e) {
-  process.stderr.write((e as Error).message + "\n");
-  process.stdout.write(JSON.stringify({ ok: false, error: (e as Error).message }, null, 2) + "\n");
-  process.exitCode = 1;
-}
+  return out;
+});

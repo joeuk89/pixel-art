@@ -123,7 +123,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     ? { kind: "prop", canvas, palette: palette.colours, targetBox: targetBox(plan.scale, generate.realSize) }
     : { kind: "backdrop", canvas, palette: palette.colours });
 
-  const sidecar: Sidecar = {
+  const sidecar: StillAttempt = {
     scene: plan.id, placement: placement.id, element: placement.element, kind: generate.kind,
     ...(generate.kind === "prop" && generate.strip ? { strip: generate.strip } : {}),
     attempt: attemptNo, canvas, prompt, seed: opts.seed, generations,
@@ -147,8 +147,6 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
   };
 }
 
-type Sidecar = StillAttempt;
-
 const sidecarOf = (png: string) => png.replace(/\.png$/, ".json");
 
 function freeId(proposed: string): string {
@@ -160,6 +158,8 @@ function freeId(proposed: string): string {
   return id;
 }
 
+const rawPlacement = (raw: any, id: string) => raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
+
 function checkAnchor(placement: Placement, canvas: { width: number; height: number }): void {
   if (placement.generate!.kind !== "prop") throw new Error("the Style anchor must be a prop, not a backdrop");
   if (Math.max(canvas.width, canvas.height) < ANCHOR_MIN_SIDE) {
@@ -169,7 +169,7 @@ function checkAnchor(placement: Placement, canvas: { width: number; height: numb
 
 function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean) {
   if (!existsSync(attemptPath) || !existsSync(sidecarOf(attemptPath))) throw new Error(`${attemptPath} is not an Attempt written by generate-element`);
-  const attempt = JSON.parse(readFileSync(sidecarOf(attemptPath), "utf8")) as Sidecar;
+  const attempt = JSON.parse(readFileSync(sidecarOf(attemptPath), "utf8")) as StillAttempt;
   if (attempt.scene !== plan.id || attempt.placement !== placement.id) {
     throw new Error(`${attemptPath} is an Attempt for ${attempt.scene}/${attempt.placement}, not ${plan.id}/${placement.id}`);
   }
@@ -203,12 +203,11 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
 
   // Edit the plan as written, so schema defaults are not added to it.
   const charge = chargeStillAttempts(dirname(attemptPath), placement.id);
-  const generationsAdded = charge.generations;
   editPlan(file, (raw) => {
-    const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
+    const target = rawPlacement(raw, placement.id);
     delete target.generate;
     target.element = id;
-    raw.cost.pixellabGenerations += generationsAdded;
+    raw.cost.pixellabGenerations += charge.generations;
     if (asAnchor) raw.styleAnchor = id;
   });
 
@@ -225,7 +224,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     png: `${ELEMENTS}/${id}.png`,
     record: `${ELEMENTS}/${id}.json`,
     plan: file,
-    generationsAdded,
+    generationsAdded: charge.generations,
     ...(asAnchor ? { styleAnchor: id } : {}),
     ...(generate.kind === "prop" && generate.strip ? { stripRequested: generate.strip } : {}),
   };
@@ -252,7 +251,7 @@ function abandon(file: string, plan: ScenePlan, placement: Placement, substitute
   const entry: Abandoned = { placement: placement.id, element: placement.element, attempts: charge.attempts, outcome: substitute ? "substituted" : "dropped" };
   editPlan(file, (raw) => {
     if (substitute) {
-      const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
+      const target = rawPlacement(raw, placement.id);
       delete target.generate;
       target.element = substitute.id;
       if (!(substitute.kind === "prop" && substitute.animation)) delete target.animation;
