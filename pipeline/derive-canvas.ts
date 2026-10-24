@@ -1,5 +1,5 @@
 import { isLocal, placementsOf } from "../schema/index.ts";
-import { anchorFits, deriveCanvas, firstAttemptGenerations, layerScale, tier, type Canvas } from "./lib/canvas.ts";
+import { anchorFits, deriveCanvas, firstAttemptGenerations, placementScale, tier, type Canvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScene } from "./lib/library.ts";
 
@@ -18,7 +18,7 @@ main(() => {
   const placements = plan.layers.flatMap((layer) =>
     placementsOf(layer).flatMap((p) => {
       if (!p.generate) return [];
-      const scale = layerScale(plan.scale, layer);
+      const scale = placementScale(plan, layer, p);
       const canvas = deriveCanvas(scale, p.generate);
       return [{
         layer: layer.name,
