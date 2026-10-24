@@ -212,7 +212,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.goto(`${site}scenes/${id}/`);
     const poster = page.getByRole("img", { name: title });
     await poster.waitFor();
-    assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 384);
+    assert.equal(await poster.evaluate(async (img: HTMLImageElement) => (await img.decode(), img.naturalWidth)), 384);
     assert.equal(await page.locator("canvas").count(), 0);
     await pause(300);
     assert.deepEqual(audioFetched, [], "audio loaded before the visuals");
