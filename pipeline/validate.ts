@@ -162,7 +162,7 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
       const stripFrames = (element?.kind === "prop" ? element.animation?.frames : undefined) ??
         (p.generate?.kind === "prop" ? p.generate.strip?.frames : undefined);
       if (p.animation && stripFrames === undefined) {
-        problems.push({ path: `${at}.animation`, message: `animation override on a Placement whose Element ${p.element} has no Frame strip` });
+        pending.push({ path: `${at}.animation`, message: `animation override on a Placement whose Element ${p.element} has no Frame strip` });
       }
       const order = p.animation?.order;
       if (Array.isArray(order) && stripFrames !== undefined) {
