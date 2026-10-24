@@ -152,6 +152,10 @@ _Avoid_: Sprite sheet, animation, GIF, strip (alone)
 The checks every Attempt must pass before its Element enters the Element library: programmatic checks first, then the Director's visual check.
 _Avoid_: Validation, QA, review (for the whole gate)
 
+**Orphan pixel**:
+An opaque pixel whose four neighbours all differ from its colour. It reads as noise unless it is an eye, a highlight or a star.
+_Avoid_: Stray pixel, speck, noise pixel
+
 **Style anchor**:
 The first Element generated for a Scene, passed as the style image to every later Attempt in that Scene so they read as one hand.
 _Avoid_: Reference image, style image (for the Element itself), seed image
