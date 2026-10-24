@@ -167,6 +167,7 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
 }
 
 const scenes: SceneReport[] = [];
+const dependencies = new Map<string, Set<string>>();
 for (const file of sceneFiles()) {
   const { raw, value } = load("scenes", file, scenePlanSchema);
   const declared = (raw as { status?: unknown } | undefined)?.status;
@@ -180,8 +181,29 @@ for (const file of sceneFiles()) {
   if (value.status === "resolved") {
     for (const p of pending) errors.push({ file, path: p.path, message: `declared resolved but ${p.message}` });
   }
-  const status = problems.length === 0 && pending.length === 0 ? "resolved" : "draft";
-  scenes.push({ id, file, declared, status, pending });
+  scenes.push({ id, file, declared, status: problems.length === 0 && pending.length === 0 ? "resolved" : "draft", pending });
+  dependencies.set(file, referencedFiles(value));
+}
+
+function referencedFiles(plan: ScenePlan): Set<string> {
+  const files = new Set([`${PALETTES}/${plan.palette}.json`]);
+  for (const layer of plan.layers) {
+    for (const p of layer.placements ?? []) {
+      files.add(`${ELEMENTS}/${p.element}.json`);
+      const element = elements.get(p.element);
+      if (element) files.add(`${PALETTES}/${element.palette}.json`);
+    }
+  }
+  const { ambient, oneshots } = plan.soundtrack;
+  for (const { source } of [...ambient, ...oneshots]) {
+    if (source.kind === "curated") files.add(`${AMBIENT}/${source.id}.json`);
+  }
+  return files;
+}
+
+for (const scene of scenes) {
+  const files = dependencies.get(scene.file);
+  if (files && errors.some((e) => files.has(e.file))) scene.status = "draft";
 }
 
 const targets = process.argv.slice(2).map((p) => resolve(root, p));

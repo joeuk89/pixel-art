@@ -86,6 +86,23 @@ test("a curated source with no Sound library record keeps the Scene draft", () =
   failsWith(validate(root), fixtureScene, "soundtrack.ambient[0].source.id", /no record freesound-rain-window-242889/);
 });
 
+for (const [what, breakIt] of [
+  ["an Element PNG is missing", (root: string) => rmSync(join(root, "library/elements/window-wood-transparent-panes-01.png"))],
+  ["an Element record fails its schema", (root: string) => editJson(root, WINDOW, (record) => { record.width = "wide"; })],
+  ["a Frame strip is missing", (root: string) => rmSync(join(root, "library/elements/cat-tabby-asleep-01.strip.png"))],
+  ["its Palette file fails its schema", (root: string) => editJson(root, "library/palettes/cosy-night.json", (palette) => { palette.colours = []; })],
+  ["a curated Sound library record has no file beside it", (root: string) => editJson(root, "library/ambient/freesound-room-tone-641306.json", (record) => { record.file = "gone.ogg"; })],
+] as const) {
+  test(`a Scene is reported draft when ${what}`, () => {
+    const root = makeTree();
+    editJson(root, fixtureScene, (plan) => { plan.status = "draft"; });
+    breakIt(root);
+    const { code, report, stderr } = validate(root);
+    assert.equal(code, 1, stderr);
+    assert.equal(report.scenes[0].status, "draft");
+  });
+}
+
 test("a Frame strip whose width does not match frames x width fails", () => {
   const root = makeTree();
   copyFileSync(join(root, "library/elements/cat-tabby-asleep-01.png"), join(root, "library/elements/cat-tabby-asleep-01.strip.png"));
