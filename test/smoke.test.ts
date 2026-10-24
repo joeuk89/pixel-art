@@ -57,8 +57,8 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     }
     editJson(root, fixtureScene, (plan) => {
       plan.soundtrack.ambient.push(
-        { source: { kind: "generated", service: "elevenlabs", brief: "kettle hiss", id: "elevenlabs-kettle-01" }, file: "room.ogg", distance: "near" },
-        { source: { kind: "generated", service: "elevenlabs", brief: "distant wind", id: "elevenlabs-wind-01" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
+        { source: { kind: "generated", service: "elevenlabs-fal", brief: "kettle hiss", id: "elevenlabs-kettle-01" }, file: "room.ogg", distance: "near" },
+        { source: { kind: "generated", service: "elevenlabs-fal", brief: "distant wind", id: "elevenlabs-wind-01" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
       );
     });
     const staged = runScript(root, "stage", fixtureScene);
