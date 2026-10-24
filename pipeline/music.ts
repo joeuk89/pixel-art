@@ -17,7 +17,7 @@ const LOOP_WORDING =
 
 const generators = {
   "stable-audio-3": { costKey: "stability", generate: (prompt: string, seed: number) => stableAudio(prompt, REQUEST_SEC, seed % MAX_SEED) },
-  lyria: { costKey: "gemini", generate: (prompt: string) => lyria(prompt) },
+  lyria: { costKey: "gemini", generate: lyria },
 };
 
 main(async () => {
@@ -62,7 +62,7 @@ main(async () => {
     }
     const loopEnd = +(made.loopSamples / source.rate).toFixed(6);
     raw.soundtrack.music = {
-      brief: music.brief, service: serviceName, file, loopStart: 0, loopEnd, seam: made.seam, gain: raw.soundtrack.music.gain ?? music.gain,
+      brief: music.brief, service: serviceName, file, loopStart: 0, loopEnd, seam: made.seam, gain: music.gain,
     };
     writePlan();
     return {

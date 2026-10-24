@@ -6,7 +6,7 @@ export const MIN_LOOP_SEC = 105;
 export const MAX_LOOP_SEC = 115;
 export const FADE_SEC = 4;
 
-export type Seam = { seamJump: number; maxInnerJump: number };
+export type Seam = ReturnType<typeof seamReport>;
 
 export type MusicLoop = {
   loop: Wav;
@@ -17,7 +17,6 @@ export type MusicLoop = {
   seam: Seam;
 };
 
-// The wrap may add no sample step larger than the music already makes inside the loop.
 export function seamPasses(seam: Seam): boolean {
   return seam.seamJump <= seam.maxInnerJump;
 }
