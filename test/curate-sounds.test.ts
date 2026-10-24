@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import ffmpeg from "ffmpeg-static";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -20,6 +20,7 @@ const thunder = { id: "freesound-thunder-distant-195522", sourceId: 195522, kind
 function tree(spec: unknown[]): string {
   const root = mkdtempSync(join(tmpdir(), "pixel-art-curate-"));
   writeJson(root, "spec.json", spec);
+  mkdirSync(join(root, "library/ambient"), { recursive: true });
   return root;
 }
 
@@ -133,4 +134,18 @@ test("an entry already in the Sound library is skipped without a request, unless
   assert.equal(forced.code, 0, forced.stderr);
   assert.deepEqual(forced.json.skipped, []);
   assert.deepEqual(forced.json.written.map((w: any) => w.id), [vent.id, thunder.id]);
+});
+
+test("the repo curation spec parses, and a library holding every entry needs no requests", async () => {
+  const spec = readJson(repo, "pipeline/curate-sounds.spec.json");
+  const root = tree(spec);
+  for (const { id } of spec) {
+    writeFileSync(join(root, `library/ambient/${id}.ogg`), "");
+    writeFileSync(join(root, `library/ambient/${id}.json`), "{}");
+  }
+  const before = server.requests.length;
+  const run = await runScript(script, ["spec.json"], { cwd: root, env: server.env });
+  assert.equal(run.code, 0, run.stdout);
+  assert.equal(run.json.skipped.length, 23);
+  assert.equal(server.requests.length, before);
 });
