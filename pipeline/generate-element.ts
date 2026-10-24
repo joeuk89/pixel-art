@@ -3,6 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
 import { elementRecordSchema, scenePlanSchema, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
+import { budget } from "./lib/budget.ts";
 import { anchorFits, deriveCanvas } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
@@ -67,12 +68,21 @@ function claimAttempt(dir: string, placementId: string, wanted: number | null, p
 const attemptTaken = (dir: string, placementId: string, n: number) =>
   `Attempt ${n} of ${basename(dir)}/${placementId} is already in scratch; leave out --attempt to take the next free number`;
 
+function checkBudget(plan: ScenePlan, placement: Placement): void {
+  const report = budget(plan);
+  const still = report.stills.find((s) => s.placement === placement.id)!;
+  if (still.attempts >= still.cap) throw new Error(`${still.placement} (${still.element}) has had ${still.attempts} of ${still.cap} Attempts; abandon it`);
+  const { used, cap } = report.pixellabGenerations;
+  if (used >= cap) throw new Error(`Scene budget reached: PixelLab generations: ${used} used of ${cap}`);
+}
+
 async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: number | null; seed: number; brief?: string }) {
   const generate = placement.generate!;
   const dir = stillAttemptsDir(plan.id);
   if (opts.attempt !== null && existsSync(dir) && attemptNumbers(dir, placement.id).includes(opts.attempt)) {
     throw new Error(attemptTaken(dir, placement.id, opts.attempt));
   }
+  checkBudget(plan, placement);
   const canvas = deriveCanvas(plan.scale, generate);
   const palette = loadPalette(process.cwd(), plan.palette);
   const prompt = opts.brief ?? generate.brief;
