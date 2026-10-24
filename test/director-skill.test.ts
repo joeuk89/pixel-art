@@ -6,14 +6,16 @@ import { repo } from "./helpers.ts";
 
 const folder = join(repo, ".claude/skills/director");
 const skill = () => readFileSync(join(folder, "SKILL.md"), "utf8");
+type Step = { number: number; title: string; text: string };
+const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
 
 function body(text: string): string {
-  const match = text.match(/^---\n[\s\S]*?\n---\n/);
+  const match = text.match(FRONTMATTER);
   assert.ok(match, "SKILL.md starts with frontmatter");
   return text.slice(match[0].length);
 }
 
-function steps(text: string): { number: number; title: string; text: string }[] {
+function steps(text: string): Step[] {
   return body(text)
     .split(/^(?=## )/m)
     .filter((s) => s.startsWith("## "))
@@ -25,7 +27,7 @@ function steps(text: string): { number: number; title: string; text: string }[] 
 }
 
 test("SKILL.md declares the director skill in its frontmatter", () => {
-  const front = skill().match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+  const front = skill().match(FRONTMATTER)?.[1] ?? "";
   assert.match(front, /^name: director$/m);
   assert.match(front, /^description: .{20,}$/m);
 });
@@ -47,6 +49,12 @@ test("SKILL.md holds only numbered steps, each with a completion criterion", () 
   });
 });
 
+function step(title: string): Step {
+  const found = steps(skill()).find((s) => s.title === title);
+  assert.ok(found, `no step titled ${title}`);
+  return found;
+}
+
 function firstStep(pattern: RegExp): number {
   const found = steps(skill()).find((s) => pattern.test(s.text));
   assert.ok(found, `no step matches ${pattern}`);
@@ -65,8 +73,7 @@ test("canvases are derived before shopping, and validate gates the draft", () =>
 });
 
 test("the Plan gate follows shopping and waits for the owner's yes", () => {
-  const last = steps(skill()).find((s) => s.title === "Plan gate");
-  assert.ok(last);
+  const last = step("Plan gate");
   assert.ok(last.number > firstStep(/library-search/));
   assert.match(last.text, /\*\*Done when\*\* the owner has said yes/);
   for (const item of ["Concept", "Palette", "Scale", "Style anchor", "real size", "reused", "generated", "Primitives", "Soundtrack", "estimated cost", "2,000", "£50"]) {
@@ -119,9 +126,8 @@ test("no file in the skill folder holds a Scene plan template", () => {
 });
 
 test("a proposed new Palette blocks reuse and forces colours to be re-picked once approved", () => {
-  const shop = steps(skill()).find((s) => s.title === "Shop");
-  const gate = steps(skill()).find((s) => s.title === "Plan gate");
-  assert.ok(shop && gate);
+  const shop = step("Shop");
+  const gate = step("Plan gate");
   assert.match(shop.text, /new Palette is proposed, no library Element qualifies for reuse/);
   const done = gate.text.slice(gate.text.indexOf("**Done when**"));
   assert.match(done, /re-pick every `fill` and Primitive colour index against the new Palette/);
@@ -130,8 +136,7 @@ test("a proposed new Palette blocks reuse and forces colours to be re-picked onc
 });
 
 test("an owner edit to scale, a realSize or an Element re-derives canvases and re-shops before the brief is shown again", () => {
-  const gate = steps(skill()).find((s) => s.title === "Plan gate");
-  assert.ok(gate);
+  const gate = step("Plan gate");
   const edits = gate.text.slice(gate.text.indexOf("Wait for the owner"), gate.text.indexOf("**Done when**"));
   assert.match(edits, /`scale`[\s\S]*`realSize`[\s\S]*Element/);
   assert.match(edits, /`generate` block back on every reused Placement/);
