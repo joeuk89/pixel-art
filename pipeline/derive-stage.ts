@@ -4,6 +4,7 @@ import { main } from "./lib/cli.ts";
 import { floorPolygon } from "./lib/perspective.ts";
 
 const USAGE = "usage: derive-stage --room <w>x<h>x<d> --eye <m> [--zoom <z>] [--f <px>] [--outdoors]";
+const FLOOR_BAND = SCENE_HEIGHT / 4;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function positive(name: string, value: string): number {
@@ -32,15 +33,17 @@ main(() => {
   const { outdoors } = values;
   if (!outdoors && eye >= h) throw new Error(`eye height ${eye} m is not below the ${h} m ceiling`);
 
-  // The default framing: the back wall fills the canvas width at 1.0x, the vanishing point is the canvas centre
-  // (a level camera), and zoom scales the back rectangle about it.
-  const vp = { x: SCENE_WIDTH / 2, y: SCENE_HEIGHT / 2 };
+  // The back wall fills the canvas width and is centred vertically when it leaves at least FLOOR_BAND of floor;
+  // a taller wall keeps that band and crops its ceiling. The vanishing point sits at eye height on its centre line.
   const scale = (SCENE_WIDTH * zoom) / w;
-  const x0 = Math.round(vp.x * (1 - zoom)), x1 = Math.round(vp.x + (SCENE_WIDTH - vp.x) * zoom);
-  const floorLine = vp.y + eye * scale;
-  const y1 = Math.round(floorLine), y0 = Math.round(floorLine - h * scale);
-  if (y1 >= SCENE_HEIGHT) {
-    throw new Error(`the floor line at y ${y1} falls below the canvas: lower the eye height, widen the room or zoom out`);
+  const midX = SCENE_WIDTH / 2;
+  const x0 = Math.round(midX * (1 - zoom)), x1 = Math.round(midX + (SCENE_WIDTH - midX) * zoom);
+  const y1 = Math.min(Math.round((SCENE_HEIGHT + h * scale) / 2), SCENE_HEIGHT - FLOOR_BAND);
+  const y0 = Math.round(y1 - h * scale);
+  const vp = { x: midX, y: Math.round(y1 - eye * scale) };
+  if (vp.y >= y1) throw new Error(`eye height ${eye} m puts the vanishing point on the floor line: raise it`);
+  if (vp.y < 0) {
+    throw new Error(`the vanishing point at y ${vp.y} falls above the canvas: lower the eye height, widen the room or zoom out`);
   }
   const stage: Stage = { back: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, vanishingPoint: vp, f };
 
