@@ -5,6 +5,7 @@ import type { ServiceFixture } from "../../fixture-server.ts";
 export const FAL_KEY = "fixture-fal-key";
 export const SOUND_EFFECTS = "/fal-ai/elevenlabs/sound-effects/v2";
 export const FAILING_BRIEF = "a sound the model cannot make";
+export const UNDECODABLE_BRIEF = "a sound that arrives as noise bytes";
 
 const audio = join(import.meta.dirname, "freesound");
 const submitted = new Map<string, { text: string; loop?: boolean }>();
@@ -15,6 +16,7 @@ export const fal: ServiceFixture = {
   env: (base) => ({ FAL_BASE_URL: base, FAL_KEY }),
   handle(req, base) {
     const media = req.path.match(/^\/media\/([a-z]+\.ogg)$/);
+    if (req.method === "GET" && req.path === "/media/undecodable.ogg") return { body: Buffer.from("not audio at all"), type: "audio/ogg" };
     if (req.method === "GET" && media) return { body: readFileSync(join(audio, media[1])), type: "audio/ogg" };
     if (req.headers.authorization !== `Key ${FAL_KEY}`) return { status: 401, json: { detail: "No user found for Key ID and Secret" } };
     if (req.method === "POST" && req.path === SOUND_EFFECTS) {
@@ -34,7 +36,7 @@ export const fal: ServiceFixture = {
       const input = submitted.get(result[1]);
       if (!input) return { status: 404, json: { detail: "Request not found" } };
       if (input.text === FAILING_BRIEF) return { status: 500, json: { detail: "inference_failed" } };
-      const file = input.loop ? "bed.ogg" : "burst.ogg";
+      const file = input.text === UNDECODABLE_BRIEF ? "undecodable.ogg" : input.loop ? "bed.ogg" : "burst.ogg";
       return { json: { audio: { url: `${base}/media/${file}`, content_type: "audio/ogg", file_name: file } } };
     }
     return undefined;

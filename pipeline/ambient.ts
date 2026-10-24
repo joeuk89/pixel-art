@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, extname, join } from "node:path";
 import type { AmbientLoopRecord, ScenePlan } from "../schema/index.ts";
 import { decodeToWav, encodeOgg, normalise, normaliseTarget, readWav, writeWav, type SoundKind } from "./lib/audio.ts";
-import { generateSoundEffect, SOUND_EFFECTS_MODEL, USD_PER_SECOND } from "./lib/fal.ts";
+import { generateSoundEffect, MAX_LOOP_SEC, SOUND_EFFECTS_MODEL, USD_PER_SECOND } from "./lib/fal.ts";
 import { readScene, readSounds } from "./lib/library.ts";
 
 const AMBIENT = "library/ambient";
@@ -29,15 +29,35 @@ function newRecordId(subject: string, taken: Set<string>): string {
   }
 }
 
-async function generate(slot: Slot, brief: string, id: string, work: string) {
+function editPlan(planPath: string, edit: (raw: any) => void): void {
+  const raw = JSON.parse(readFileSync(planPath, "utf8"));
+  edit(raw);
+  writeFileSync(planPath, JSON.stringify(raw, null, 2) + "\n");
+}
+
+function addMeteredCost(planPath: string, usd: number): void {
+  editPlan(planPath, (raw) => {
+    raw.cost.meteredUsd[METERED_SERVICE] = roundUsd((raw.cost.meteredUsd[METERED_SERVICE] ?? 0) + usd);
+  });
+}
+
+async function generate(slot: Slot, brief: string, id: string, work: string, planPath: string) {
   const loop = slot.kind === "loop";
   const effect = await generateSoundEffect({ text: brief, loop });
   const raw = join(work, `${id}.src`), wav = join(work, `${id}.wav`);
   writeFileSync(raw, effect.bytes);
-  decodeToWav(raw, wav);
-  const sound = readWav(wav);
+  let sound: ReturnType<typeof readWav>;
+  try {
+    decodeToWav(raw, wav);
+    sound = readWav(wav);
+  } catch (e) {
+    // fal has billed the call, so record the most it can cost when the length cannot be measured.
+    addMeteredCost(planPath, roundUsd(MAX_LOOP_SEC * USD_PER_SECOND));
+    throw new Error(`fal request ${effect.requestId}: cannot decode the returned audio: ${(e as Error).message.split("\n")[0]}`);
+  }
   const sourceSec = sound.data[0].length / sound.rate;
   const costUsd = roundUsd(sourceSec * USD_PER_SECOND);
+  addMeteredCost(planPath, costUsd);
   const norm = normalise(sound, slot.kind);
   writeWav(wav, sound);
   encodeOgg(wav, join(AMBIENT, `${id}.ogg`));
@@ -95,12 +115,9 @@ async function run(planPath: string, work: string) {
     }
     const id = newRecordId(subjectOf(entry), taken);
     taken.add(id);
-    const { record, costUsd, norm } = await generate(slot, entry.source.brief, id, work);
+    const { record, costUsd, norm } = await generate(slot, entry.source.brief, id, work, planPath);
     copyFileSync(join(AMBIENT, record.file), join(sceneDir, entry.file));
-    const raw = JSON.parse(readFileSync(planPath, "utf8"));
-    raw.soundtrack[slot.list][slot.index].source.id = id;
-    raw.cost.meteredUsd[METERED_SERVICE] = roundUsd((raw.cost.meteredUsd[METERED_SERVICE] ?? 0) + costUsd);
-    writeFileSync(planPath, JSON.stringify(raw, null, 2) + "\n");
+    editPlan(planPath, (raw) => { raw.soundtrack[slot.list][slot.index].source.id = id; });
     entries.push({ slot: slot.slot, file: entry.file, source: "generated", action: "generated", record: id, costUsd, rmsDbfs: norm.rmsDbfs, peakDbfs: norm.peakDbfs });
   }
   return { scene: plan.id, entries, costUsd: roundUsd(entries.reduce((sum, e) => sum + (e.costUsd ?? 0), 0)) };

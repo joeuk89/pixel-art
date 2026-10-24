@@ -6,7 +6,7 @@ import ffmpeg from "ffmpeg-static";
 import { join } from "node:path";
 import { editJson, fixtureScene, makeTree, readJson, repo, validate } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
-import { FAILING_BRIEF, SOUND_EFFECTS } from "./fixtures/services/fal.ts";
+import { FAILING_BRIEF, SOUND_EFFECTS, UNDECODABLE_BRIEF } from "./fixtures/services/fal.ts";
 
 const script = join(repo, "pipeline/ambient.ts");
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
@@ -167,6 +167,20 @@ test("a failed generation exits non-zero with the HTTP status and leaves that en
   const plan = readJson(root, fixtureScene);
   assert.equal(plan.soundtrack.ambient[0].source.id, undefined);
   assert.deepEqual(plan.cost.meteredUsd, { stability: 0.2 });
+  assert.equal(existsSync(join(root, sceneDir, "rain.ogg")), false);
+});
+
+test("a paid generation that cannot be decoded still records an upper-bound metered cost and exits non-zero", async () => {
+  const root = generatedTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.soundtrack.ambient[0].source.brief = UNDECODABLE_BRIEF;
+  });
+  const run = await runScript(script, [fixtureScene], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.match(run.json.error, /^fal request fixture-request-\d+: cannot decode the returned audio: /);
+  const plan = readJson(root, fixtureScene);
+  assert.equal(plan.soundtrack.ambient[0].source.id, undefined);
+  assert.deepEqual(plan.cost.meteredUsd, { stability: 0.2, fal: 0.044 });
   assert.equal(existsSync(join(root, sceneDir, "rain.ogg")), false);
 });
 
