@@ -2,7 +2,7 @@ import { POSTER_FILE, SCENE_HEIGHT, SCENE_WIDTH, type GalleryEntry } from "../sc
 import { AI_NOTICE } from "./credits.ts";
 import { sceneUrl } from "./site.ts";
 
-const POSTER_SCALE = 2;
+const POSTER_SCALE = 1;
 
 async function readGallery(root: URL): Promise<GalleryEntry[]> {
   const response = await fetch(new URL("gallery.json", root));

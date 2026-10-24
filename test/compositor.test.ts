@@ -2,19 +2,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createCompositor, type ElementPixels, type Pixels } from "../viewer/compositor.ts";
 
-const W = 192;
-const H = 120;
+const W = 384;
+const H = 240;
 const palette = { name: "test", mood: "test", colours: ["#100000", "#200000", "#300000", "#400000", "#500000", "#600000", "#700000", "#800000"] };
 const rgb = (i: number) => [(i + 1) * 16, 0, 0, 255];
 
 function plan(layers: unknown[], seed = 1337): any {
   return {
-    schemaVersion: 1, id: "test-scene-a1b2", title: "t", prompt: "t", description: "t", createdAt: "2026-10-24T20:00:00Z", seed,
-    status: "draft", palette: "test", scale: 48, styleAnchor: null, layers, primitives: [],
+    schemaVersion: 2, id: "test-scene-a1b2", title: "t", prompt: "t", description: "t", createdAt: "2026-10-24T20:00:00Z", seed,
+    status: "draft", palette: "test", scale: 48, dither: false, styleAnchor: null, layers, primitives: [],
+    variants: [{ id: "default", title: "Default", ambient: { level: 0 }, lights: [], emissiveOff: [] }],
     soundtrack: { music: { brief: "b", service: "s", gain: 0.6 }, ambient: [], oneshots: [] },
     cost: { pixellabGenerations: 0, meteredUsd: {}, attemptsAbandoned: 0, approvedOverage: null },
   };
 }
+
+const fill = (name: string, colour: number) => ({ name, kind: "fill", plane: "far", colour });
+const placed = (name: string, placements: object[]) => ({ name, kind: "placements", plane: "mid", placements });
 
 function image(width: number, height: number, paint: (x: number, y: number) => number[] | null): Pixels {
   const data = new Uint8Array(width * height * 4);
@@ -30,28 +34,28 @@ function at(out: Uint8ClampedArray, x: number, y: number): number[] {
   return [...out.subarray(i, i + 4)];
 }
 
-test("an empty Scene is letterboxed in Palette index 0", () => {
-  const out = createCompositor({ plan: plan([{ name: "room", placements: [] }]), elements: new Map(), palette }).render(0);
-  assert.equal(out.length, W * H * 4);
-  for (const [x, y] of [[0, 0], [191, 119], [96, 60]]) assert.deepEqual(at(out, x, y), rgb(0));
+test("an empty Scene is a 384x240 frame letterboxed in Palette index 0", () => {
+  const out = createCompositor({ plan: plan([placed("room", [])]), elements: new Map(), palette }).render(0);
+  assert.equal(out.length, 384 * 240 * 4);
+  for (const [x, y] of [[0, 0], [383, 239], [200, 100], [383, 0], [0, 239]]) assert.deepEqual(at(out, x, y), rgb(0));
 });
 
 test("a fill Layer paints the whole Scene and later Layers draw over it", () => {
   const dot = image(1, 1, () => rgb(5));
   const out = createCompositor({
-    plan: plan([{ name: "sky", fill: 3 }, { name: "room", placements: [{ id: "dot", element: "dot-red-small-01", x: 10, y: 10 }] }]),
+    plan: plan([fill("sky", 3), placed("room", [{ id: "dot", element: "dot-red-small-01", x: 10, y: 10 }])]),
     elements: new Map([["dot-red-small-01", { still: dot }]]),
     palette,
   }).render(0);
   assert.deepEqual(at(out, 0, 0), rgb(3));
-  assert.deepEqual(at(out, 191, 119), rgb(3));
+  assert.deepEqual(at(out, 383, 239), rgb(3));
   assert.deepEqual(at(out, 10, 10), rgb(5));
 });
 
 const arrow = image(4, 2, (x, y) => (x === 3 && y === 1 ? null : x === 0 ? rgb(1) : rgb(2)));
 const arrowScene = (placement: object) =>
   createCompositor({
-    plan: plan([{ name: "room", placements: [{ id: "arrow", element: "arrow-red-small-01", ...placement }] }]),
+    plan: plan([placed("room", [{ id: "arrow", element: "arrow-red-small-01", ...placement }])]),
     elements: new Map([["arrow-red-small-01", { still: arrow }]]),
     palette,
   }).render(0);
@@ -68,9 +72,14 @@ test("a Placement draws at its integer position at native size, transparent pixe
 });
 
 test("a Placement partly off the Scene is clipped", () => {
-  const out = arrowScene({ x: 190, y: -1 });
-  assert.deepEqual(at(out, 190, 0), rgb(1));
-  assert.deepEqual(at(out, 191, 0), rgb(2));
+  const out = arrowScene({ x: 382, y: -1 });
+  assert.deepEqual(at(out, 382, 0), rgb(1));
+  assert.deepEqual(at(out, 383, 0), rgb(2));
+});
+
+test("a Placement near the far corner of the 384x240 canvas draws at its position", () => {
+  const out = arrowScene({ x: 370, y: 230 });
+  assert.deepEqual([at(out, 370, 230), at(out, 371, 230), at(out, 373, 231), at(out, 370, 231)], [rgb(1), rgb(2), rgb(0), rgb(1)]);
 });
 
 test("flipX mirrors the Element in place", () => {
@@ -81,7 +90,7 @@ test("flipX mirrors the Element in place", () => {
   assert.deepEqual(at(out, 51, 21), rgb(2));
 });
 
-test("tileX repeats the Element across the whole Scene width, left of x too", () => {
+test("tileX repeats a Seamless texture across the whole 384 px width, left of x too", () => {
   const out = arrowScene({ x: 2, y: 20, tileX: true });
   for (let x = 0; x < W; x++) {
     const col = (((x - 2) % 4) + 4) % 4;
@@ -111,7 +120,7 @@ function frameAt(out: Uint8ClampedArray, x: number, y: number): number {
 
 function framesOver(pixels: ElementPixels, placement: object, steps: number, fps: number, seed = 1337): number[] {
   const c = createCompositor({
-    plan: plan([{ name: "room", placements: [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10, ...placement }] }], seed),
+    plan: plan([placed("room", [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10, ...placement }])], seed),
     elements: new Map([["cat-tabby-asleep-01", pixels]]),
     palette,
   });
@@ -152,7 +161,7 @@ test("a strip drawn with flipX mirrors the selected frame", () => {
     strip: { image: image(4, 1, (x) => rgb(x)), frames: 2, fps: 6, order: "cycle" },
   };
   const c = createCompositor({
-    plan: plan([{ name: "room", placements: [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10, flipX: true }] }]),
+    plan: plan([placed("room", [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10, flipX: true }])]),
     elements: new Map([["cat-tabby-asleep-01", pixels]]),
     palette,
   });
@@ -168,7 +177,7 @@ test("a strip drawn with flipX mirrors the selected frame", () => {
 function twins(seed: number, count = 8): number[] {
   const placements = Array.from({ length: count }, (_, i) => ({ id: `cat-${i + 1}`, element: "cat-tabby-asleep-01", x: i * 4, y: 0 }));
   const out = createCompositor({
-    plan: plan([{ name: "room", placements }], seed),
+    plan: plan([placed("room", placements)], seed),
     elements: new Map([["cat-tabby-asleep-01", stripElement(4)]]),
     palette,
   }).render(0);
@@ -184,7 +193,7 @@ test("the same seed and time give byte-identical output across two compositors",
   const make = () => {
     const placements = Array.from({ length: 8 }, (_, i) => ({ id: `cat-${i + 1}`, element: "cat-tabby-asleep-01", x: i * 4, y: 0 }));
     return createCompositor({
-      plan: plan([{ name: "sky", fill: 2 }, { name: "room", placements }], 99),
+      plan: plan([fill("sky", 2), placed("room", placements)], 99),
       elements: new Map([["cat-tabby-asleep-01", stripElement(4)]]),
       palette,
     });
@@ -198,8 +207,8 @@ test("an animated Placement keeps its place in draw order between still Placemen
   const cover = image(1, 1, () => rgb(5));
   const c = createCompositor({
     plan: plan([
-      { name: "back", placements: [{ id: "under", element: "dot-red-small-01", x: 11, y: 10 }] },
-      { name: "mid", placements: [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10 }, { id: "over", element: "dot-red-small-01", x: 10, y: 10 }] },
+      placed("back", [{ id: "under", element: "dot-red-small-01", x: 11, y: 10 }]),
+      placed("mid", [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10 }, { id: "over", element: "dot-red-small-01", x: 10, y: 10 }]),
     ]),
     elements: new Map([["cat-tabby-asleep-01", stripElement(4)], ["dot-red-small-01", { still: cover }]]),
     palette,
@@ -213,7 +222,7 @@ test("an animated Placement keeps its place in draw order between still Placemen
 
 test("a fill Layer after an animated Placement hides it", () => {
   const c = createCompositor({
-    plan: plan([{ name: "room", placements: [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10 }] }, { name: "wall", fill: 4 }]),
+    plan: plan([placed("room", [{ id: "cat", element: "cat-tabby-asleep-01", x: 10, y: 10 }]), fill("wall", 4)]),
     elements: new Map([["cat-tabby-asleep-01", stripElement(4)]]),
     palette,
   });
@@ -222,7 +231,7 @@ test("a fill Layer after an animated Placement hides it", () => {
 
 test("tick reports a change only when a strip's frame step has moved since the last render", () => {
   const c = createCompositor({
-    plan: plan([{ name: "room", placements: [{ id: "cat", element: "cat-tabby-asleep-01", x: 0, y: 0, animation: { fps: 4 } }] }]),
+    plan: plan([placed("room", [{ id: "cat", element: "cat-tabby-asleep-01", x: 0, y: 0, animation: { fps: 4 } }])]),
     elements: new Map([["cat-tabby-asleep-01", stripElement(4)]]),
     palette,
   });
@@ -238,7 +247,7 @@ test("tick reports a change only when a strip's frame step has moved since the l
 });
 
 test("a Scene with nothing animated never ticks after its first render", () => {
-  const c = createCompositor({ plan: plan([{ name: "sky", fill: 1 }]), elements: new Map(), palette });
+  const c = createCompositor({ plan: plan([fill("sky", 1)]), elements: new Map(), palette });
   c.render(0);
   assert.equal(c.tick(60_000), false);
   assert.equal(c.nextTick(0), Infinity);
@@ -248,7 +257,7 @@ test("a Primitive draws after the Layer it names, under later Layers, and joins 
   const cover = image(1, 1, () => rgb(5));
   const primitive = { after: 0, fps: 24, draw: (out: Uint8ClampedArray) => { out.set(rgb(6), (0 * W + 20) * 4); out.set(rgb(6), (0 * W + 21) * 4); } };
   const c = createCompositor({
-    plan: plan([{ name: "sky", fill: 1 }, { name: "room", placements: [{ id: "over", element: "dot-red-small-01", x: 21, y: 0 }] }]),
+    plan: plan([fill("sky", 1), placed("room", [{ id: "over", element: "dot-red-small-01", x: 21, y: 0 }])]),
     elements: new Map([["dot-red-small-01", { still: cover }]]),
     palette,
     primitives: [primitive],
@@ -270,6 +279,6 @@ test("the compositor bundles for a neutral platform and renders where no Node, D
   for (const name of ["document", "window", "OffscreenCanvas", "ImageData", "Buffer", "process", "require"]) {
     assert.equal(name in sandbox, false, `${name} leaked into the sandbox`);
   }
-  const out = sandbox.compositor.createCompositor({ plan: plan([{ name: "sky", fill: 2 }]), elements: new Map(), palette }).render(0);
+  const out = sandbox.compositor.createCompositor({ plan: plan([fill("sky", 2)]), elements: new Map(), palette }).render(0);
   assert.deepEqual([...out.subarray(0, 4)], rgb(2));
 });

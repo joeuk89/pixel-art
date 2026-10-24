@@ -1,4 +1,5 @@
 import {
+  allPlacements,
   elementRecordSchema,
   paletteSchema,
   POSTER_FILE,
@@ -30,7 +31,7 @@ async function decode(url: URL): Promise<Pixels> {
 }
 
 async function loadElements(root: URL, plan: ScenePlan): Promise<Map<string, ElementPixels>> {
-  const ids = new Set(plan.layers.flatMap((layer) => (layer.placements ?? []).map((p) => p.element)));
+  const ids = new Set(allPlacements(plan).map((p) => p.element));
   const loaded = await Promise.all(
     [...ids].map(async (id): Promise<[string, ElementPixels]> => {
       const base = new URL(`library/elements/${id}`, root);

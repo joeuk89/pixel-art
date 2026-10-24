@@ -1,4 +1,4 @@
-import { SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type ScenePlan } from "../schema/index.ts";
+import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type ScenePlan } from "../schema/index.ts";
 
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
@@ -142,12 +142,12 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   };
 
   plan.layers.forEach((layer, li) => {
-    if (layer.fill !== undefined) {
+    if (layer.kind === "fill") {
       ops = [];
-      fill(current, colours[layer.fill]);
+      fill(current, colours[layer.colour]);
       drawn = true;
     }
-    for (const p of layer.placements ?? []) {
+    for (const p of placementsOf(layer)) {
       const pixels = elements.get(p.element);
       if (!pixels) throw new Error(`Placement ${p.id}: Element ${p.element} has no pixels`);
       const animated = animatedOf(pixels, p, seed);
