@@ -1,7 +1,7 @@
 import { BACKDROP_HEIGHT, BACKDROP_WIDTH, type Placement } from "../../schema/index.ts";
 
-export const MIN_PROP_SIDE = 16;
-export const MAX_PROP_SIDE = 128;
+const MIN_PROP_SIDE = 16;
+const MAX_PROP_SIDE = 128;
 const STEP = 4;
 
 export type Canvas = { width: number; height: number };

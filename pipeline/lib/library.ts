@@ -10,11 +10,11 @@ import {
   type ScenePlan,
 } from "../../schema/index.ts";
 
-export const ELEMENTS = "library/elements";
-export const AMBIENT = "library/ambient";
-export const SCENES = "scenes";
+const ELEMENTS = "library/elements";
+const AMBIENT = "library/ambient";
+const SCENES = "scenes";
 
-export function readRecord<S extends z.ZodType>(file: string, schema: S): z.infer<S> {
+function readRecord<S extends z.ZodType>(file: string, schema: S): z.infer<S> {
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(file, "utf8"));
@@ -45,7 +45,7 @@ export function readSounds(root = process.cwd()): AmbientLoopRecord[] {
   return readDir(join(root, AMBIENT), ambientLoopRecordSchema);
 }
 
-export type SceneFile = { file: string; plan: ScenePlan };
+type SceneFile = { file: string; plan: ScenePlan };
 
 export function sceneFiles(root = process.cwd()): string[] {
   const dir = join(root, SCENES);
