@@ -374,6 +374,40 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  const masterVolume = (page: Page) =>
+    page.evaluate(() => {
+      const edge = ((window as any).audio.edges as [AudioNode, AudioNode][]).find(([, to]) => to instanceof AudioDestinationNode);
+      return Math.round((edge![0] as GainNode).gain.value * 1000) / 1000;
+    });
+
+  test("sound on and master volume survive a reload, and sound off brings the hint back", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    await page.locator("canvas").waitFor();
+    await page.keyboard.press("m");
+    await page.mouse.move(300, 300);
+    const volume = page.getByRole("slider", { name: "Volume", includeHidden: true });
+    await volume.fill("0.4");
+    assert.equal(await masterVolume(page), 0.4);
+
+    await page.reload();
+    await page.locator("canvas").waitFor();
+    assert.equal(await soundOn(page), "true");
+    assert.equal(await page.getByText("Click for sound").isVisible(), false);
+    assert.equal(await volume.inputValue(), "0.4");
+    assert.equal(await masterVolume(page), 0.4);
+    await page.mouse.click(500, 400);
+    assert.equal(await soundOn(page), "true");
+    await page.waitForFunction(() => (window as any).audio.contexts[0].state === "running");
+
+    await page.keyboard.press("m");
+    await page.reload();
+    await page.locator("canvas").waitFor();
+    assert.equal(await soundOn(page), "false");
+    assert.equal(await page.getByText("Click for sound").isVisible(), true);
+    assert.equal(await page.evaluate(() => (window as any).audio.contexts[0].state), "suspended");
+    assert.deepEqual(errors, []);
+  });
+
   const fullscreenRequests = (page: Page): Promise<number> => page.evaluate(() => (window as any).fullscreenRequests);
   const isFullscreen = (page: Page) => page.evaluate(() => document.fullscreenElement !== null);
 

@@ -3,6 +3,7 @@ import { createAudio } from "./audio.ts";
 import { renderGallery } from "./gallery.ts";
 import { createMuteState } from "./mute.ts";
 import { renderScene } from "./scene.ts";
+import { storedSoundOn, storedVolume, storeSoundOn } from "./settings.ts";
 import { routeOf, siteRoot, type Route } from "./site.ts";
 import { injectStyle } from "./style.ts";
 
@@ -12,10 +13,18 @@ export function parseScenePlan(json: unknown): ScenePlan {
 
 function boot(root: URL): void {
   let view: AbortController | undefined;
-  const mute = createMuteState();
-  const audio = createAudio(1);
+  const mute = createMuteState(!storedSoundOn());
+  const audio = createAudio(storedVolume());
   audio.setRunning(!mute.muted);
-  mute.onChange((muted) => audio.setRunning(!muted));
+  mute.onChange((muted) => {
+    storeSoundOn(!muted);
+    audio.setRunning(!muted);
+  });
+  // A cold load with sound on may be refused by the autoplay policy until the viewer interacts.
+  const rearm = () => {
+    if (!mute.muted && audio.context.state !== "running") audio.setRunning(true);
+  };
+  for (const type of ["pointerdown", "keydown", "click"]) document.addEventListener(type, rearm, { capture: true });
 
   const show = (route: Route) => {
     view?.abort();

@@ -106,7 +106,7 @@ export async function renderScene(
   fitToViewport([poster], signal);
   const credits = loadCredits(root, plan);
   credits.catch((e) => console.error(e));
-  mountControls(main, { plan, root, mute, credits, navigate, signal });
+  mountControls(main, { plan, root, mute, audio, credits, navigate, signal });
 
   const palette = paletteSchema.parse(await fetchJson(new URL(`library/palettes/${plan.palette}.json`, root)));
   if (signal.aborted) return;

@@ -1,6 +1,8 @@
 import type { ScenePlan } from "../schema/index.ts";
+import type { Audio } from "./audio.ts";
 import { aiNotice, type Credits } from "./credits.ts";
 import type { MuteState } from "./mute.ts";
+import { storeVolume } from "./settings.ts";
 import { sceneUrl } from "./site.ts";
 
 const OVERLAY_HIDE_MS = 3000;
@@ -10,6 +12,7 @@ export type ControlsOptions = {
   plan: ScenePlan;
   root: URL;
   mute: MuteState;
+  audio: Audio;
   credits: Promise<Credits>;
   navigate: (url: URL) => void;
   signal: AbortSignal;
@@ -70,7 +73,7 @@ function toggleFullscreen(mute: MuteState): void {
   document.documentElement.requestFullscreen().catch(() => {});
 }
 
-export function mountControls(host: HTMLElement, { plan, root, mute, credits, navigate, signal }: ControlsOptions): void {
+export function mountControls(host: HTMLElement, { plan, root, mute, audio, credits, navigate, signal }: ControlsOptions): void {
   const overlay = document.createElement("nav");
   overlay.className = "overlay";
   overlay.setAttribute("aria-label", "Scene controls");
@@ -83,7 +86,18 @@ export function mountControls(host: HTMLElement, { plan, root, mute, credits, na
   title.textContent = plan.title;
   const sound = button("Sound", () => mute.toggle());
   const canFullscreen = fullscreenSupported();
-  overlay.append(back, title, sound);
+  const volume = document.createElement("input");
+  volume.type = "range";
+  volume.min = "0";
+  volume.max = "1";
+  volume.step = "0.05";
+  volume.value = String(audio.volume);
+  volume.setAttribute("aria-label", "Volume");
+  volume.addEventListener("input", () => {
+    audio.volume = Number(volume.value);
+    storeVolume(Number(volume.value));
+  });
+  overlay.append(back, title, sound, volume);
   if (canFullscreen) overlay.append(button("Fullscreen", () => toggleFullscreen(mute)));
   const copy = button("Copy link", () => {
     navigator.clipboard.writeText(sceneUrl(root, plan.id).href).then(
