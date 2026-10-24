@@ -21,9 +21,9 @@ test("derive-canvas prints the canvas and anchor fit for every unresolved genera
   assert.equal(out.scale, 48);
   assert.deepEqual(out.styleAnchor, { id: "window-wood-transparent-panes-01", width: 48, height: 48 });
   assert.deepEqual(out.placements, [
-    { layer: "city", placement: "skyline", element: "skyline-night-warm-windows-01", kind: "backdrop", canvas: { width: 256, height: 128 },
+    { layer: "city", placement: "skyline", element: "skyline-night-warm-windows-01", kind: "backdrop", finish: "service", canvas: { width: 256, height: 128 },
       tier: { service: "pro-flash", generations: 9 }, anchorFits: true },
-    { layer: "room", placement: "cat", element: "cat-tabby-asleep-01", kind: "prop", scale: 48, realSize: { w: 0.5, h: 0.25 }, canvas: { width: 24, height: 16 },
+    { layer: "room", placement: "cat", element: "cat-tabby-asleep-01", kind: "prop", finish: "service", scale: 48, realSize: { w: 0.5, h: 0.25 }, canvas: { width: 24, height: 16 },
       tier: { service: "pro-flash", generations: 5 }, anchorFits: false },
   ]);
   assert.equal(out.generations, 14);
@@ -141,3 +141,26 @@ for (const [what, args, edit, message] of [
     assert.match(stderr, message);
   });
 }
+
+test("derive-canvas reports a local Finish and a Seamless texture at zero cost and leaves them out of the estimate", () => {
+  const root = treeWithExample((plan) => {
+    plan.styleAnchor = null;
+    plan.layers.push({ name: "furniture", kind: "placements", plane: "mid", placements: [
+      { id: "rug", element: "rug-plain-grey-01", x: 0, y: 0,
+        generate: { kind: "prop", brief: "plain rug", realSize: { w: 1, h: 0.5 }, tags: ["rug"], finish: "local", generator: "rect", params: { fill: 3 } } },
+      { id: "wall", element: "wall-plaster-plain-01", x: 0, y: 0,
+        generate: { kind: "texture", brief: "plaster wall", tags: ["wall"], size: { w: 64, h: 32 }, generator: "plaster", params: { fill: 13 } } },
+    ] });
+  });
+  const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  const rug = out.placements.find((p: any) => p.placement === "rug");
+  assert.deepEqual(rug.canvas, { width: 48, height: 24 });
+  assert.equal(rug.finish, "local");
+  assert.deepEqual(rug.tier, { service: "local", generations: 0 });
+  const wall = out.placements.find((p: any) => p.placement === "wall");
+  assert.deepEqual(wall.canvas, { width: 64, height: 32 });
+  assert.deepEqual(wall.tier, { service: "local", generations: 0 });
+  assert.equal(out.placements.find((p: any) => p.placement === "cat").finish, "service");
+  assert.equal(out.generations, 14);
+});

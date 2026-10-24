@@ -104,3 +104,17 @@ test("generate-element refuses any Attempt once the Scene's generation budget is
   assert.match(result.json.error, /Scene budget reached: PixelLab generations: 45 used of 45/);
   assert.equal(pixellabState.created, 0);
 });
+
+test("a local Finish adds nothing to the estimate, before or after it is drawn", async () => {
+  const root = tree();
+  editJson(root, PLAN, (plan) => {
+    plan.layers[3].placements.push({ id: "rug", element: "rug-plain-grey-01", x: 0, y: 0,
+      generate: { kind: "prop", brief: "plain rug", realSize: { w: 1, h: 0.5 }, tags: ["rug"], finish: "local", generator: "rect", params: { fill: 3 } } });
+  });
+  assert.equal((await budget(root)).pixellabGenerations.estimate, 15);
+  const drawn = await runScript(join(repo, "pipeline/draw-element.ts"), [PLAN, "rug"], { cwd: root, env: server.env });
+  assert.equal(drawn.code, 0, drawn.stderr);
+  const report = await budget(root);
+  assert.equal(report.pixellabGenerations.estimate, 15);
+  assert.equal(report.pixellabGenerations.used, 0);
+});

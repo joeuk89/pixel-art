@@ -4,14 +4,17 @@ import type { z } from "zod";
 import {
   ambientLoopRecordSchema,
   elementRecordSchema,
+  paletteSchema,
   scenePlanSchema,
   type AmbientLoopRecord,
   type ElementRecord,
+  type Palette,
   type ScenePlan,
 } from "../../schema/index.ts";
 
 const ELEMENTS = "library/elements";
 const AMBIENT = "library/ambient";
+const PALETTES = "library/palettes";
 const SCENES = "scenes";
 
 function readRecord<S extends z.ZodType>(file: string, schema: S): z.infer<S> {
@@ -39,6 +42,10 @@ function readDir<S extends z.ZodType>(dir: string, schema: S): z.infer<S>[] {
 
 export function readElements(root = process.cwd()): ElementRecord[] {
   return readDir(join(root, ELEMENTS), elementRecordSchema);
+}
+
+export function readPalettes(root = process.cwd()): Palette[] {
+  return readDir(join(root, PALETTES), paletteSchema);
 }
 
 export function readSounds(root = process.cwd()): AmbientLoopRecord[] {

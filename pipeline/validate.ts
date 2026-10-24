@@ -4,6 +4,7 @@ import type { z } from "zod";
 import {
   allPlacements,
   ambientLoopRecordSchema,
+  isLocal,
   elementRecordSchema,
   paletteSchema,
   placementsOf,
@@ -15,6 +16,7 @@ import {
   type Primitive,
   type ScenePlan,
 } from "../schema/index.ts";
+import { generators, paramIssues } from "./lib/kits/index.ts";
 import { pngSize } from "./lib/png.ts";
 
 type Problem = { path: string; message: string };
@@ -192,6 +194,18 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
       const element = elements.get(p.element);
       if (p.generate) pending.push({ path: `${at}.generate`, message: `Element ${p.element} is not generated yet` });
       else if (!elementIds.has(p.element)) problems.push({ path: `${at}.element`, message: `Element ${p.element} is not in the Element library` });
+      if (p.generate && isLocal(p.generate) && p.generate.generator !== undefined) {
+        const { generator, params } = p.generate;
+        if (!(generator in generators)) {
+          problems.push({ path: `${at}.generate.generator`, message: `no generator ${generator} in the local pixel engine; it has ${Object.keys(generators).join(", ")}` });
+        } else if (generators[generator].kind !== p.generate.kind) {
+          problems.push({ path: `${at}.generate.generator`, message: `generator ${generator} draws a ${generators[generator].kind}, not a ${p.generate.kind}` });
+        } else {
+          for (const issue of paramIssues(generator, params ?? {})) {
+            problems.push({ path: [`${at}.generate.params`, ...issue.path].join("."), message: issue.message });
+          }
+        }
+      }
       if (p.tileX && element?.seamless !== true) {
         const what = element ? `Element ${p.element} is not seamless` : `Element ${p.element} is not a Seamless texture yet`;
         problems.push({ path: `${at}.tileX`, message: `${what}; tileX repeats only a Seamless texture` });

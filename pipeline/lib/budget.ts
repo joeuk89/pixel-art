@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { allPlacements, placementsOf, type ScenePlan } from "../../schema/index.ts";
+import { allPlacements, isLocal, placementsOf, type ScenePlan } from "../../schema/index.ts";
 import { stillAttempts, stillAttemptsDir } from "./attempts.ts";
 import { deriveCanvas, firstAttemptGenerations, layerScale, type Canvas } from "./canvas.ts";
 import { readElements } from "./library.ts";
@@ -29,7 +29,7 @@ export function stripAttempts(id: string): StripAttempt[] {
 
 const round = (n: number) => Math.round(n * 1e4) / 1e4;
 
-type Planned = { canvas: Canvas; pixellabStrip: boolean };
+type Planned = { canvas: Canvas; pixellabStrip: boolean; local: boolean };
 
 export function budget(plan: ScenePlan) {
   const placements = allPlacements(plan);
@@ -37,16 +37,17 @@ export function budget(plan: ScenePlan) {
 
   const planned = new Map<string, Planned>();
   for (const a of attempts) {
-    if (a.element !== undefined) planned.set(`${a.placement}/${a.element}`, { canvas: a.canvas, pixellabStrip: a.strip?.service === "pixellab" });
+    if (a.element !== undefined) planned.set(`${a.placement}/${a.element}`, { canvas: a.canvas, pixellabStrip: a.strip?.service === "pixellab", local: a.service === "local" });
   }
   for (const layer of plan.layers) {
     for (const p of placementsOf(layer)) {
       if (!p.generate) continue;
       const canvas = deriveCanvas(layerScale(plan.scale, layer), p.generate);
-      planned.set(`${p.id}/${p.element}`, { canvas, pixellabStrip: p.generate.kind === "prop" && p.generate.strip?.service === "pixellab" });
+      planned.set(`${p.id}/${p.element}`, { canvas, pixellabStrip: p.generate.kind === "prop" && p.generate.strip?.service === "pixellab", local: isLocal(p.generate) });
     }
   }
-  const estimate = [...planned.values()].reduce((sum, p) => sum + firstAttemptGenerations(p.canvas) + (p.pixellabStrip ? PIXELLAB_STRIP_GENERATIONS : 0), 0);
+  const estimate = [...planned.values()].reduce(
+    (sum, p) => sum + (p.local ? 0 : firstAttemptGenerations(p.canvas)) + (p.pixellabStrip ? PIXELLAB_STRIP_GENERATIONS : 0), 0);
 
   // Only Elements this Scene generated get strips here; strip Attempts on reused Elements belong to the Scene that made them.
   const strips = readElements().filter((e) => e.firstScene === plan.id).map((e) => ({ id: e.id, attempts: stripAttempts(e.id) }));
