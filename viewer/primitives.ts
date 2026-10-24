@@ -407,15 +407,19 @@ export function createPrimitives({ plan, elements, palette, seed = plan.seed }: 
         return { ...found, pixels: pixels.still };
       },
     };
-    switch (primitive.type) {
-      case "rain": return rain(primitive, ctx);
-      case "snow": return snow(primitive, ctx);
-      case "steam": return steam(primitive, ctx);
-      case "twinkle": return twinkle(primitive, ctx);
-      case "blink": return blink(primitive, ctx);
-      case "dust": return dust(primitive, ctx);
-      case "sway": return sway(primitive, ctx);
-      case "birds": return birds(primitive, ctx);
-    }
+    return { ...drawOf(primitive, ctx), emissive: primitive.emissive };
   });
+}
+
+function drawOf(primitive: Primitive, ctx: Context): PrimitiveDraw {
+  switch (primitive.type) {
+    case "rain": return rain(primitive, ctx);
+    case "snow": return snow(primitive, ctx);
+    case "steam": return steam(primitive, ctx);
+    case "twinkle": return twinkle(primitive, ctx);
+    case "blink": return blink(primitive, ctx);
+    case "dust": return dust(primitive, ctx);
+    case "sway": return sway(primitive, ctx);
+    case "birds": return birds(primitive, ctx);
+  }
 }
