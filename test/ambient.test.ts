@@ -169,3 +169,13 @@ test("a failed generation exits non-zero with the HTTP status and leaves that en
   assert.deepEqual(plan.cost.meteredUsd, { stability: 0.2 });
   assert.equal(existsSync(join(root, sceneDir, "rain.ogg")), false);
 });
+
+test("a generated source naming a service other than elevenlabs-fal fails before any request", async () => {
+  const root = generatedTree();
+  editJson(root, fixtureScene, (plan) => { plan.soundtrack.ambient[0].source.service = "stable-audio-3"; });
+  const before = server.requests.length;
+  const run = await runScript(script, [fixtureScene], { cwd: root, env: server.env });
+  assert.equal(run.code, 1);
+  assert.equal(run.json.error, `${fixtureScene}: soundtrack.ambient[0].source.service: stable-audio-3 is not supported; use elevenlabs-fal`);
+  assert.equal(server.requests.length, before);
+});

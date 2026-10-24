@@ -7,6 +7,7 @@ import { generateSoundEffect, SOUND_EFFECTS_MODEL, USD_PER_SECOND } from "./lib/
 import { readScene, readSounds } from "./lib/library.ts";
 
 const AMBIENT = "library/ambient";
+const SERVICE = "elevenlabs-fal";
 const METERED_SERVICE = "fal";
 
 type Entry = ScenePlan["soundtrack"]["ambient"][number];
@@ -65,7 +66,10 @@ async function run(planPath: string, work: string) {
     ...plan.soundtrack.oneshots.map((entry, index) => ({ entry, list: "oneshots" as const, index, slot: `soundtrack.oneshots[${index}]`, kind: "oneshot" as const })),
   ];
   for (const { entry, slot, kind } of slots) {
-    if (entry.source.kind !== "curated") continue;
+    if (entry.source.kind === "generated") {
+      if (entry.source.service !== SERVICE) throw new Error(`${planPath}: ${slot}.source.service: ${entry.source.service} is not supported; use ${SERVICE}`);
+      continue;
+    }
     const record = sounds.get(entry.source.id);
     if (!record) throw new Error(`${planPath}: ${slot}.source.id: Sound library has no record ${entry.source.id}`);
     if (record.kind !== kind) throw new Error(`${planPath}: ${slot}.source.id: ${record.id} is a ${record.kind}, not a ${kind}`);
