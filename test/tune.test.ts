@@ -1,52 +1,14 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { cpSync, existsSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { build } from "esbuild";
-import { createInterface } from "node:readline";
-import { fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
+import { fixtureScene, readJson, repo, runScript, writeJson } from "./helpers.ts";
+import { git, startTuner, stopTuners, tunerTree } from "./tuner.ts";
 
 const id = "fixture-rainy-desk-a1b2";
-const servers: ChildProcess[] = [];
 
-after(() => {
-  for (const server of servers) server.kill();
-});
-
-const git = (root: string, ...args: string[]) => {
-  const run = spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", ...args], { cwd: root, encoding: "utf8" });
-  assert.equal(run.status, 0, run.stderr);
-  return run.stdout;
-};
-
-// A committed repo with a stubbed, rendered Scene, so preview's hard checks can pass or fail on the test stub alone.
-export function tunerTree(tests: "pass" | "fail" = "pass"): string {
-  const root = makeTree();
-  writeJson(root, "package.json", { private: true, scripts: { test: `node -e "process.exit(${tests === "pass" ? 0 : 1})"` } });
-  assert.equal(runScript(root, "poster", fixtureScene).code, 0);
-  assert.equal(runScript(root, "stub", fixtureScene).code, 0);
-  git(root, "init", "-q");
-  git(root, "add", ".");
-  git(root, "commit", "-qm", "tree");
-  return root;
-}
-
-export async function startTuner(root: string): Promise<string> {
-  const server = spawn(process.execPath, [join(repo, "pipeline/tune.ts"), fixtureScene, "--port", "0", "--no-open"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
-  servers.push(server);
-  let stderr = "";
-  server.stderr!.on("data", (chunk) => (stderr += chunk));
-  const lines = createInterface({ input: server.stdout! });
-  return new Promise((resolve, reject) => {
-    lines.once("line", (line) => {
-      const started = JSON.parse(line);
-      if (started.ok) resolve(started.url);
-      else reject(new Error(started.error));
-    });
-    server.once("exit", (code) => reject(new Error(`tune exited with ${code}: ${stderr}`)));
-  });
-}
+after(stopTuners);
 
 async function save(url: string, body: unknown): Promise<{ status: number; out: any }> {
   const response = await fetch(new URL("save", url), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
