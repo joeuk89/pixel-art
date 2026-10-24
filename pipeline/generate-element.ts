@@ -8,13 +8,15 @@ import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { createImageProFlash, PixelLabError, STYLE_OPTIONS, STYLE_USAGE, type ProFlashRequest } from "./lib/pixellab.ts";
-import { gateStill, type GateReport } from "./lib/quality-gate.ts";
+import { chargeStillAttempts, stillAttemptsDir, type StillAttempt } from "./lib/attempts.ts";
+import { gateStill } from "./lib/quality-gate.ts";
 
 const UPSCALE = 8;
 const ELEMENTS = "library/elements";
 const SERVICE = "pixellab";
 const MODEL = "pro-flash";
-const USAGE = "usage: generate-element <scene.json> <placementId> [--attempt n] [--seed n] [--brief text] | --accept <attemptPath>";
+const ANCHOR_MIN_SIDE = 48;
+const USAGE = "usage: generate-element <scene.json> <placementId> [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor]";
 
 const targetBox = (scale: number, realSize: { w: number; h: number }) => ({ width: scale * realSize.w, height: scale * realSize.h });
 
@@ -67,7 +69,7 @@ const attemptTaken = (dir: string, placementId: string, n: number) =>
 
 async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: number | null; seed: number; brief?: string }) {
   const generate = placement.generate!;
-  const dir = `scratch/attempts/${plan.id}`;
+  const dir = stillAttemptsDir(plan.id);
   if (opts.attempt !== null && existsSync(dir) && attemptNumbers(dir, placement.id).includes(opts.attempt)) {
     throw new Error(attemptTaken(dir, placement.id, opts.attempt));
   }
@@ -111,7 +113,9 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     : { kind: "backdrop", canvas, palette: palette.colours });
 
   const sidecar: Sidecar = {
-    scene: plan.id, placement: placement.id, attempt: attemptNo, canvas, prompt, seed: opts.seed, generations,
+    scene: plan.id, placement: placement.id, element: placement.element, kind: generate.kind,
+    ...(generate.kind === "prop" && generate.strip ? { strip: generate.strip } : {}),
+    attempt: attemptNo, canvas, prompt, seed: opts.seed, generations,
     params: { no_background: request.no_background, ...(sendStyle ? { style_options: STYLE_OPTIONS } : {}) },
     styleAnchor: sendStyle ? anchor.id : null, gate,
   };
@@ -132,18 +136,7 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
   };
 }
 
-type Sidecar = {
-  scene: string;
-  placement: string;
-  attempt: number;
-  canvas: { width: number; height: number };
-  prompt: string;
-  seed: number;
-  generations: number;
-  params: Record<string, unknown>;
-  styleAnchor: string | null;
-  gate: GateReport;
-};
+type Sidecar = StillAttempt;
 
 const sidecarOf = (png: string) => png.replace(/\.png$/, ".json");
 
@@ -156,21 +149,21 @@ function freeId(proposed: string): string {
   return id;
 }
 
-// Every Attempt costs generations, accepted or not, so all of this Placement's Attempts are charged at accept.
-function attemptGenerations(dir: string, placementId: string): number {
-  const prefix = `${placementId}-a`;
-  return readdirSync(dir)
-    .filter((n) => n.startsWith(prefix) && /^\d+\.json$/.test(n.slice(prefix.length)))
-    .reduce((sum, n) => sum + (JSON.parse(readFileSync(join(dir, n), "utf8")) as Sidecar).generations, 0);
+function checkAnchor(placement: Placement, canvas: { width: number; height: number }): void {
+  if (placement.generate!.kind !== "prop") throw new Error("the Style anchor must be a prop, not a backdrop");
+  if (Math.max(canvas.width, canvas.height) < ANCHOR_MIN_SIDE) {
+    throw new Error(`the Style anchor must be at least ${ANCHOR_MIN_SIDE} px on its longer side; ${placement.id} is ${canvas.width}x${canvas.height}`);
+  }
 }
 
-function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string) {
+function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean) {
   if (!existsSync(attemptPath) || !existsSync(sidecarOf(attemptPath))) throw new Error(`${attemptPath} is not an Attempt written by generate-element`);
   const attempt = JSON.parse(readFileSync(sidecarOf(attemptPath), "utf8")) as Sidecar;
   if (attempt.scene !== plan.id || attempt.placement !== placement.id) {
     throw new Error(`${attemptPath} is an Attempt for ${attempt.scene}/${attempt.placement}, not ${plan.id}/${placement.id}`);
   }
   if (!attempt.gate.ok) throw new Error(`${attemptPath} failed the Quality gate: ${attempt.gate.failed.join("; ")}`);
+  if (asAnchor) checkAnchor(placement, attempt.canvas);
 
   const generate = placement.generate!;
   const proposed = placement.element;
@@ -202,14 +195,17 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   const target = raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === placement.id);
   delete target.generate;
   target.element = id;
-  const generationsAdded = attemptGenerations(dirname(attemptPath), placement.id);
+  const charge = chargeStillAttempts(dirname(attemptPath), placement.id);
+  const generationsAdded = charge.generations;
   raw.cost.pixellabGenerations += generationsAdded;
+  if (asAnchor) raw.styleAnchor = id;
   scenePlanSchema.parse(raw);
 
   mkdirSync(ELEMENTS, { recursive: true });
   copyFileSync(attemptPath, join(ELEMENTS, `${id}.png`));
   writeFileSync(join(ELEMENTS, `${id}.json`), JSON.stringify(record, null, 2) + "\n");
   writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
+  charge.commit();
 
   return {
     scene: plan.id,
@@ -220,6 +216,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     record: `${ELEMENTS}/${id}.json`,
     plan: file,
     generationsAdded,
+    ...(asAnchor ? { styleAnchor: id } : {}),
     ...(generate.kind === "prop" && generate.strip ? { stripRequested: generate.strip } : {}),
   };
 }
@@ -227,13 +224,14 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
 main(async () => {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
-    options: { attempt: { type: "string" }, seed: { type: "string" }, brief: { type: "string" }, accept: { type: "string" } },
+    options: { attempt: { type: "string" }, seed: { type: "string" }, brief: { type: "string" }, accept: { type: "string" }, "style-anchor": { type: "boolean" } },
   });
   const [file, placementId, ...rest] = positionals;
   if (!file || !placementId || rest.length > 0) throw new Error(USAGE);
   const plan = readScene(file);
   const placement = findPlacement(plan, placementId);
-  if (values.accept !== undefined) return accept(file, plan, placement, values.accept);
+  if (values.accept !== undefined) return accept(file, plan, placement, values.accept, values["style-anchor"] === true);
+  if (values["style-anchor"]) throw new Error("--style-anchor goes with --accept");
   const attemptNo = values.attempt === undefined ? null : Number(values.attempt);
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
   if (attemptNo !== null && (!Number.isInteger(attemptNo) || attemptNo < 1)) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);

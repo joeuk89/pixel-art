@@ -387,3 +387,59 @@ test("--attempt n refuses an Attempt number already in scratch before calling Pi
   assert.match(again.json.error, /Attempt 3 of rainy-desk-night-k7f2\/cat is already in scratch/);
   assert.equal(pixellabState.created, 1);
 });
+
+const withLamp = (plan: any) => {
+  plan.styleAnchor = null;
+  placementIn(plan, "window").x = 64;
+  plan.layers[2].placements.push({ id: "lamp", element: "lamp-brass-desk-01", x: 20, y: 60,
+    generate: { brief: "brass desk lamp", kind: "prop", realSize: { w: 1, h: 1 }, tags: ["lamp"] } });
+};
+
+test("--accept --style-anchor makes the accepted prop the plan's Style anchor", async () => {
+  const root = tree(withLamp);
+  const first = await run(root, "lamp");
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  const accepted = await run(root, "lamp", "--accept", first.json.scratch.png, "--style-anchor");
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(accepted.json.styleAnchor, "lamp-brass-desk-01");
+  assert.equal(readJson(root, PLAN).styleAnchor, "lamp-brass-desk-01");
+
+  server.requests.length = 0;
+  const skyline = await run(root, "skyline");
+  assert.deepEqual(skyline.json.styleImage, { sent: true, anchor: "lamp-brass-desk-01" });
+  assert.equal(validate(root).code, 0);
+});
+
+test("--style-anchor refuses a backdrop and a prop under 48 px on its longer side", async () => {
+  const root = tree(withLamp);
+  const skyline = await run(root, "skyline");
+  const backdrop = await run(root, "skyline", "--accept", skyline.json.scratch.png, "--style-anchor");
+  assert.equal(backdrop.code, 1);
+  assert.match(backdrop.json.error, /Style anchor must be a prop, not a backdrop/);
+  const cat = await run(root, "cat");
+  const small = await run(root, "cat", "--accept", cat.json.scratch.png, "--style-anchor");
+  assert.equal(small.code, 1);
+  assert.match(small.json.error, /Style anchor must be at least 48 px on its longer side; cat is 24x16/);
+  const plan = readJson(root, PLAN);
+  assert.equal(plan.styleAnchor, null);
+  assert.ok(placementIn(plan, "cat").generate);
+});
+
+test("regenerating an accepted Placement charges only its new Attempts", async () => {
+  const root = tree((plan) => { placementIn(plan, "cat").element = "cat-tabby-curled-01"; });
+  await run(root, "cat");
+  const second = await run(root, "cat");
+  await run(root, "cat", "--accept", second.json.scratch.png);
+  const plan = readJson(root, PLAN);
+  const generate = readJson(root, "library/elements/cat-tabby-curled-01.json");
+  placementIn(plan, "cat").generate = { brief: "tabby cat asleep, tail over nose", kind: "prop", realSize: generate.realSize, tags: generate.tags };
+  writeJson(root, PLAN, plan);
+
+  const again = await run(root, "cat");
+  assert.equal(again.json.attempt, 3);
+  const accepted = await run(root, "cat", "--accept", again.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(accepted.json.element, "cat-tabby-curled-02");
+  assert.equal(accepted.json.generationsAdded, 5);
+  assert.equal(readJson(root, PLAN).cost.pixellabGenerations, 15);
+});
