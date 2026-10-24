@@ -47,6 +47,23 @@ test("one run writes the raw PNG and an 8x upscale to scratch and prints a gate 
   assert.deepEqual([big.width, big.height], [24 * 8, 16 * 8]);
 });
 
+for (const [realSize, canvas, factor] of [[{ w: 4, h: 2 }, [256, 128], 4], [{ w: 2, h: 1 }, [128, 64], 8]] as const) {
+  test(`the visual-check upscale of a ${canvas[0]} px Element is ${factor}x`, async () => {
+    const root = tree((plan) => {
+      plan.scale = 64;
+      plan.styleAnchor = null;
+      placementIn(plan, "cat").generate.realSize = realSize;
+    });
+    const result = await run(root, "cat");
+    assert.equal(result.code, 0, result.stdout + result.stderr);
+    assert.deepEqual(result.json.canvas, { width: canvas[0], height: canvas[1] });
+    assert.equal(result.json.upscaleFactor, factor);
+    assert.match(result.json.scratch.upscale, new RegExp(`\\.x${factor}\\.png$`));
+    const big = await sharp(join(root, result.json.scratch.upscale)).metadata();
+    assert.deepEqual([big.width, big.height], [canvas[0] * factor, canvas[1] * factor]);
+  });
+}
+
 const placementIn = (plan: any, id: string) => plan.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
 
 test("--accept moves the Attempt into the library, writes the record and rewrites the plan's generate block", async () => {

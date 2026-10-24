@@ -11,9 +11,8 @@ import { readElements, readScene } from "./lib/library.ts";
 import { createImageProFlash, PixelLabError, STYLE_OPTIONS, STYLE_USAGE, type ProFlashRequest } from "./lib/pixellab.ts";
 import { chargeStillAttempts, logAbandoned, stillAttemptsDir, type Abandoned, type StillAttempt } from "./lib/attempts.ts";
 import { editPlan } from "./lib/plan-file.ts";
-import { gateStill } from "./lib/quality-gate.ts";
+import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
-const UPSCALE = 8;
 const ELEMENTS = "library/elements";
 const SERVICE = "pixellab";
 const MODEL = "pro-flash";
@@ -119,7 +118,8 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
   const stem = attemptStem(dir, placement.id, attemptNo);
   const decoded = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const pixels = { width: decoded.info.width, height: decoded.info.height, data: new Uint8Array(decoded.data) };
-  await sharp(png).resize(pixels.width * UPSCALE, pixels.height * UPSCALE, { kernel: "nearest" }).png().toFile(`${stem}.x8.png`);
+  const upscale = upscaleFactor(pixels);
+  await sharp(png).resize(pixels.width * upscale, pixels.height * upscale, { kernel: "nearest" }).png().toFile(`${stem}.x${upscale}.png`);
   const gate = gateStill(pixels, generate.kind === "prop"
     ? { kind: "prop", canvas, palette: palette.colours, targetBox: targetBox(plan.scale, generate.realSize) }
     : { kind: "backdrop", canvas, palette: palette.colours });
@@ -145,7 +145,8 @@ async function attempt(plan: ScenePlan, placement: Placement, opts: { attempt: n
     generations,
     gate,
     ...(gate.failed.some((f) => f.startsWith("trimmed box:")) ? { retryBrief: `${generate.brief}, ${FILLS_CANVAS}` } : {}),
-    scratch: { png: `${stem}.png`, upscale: `${stem}.x8.png`, attempt: `${stem}.json` },
+    upscaleFactor: upscale,
+    scratch: { png: `${stem}.png`, upscale: `${stem}.x${upscale}.png`, attempt: `${stem}.json` },
   };
 }
 
