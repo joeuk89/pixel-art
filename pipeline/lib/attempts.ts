@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GateReport } from "./quality-gate.ts";
 
@@ -47,4 +47,28 @@ export function chargeStillAttempts(dir: string, placementId: string): { generat
       for (const f of open) writeFileSync(f.file, JSON.stringify({ ...f.value, charged: true }, null, 2) + "\n");
     },
   };
+}
+
+export type Abandoned = {
+  placement: string;
+  element: string;
+  attempts: number;
+  outcome: "substituted" | "dropped" | "still";
+  substitute?: string;
+  droppedPrimitives?: string[];
+};
+
+export const abandonedLog = (sceneId: string) => join(stillAttemptsDir(sceneId), "abandoned.json");
+
+export function readAbandoned(sceneId: string): Abandoned[] {
+  const log = abandonedLog(sceneId);
+  return existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : [];
+}
+
+export function logAbandoned(sceneId: string, entry: Abandoned): string {
+  const log = abandonedLog(sceneId);
+  const entries = readAbandoned(sceneId);
+  mkdirSync(stillAttemptsDir(sceneId), { recursive: true });
+  writeFileSync(log, JSON.stringify([...entries, entry], null, 2) + "\n");
+  return log;
 }

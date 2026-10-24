@@ -9,7 +9,7 @@ import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { createImageProFlash, PixelLabError, STYLE_OPTIONS, STYLE_USAGE, type ProFlashRequest } from "./lib/pixellab.ts";
-import { chargeStillAttempts, stillAttemptsDir, type StillAttempt } from "./lib/attempts.ts";
+import { chargeStillAttempts, logAbandoned, stillAttemptsDir, type Abandoned, type StillAttempt } from "./lib/attempts.ts";
 import { gateStill } from "./lib/quality-gate.ts";
 
 const UPSCALE = 8;
@@ -231,15 +231,6 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   };
 }
 
-export type Abandoned = {
-  placement: string;
-  element: string;
-  attempts: number;
-  outcome: "substituted" | "dropped";
-  substitute?: string;
-  droppedPrimitives?: string[];
-};
-
 function checkSubstitute(plan: ScenePlan, placement: Placement, id: string): ElementRecord {
   const record = readElements().find((e) => e.id === id);
   if (!record) throw new Error(`no Element ${id} in the Element library`);
@@ -277,10 +268,7 @@ function abandon(file: string, plan: ScenePlan, placement: Placement, substitute
   raw.cost.attemptsAbandoned += charge.attempts;
   scenePlanSchema.parse(raw);
 
-  mkdirSync(dir, { recursive: true });
-  const log = join(dir, "abandoned.json");
-  const entries: Abandoned[] = existsSync(log) ? JSON.parse(readFileSync(log, "utf8")) : [];
-  writeFileSync(log, JSON.stringify([...entries, entry], null, 2) + "\n");
+  const log = logAbandoned(plan.id, entry);
   writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
   charge.commit();
   return { scene: plan.id, ...entry, generationsAdded: charge.generations, plan: file, log };

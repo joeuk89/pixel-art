@@ -9,14 +9,17 @@ import { animateWithTextV3 } from "./lib/pixellab.ts";
 import type { Pixels } from "./lib/quality-gate.ts";
 import { SUBTLE_MOTION, subtleMotion } from "./lib/retro-diffusion.ts";
 import { withFreshKey, type Retry } from "./lib/retry.ts";
+import { logAbandoned, type Abandoned } from "./lib/attempts.ts";
+import { budget, STRIPS_DIR } from "./lib/budget.ts";
+import { readScene } from "./lib/library.ts";
 import { buildStrip, gateStrip, snapToPalette, type StripGateReport } from "./lib/strip.ts";
 
 const UPSCALE = 8;
 const ELEMENTS = "library/elements";
-const SCRATCH = "scratch/strips";
+const SCRATCH = STRIPS_DIR;
 const SERVICES: readonly StripService[] = ["pixellab", "retro-diffusion"];
 const MODELS: Record<StripService, string> = { pixellab: "animate-with-text-v3", "retro-diffusion": SUBTLE_MOTION };
-const USAGE = "usage: generate-strip <elementId> [--service pixellab|retro-diffusion] [--frames n] [--motion text] [--seed n] | --accept <attempt.strip.png> [--scene scene.json]";
+const USAGE = "usage: generate-strip <elementId> [--service pixellab|retro-diffusion] [--frames n] [--motion text] [--seed n] [--scene scene.json] | --accept <attempt.strip.png> [--scene scene.json] | --abandon --scene scene.json";
 
 type Prop = Extract<ElementRecord, { kind: "prop" }>;
 
@@ -74,6 +77,7 @@ type Sidecar = {
   offPaletteBefore: number;
   retries: Retry[];
   gate: StripGateReport;
+  charged?: boolean;
 };
 
 function attemptSidecars(dir: string, id: string): { name: string; attempt: number }[] {
@@ -141,16 +145,57 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
 const sidecarOf = (strip: string) => strip.replace(/\.strip\.png$/, ".json");
 const round = (n: number) => Math.round(n * 10000) / 10000;
 
-// Every Attempt costs, accepted or not, so all of this Element's Attempts are charged at accept.
-function attemptsCost(dir: string, id: string) {
-  const attempts = attemptSidecars(dir, id).map((a) => JSON.parse(readFileSync(join(dir, a.name), "utf8")) as Sidecar);
+// Every Attempt costs, accepted or not; marking them charged keeps a later accept or fallback from charging them again.
+function chargeAttempts(dir: string, id: string) {
+  const open = attemptSidecars(dir, id)
+    .map((a) => ({ file: join(dir, a.name), value: JSON.parse(readFileSync(join(dir, a.name), "utf8")) as Sidecar }))
+    .filter((a) => !a.value.charged);
   const meteredByService: Record<string, number> = {};
-  for (const a of attempts) if (a.cost.meteredUsd > 0) meteredByService[a.service] = round((meteredByService[a.service] ?? 0) + a.cost.meteredUsd);
+  for (const { value: a } of open) if (a.cost.meteredUsd > 0) meteredByService[a.service] = round((meteredByService[a.service] ?? 0) + a.cost.meteredUsd);
   return {
-    pixellabGenerations: attempts.reduce((sum, a) => sum + a.cost.pixellabGenerations, 0),
-    meteredUsd: round(Object.values(meteredByService).reduce((sum, usd) => sum + usd, 0)),
+    attempts: open.length,
+    cost: {
+      pixellabGenerations: open.reduce((sum, a) => sum + a.value.cost.pixellabGenerations, 0),
+      meteredUsd: round(Object.values(meteredByService).reduce((sum, usd) => sum + usd, 0)),
+    },
     meteredByService,
+    commit: () => {
+      for (const a of open) writeFileSync(a.file, JSON.stringify({ ...a.value, charged: true }, null, 2) + "\n");
+    },
   };
+}
+
+function chargePlan(plan: any, charge: ReturnType<typeof chargeAttempts>): void {
+  plan.cost.pixellabGenerations += charge.cost.pixellabGenerations;
+  for (const [name, usd] of Object.entries(charge.meteredByService)) plan.cost.meteredUsd[name] = round((plan.cost.meteredUsd[name] ?? 0) + usd);
+}
+
+function checkBudget(sceneFile: string, record: Prop, service: StripService): void {
+  const report = budget(readScene(sceneFile));
+  const { pixellabGenerations: gens, meteredUsd: metered, retroDiffusion: rd } = report;
+  if (gens.used >= gens.cap) throw new Error(`Scene budget reached: PixelLab generations: ${gens.used} used of ${gens.cap}`);
+  if (metered.used >= metered.cap) throw new Error(`Scene budget reached: metered: $${metered.used} used of $${metered.cap}`);
+  if (service !== "retro-diffusion") return;
+  const mine = rd.props.find((p) => p.element === record.id);
+  if (mine && mine.attempts >= rd.attemptCap) throw new Error(`Retro Diffusion: ${record.id} has had ${mine.attempts} of ${rd.attemptCap} charged Attempts; use PixelLab or fall back to the still`);
+  if (!mine && rd.props.length >= rd.propCap) throw new Error(`Retro Diffusion: ${rd.props.length} of ${rd.propCap} props in this Scene already; use PixelLab or fall back to the still`);
+}
+
+function fallBack(record: Prop, sceneFile: string) {
+  const plan = JSON.parse(readFileSync(sceneFile, "utf8"));
+  const placements = plan.layers.flatMap((l: any) => l.placements ?? []).filter((p: any) => p.element === record.id);
+  if (placements.length === 0) throw new Error(`no Placement in ${sceneFile} uses ${record.id}`);
+  const charge = chargeAttempts(SCRATCH, record.id);
+  for (const p of placements) delete p.animation;
+  chargePlan(plan, charge);
+  plan.cost.attemptsAbandoned += charge.attempts;
+  plan.status = "draft";
+  scenePlanSchema.parse(plan);
+  const entry: Abandoned = { placement: placements.map((p: any) => p.id).join(", "), element: record.id, attempts: charge.attempts, outcome: "still" };
+  const log = logAbandoned(plan.id, entry);
+  writeFileSync(sceneFile, JSON.stringify(plan, null, 2) + "\n");
+  charge.commit();
+  return { ...entry, cost: charge.cost, plan: sceneFile, log };
 }
 
 function accept(record: Prop, stripPath: string, sceneFile: string | undefined) {
@@ -159,7 +204,8 @@ function accept(record: Prop, stripPath: string, sceneFile: string | undefined) 
   if (attempt.element !== record.id) throw new Error(`${stripPath} is a strip Attempt for ${attempt.element}, not ${record.id}`);
   if (!attempt.gate.ok) throw new Error(`${stripPath} failed the strip Quality gate: ${attempt.gate.failed.join("; ")}`);
 
-  const { meteredByService, ...cost } = attemptsCost(dirname(stripPath), record.id);
+  const charge = chargeAttempts(dirname(stripPath), record.id);
+  const { cost } = charge;
   const file = join(ELEMENTS, `${record.id}.json`);
   const raw = JSON.parse(readFileSync(file, "utf8"));
   raw.animation = {
@@ -181,8 +227,7 @@ function accept(record: Prop, stripPath: string, sceneFile: string | undefined) 
   let plan: any;
   if (sceneFile !== undefined) {
     plan = JSON.parse(readFileSync(sceneFile, "utf8"));
-    plan.cost.pixellabGenerations += cost.pixellabGenerations;
-    for (const [name, usd] of Object.entries(meteredByService)) plan.cost.meteredUsd[name] = round((plan.cost.meteredUsd[name] ?? 0) + usd);
+    chargePlan(plan, charge);
     scenePlanSchema.parse(plan);
   }
 
@@ -190,6 +235,7 @@ function accept(record: Prop, stripPath: string, sceneFile: string | undefined) 
   copyFileSync(stripPath, strip);
   writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
   if (sceneFile !== undefined) writeFileSync(sceneFile, JSON.stringify(plan, null, 2) + "\n");
+  charge.commit();
 
   return { element: record.id, strip, record: file, frames: attempt.frames, cost, ...(sceneFile !== undefined ? { plan: sceneFile } : {}) };
 }
@@ -199,14 +245,17 @@ main(async () => {
     allowPositionals: true,
     options: {
       service: { type: "string" }, frames: { type: "string" }, motion: { type: "string" }, seed: { type: "string" },
-      accept: { type: "string" }, scene: { type: "string" },
+      accept: { type: "string" }, scene: { type: "string" }, abandon: { type: "boolean" },
     },
   });
   const [id, ...rest] = positionals;
   if (!id || rest.length > 0) throw new Error(USAGE);
+  if (values.abandon) {
+    if (values.scene === undefined) throw new Error("--abandon needs --scene");
+    return fallBack(readProp(id), values.scene);
+  }
   const record = readProp(id);
   if (values.accept !== undefined) return accept(record, values.accept, values.scene);
-  if (values.scene !== undefined) throw new Error("--scene goes with --accept");
   const service = (values.service ?? "pixellab") as StripService;
   if (!SERVICES.includes(service)) throw new Error(`--service must be pixellab or retro-diffusion, got ${values.service}`);
   const frames = values.frames === undefined ? DEFAULT_STRIP_FRAMES[service] : Number(values.frames);
@@ -216,6 +265,7 @@ main(async () => {
   if (!Number.isInteger(frames) || frames < 2 || frames > 16) throw new Error(`--frames must be an integer from 2 to 16, got ${values.frames}`);
   const seed = values.seed === undefined ? Math.floor(Math.random() * 2 ** 31) : Number(values.seed);
   if (!Number.isInteger(seed)) throw new Error(`--seed must be an integer, got ${values.seed}`);
+  if (values.scene !== undefined) checkBudget(values.scene, record, service);
   const motion = values.motion ?? `${record.brief}, moving subtly in place`;
   return attempt(record, { service, frames, motion, seed });
 });
