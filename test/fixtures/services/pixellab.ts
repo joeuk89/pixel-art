@@ -89,7 +89,7 @@ export function breathingRgba(still: Rgba, count: number): Uint8Array[] {
 export const OFF_PALETTE_ACTION = "an animation whose colours drift off the Palette";
 
 // Every opaque colour after frame 0 is nudged two steps of red away from the Palette.
-function offPaletteRgba(still: Rgba, count: number): Uint8Array[] {
+export function offPaletteRgba(still: Rgba, count: number): Uint8Array[] {
   return breathingRgba(still, count).map((frame, k) => {
     if (k > 0) for (let p = 0; p < frame.length; p += 4) if (frame[p + 3] !== 0) frame[p] = frame[p] > 253 ? frame[p] - 2 : frame[p] + 2;
     return frame;

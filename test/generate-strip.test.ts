@@ -1,9 +1,9 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { copyFileSync, readFileSync } from "node:fs";
+import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { makeTree, readJson, repo, writeJson } from "./helpers.ts";
+import { editJson, fixtureScene, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { INFERENCE_FAILED, retroDiffusionState } from "./fixtures/services/retro-diffusion.ts";
 import { decodePng, encodePng, OFF_PALETTE_ACTION, pixellabState, type Rgba } from "./fixtures/services/pixellab.ts";
@@ -229,4 +229,95 @@ test("a request the service rejects as invalid is not retried", async () => {
   const result = await run(root, "--service", "retro-diffusion");
   assert.equal(result.code, 1);
   assert.equal(retroDiffusionState.submits.length, 1);
+});
+
+test("--accept writes the sidecar strip and the animation block, and validate checks the strip against the record", async () => {
+  const root = tree();
+  const first = await run(root, "--motion", "tail twitches", "--seed", "41");
+  const accepted = await run(root, "--accept", first.json.scratch.strip);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(accepted.json.strip, `${ELEMENTS}/${ELEMENT}.strip.png`);
+
+  assert.deepEqual(readFileSync(join(root, `${ELEMENTS}/${ELEMENT}.strip.png`)), readFileSync(join(root, first.json.scratch.strip)));
+  const record = readJson(root, `${ELEMENTS}/${ELEMENT}.json`);
+  assert.deepEqual(record.animation, {
+    frames: 4,
+    fps: 6,
+    order: "cycle",
+    service: "pixellab",
+    model: "animate-with-text-v3",
+    prompt: "tail twitches",
+    seed: 41,
+    params: { frame_count: 3, no_background: true },
+    snappedTo: "cosy-night",
+    offPaletteBefore: 0,
+    cost: { pixellabGenerations: 1, meteredUsd: 0 },
+    checks: { attempt: 1, passed: ["dimensions", "alpha", "palette", "motion", "drift", "seam"], warnings: [] },
+  });
+  const valid = validate(root);
+  assert.equal(valid.code, 0, JSON.stringify(valid.report));
+
+  const narrow = await sharp(join(root, first.json.scratch.strip)).extract({ left: 0, top: 0, width: 72, height: 16 }).png().toBuffer();
+  writeFileSync(join(root, `${ELEMENTS}/${ELEMENT}.strip.png`), narrow);
+  const invalid = validate(root);
+  assert.equal(invalid.code, 1);
+  assert.match(JSON.stringify(invalid.report), /Frame strip .*is 72x16, record says 96x16/);
+});
+
+test("--accept records the off-palette share and warning, and charges every Attempt for the Element", async () => {
+  const root = tree();
+  await run(root, "--service", "retro-diffusion");
+  const second = await run(root, "--service", "retro-diffusion", "--motion", OFF_PALETTE_ACTION);
+  assert.equal(second.json.attempt, 2);
+  const accepted = await run(root, "--accept", second.json.scratch.strip);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const { animation } = readJson(root, `${ELEMENTS}/${ELEMENT}.json`);
+  assert.equal(animation.frames, 8);
+  assert.equal(animation.service, "retro-diffusion");
+  assert.equal(animation.model, "rd_advanced_animation__subtle_motion");
+  assert.equal(animation.offPaletteBefore, 0.875);
+  assert.deepEqual(animation.checks.warnings, ["87.5% of opaque pixels were off the Palette before snapping"]);
+  assert.equal(animation.checks.attempt, 2);
+  assert.deepEqual(animation.cost, { pixellabGenerations: 0, meteredUsd: 0.5 });
+});
+
+test("--accept with --scene adds the strip's cost to the Scene plan", async () => {
+  const root = tree();
+  await run(root, "--service", "retro-diffusion");
+  const pl = await run(root);
+  const accepted = await run(root, "--accept", pl.json.scratch.strip, "--scene", fixtureScene);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const { cost } = readJson(root, fixtureScene);
+  assert.equal(cost.pixellabGenerations, 4 + 1);
+  assert.deepEqual(cost.meteredUsd, { stability: 0.2, "retro-diffusion": 0.25 });
+});
+
+test("--accept refuses an Attempt that failed the gate and an Element that already has a strip", async () => {
+  const root = tree();
+  const { still, opaque } = await stillOf(root);
+  const frozen = recolour(still, opaque.slice(0, 6));
+  const action = "frozen";
+  pixellabState.animations.set(action, [still, frozen, frozen, frozen].map((f) => encodePng(f.width, f.height, f.data)));
+  const failed = await run(root, "--motion", action);
+  assert.equal(failed.json.gate.ok, false);
+  const refused = await run(root, "--accept", failed.json.scratch.strip);
+  assert.equal(refused.code, 1);
+  assert.match(refused.json.error, /failed the strip Quality gate: motion/);
+
+  const good = await run(root);
+  assert.equal((await run(root, "--accept", good.json.scratch.strip)).code, 0);
+  const again = await run(root, "--accept", good.json.scratch.strip);
+  assert.equal(again.code, 1);
+  assert.match(again.json.error, /already has a Frame strip/);
+  const another = await run(root);
+  assert.equal(another.code, 1);
+  assert.match(another.json.error, /already has a Frame strip/);
+});
+
+test("a backdrop gets no Frame strip", async () => {
+  const root = tree();
+  const result = await runScript(script, ["skyline-night-warm-windows-01"], { cwd: root, env: server.env });
+  assert.equal(result.code, 1);
+  assert.match(result.json.error, /backdrop/);
+  assert.equal(pixellabState.animateRequests.length, 0);
 });

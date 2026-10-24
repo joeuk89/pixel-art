@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { elementRecordSchema, type ElementRecord } from "../schema/index.ts";
+import { elementRecordSchema, scenePlanSchema, type ElementRecord } from "../schema/index.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { animateWithTextV3 } from "./lib/pixellab.ts";
@@ -27,6 +27,7 @@ function readProp(id: string): Prop {
   if (!existsSync(file)) throw new Error(`no Element ${id} in the Element library`);
   const record = elementRecordSchema.parse(JSON.parse(readFileSync(file, "utf8")));
   if (record.kind !== "prop") throw new Error(`${id} is a backdrop; Frame strips are props only`);
+  if (record.animation) throw new Error(`${id} already has a Frame strip; an Element keeps at most one`);
   return record;
 }
 
@@ -137,6 +138,65 @@ async function attempt(record: Prop, opts: { service: StripService; frames: numb
   };
 }
 
+const sidecarOf = (strip: string) => strip.replace(/\.strip\.png$/, ".json");
+const round = (n: number) => Math.round(n * 10000) / 10000;
+
+// Every Attempt costs, accepted or not, so all of this Element's Attempts are charged at accept.
+function attemptsCost(dir: string, id: string) {
+  const prefix = `${id}-a`;
+  const attempts = readdirSync(dir)
+    .filter((n) => n.startsWith(prefix) && /^\d+\.json$/.test(n.slice(prefix.length)))
+    .map((n) => JSON.parse(readFileSync(join(dir, n), "utf8")) as Sidecar);
+  const meteredByService: Record<string, number> = {};
+  for (const a of attempts) if (a.cost.meteredUsd > 0) meteredByService[a.service] = round((meteredByService[a.service] ?? 0) + a.cost.meteredUsd);
+  return {
+    pixellabGenerations: attempts.reduce((sum, a) => sum + a.cost.pixellabGenerations, 0),
+    meteredUsd: round(Object.values(meteredByService).reduce((sum, usd) => sum + usd, 0)),
+    meteredByService,
+  };
+}
+
+function accept(record: Prop, stripPath: string, sceneFile: string | undefined) {
+  if (!existsSync(stripPath) || !existsSync(sidecarOf(stripPath))) throw new Error(`${stripPath} is not an Attempt written by generate-strip`);
+  const attempt = JSON.parse(readFileSync(sidecarOf(stripPath), "utf8")) as Sidecar;
+  if (attempt.element !== record.id) throw new Error(`${stripPath} is a strip Attempt for ${attempt.element}, not ${record.id}`);
+  if (!attempt.gate.ok) throw new Error(`${stripPath} failed the strip Quality gate: ${attempt.gate.failed.join("; ")}`);
+
+  const { meteredByService, ...cost } = attemptsCost(dirname(stripPath), record.id);
+  const file = join(ELEMENTS, `${record.id}.json`);
+  const raw = JSON.parse(readFileSync(file, "utf8"));
+  raw.animation = {
+    frames: attempt.frames,
+    fps: 6,
+    order: "cycle",
+    service: attempt.service,
+    model: attempt.model,
+    prompt: attempt.prompt,
+    seed: attempt.seed,
+    params: attempt.params,
+    snappedTo: attempt.snappedTo,
+    offPaletteBefore: attempt.offPaletteBefore,
+    cost,
+    checks: { attempt: attempt.attempt, passed: attempt.gate.passed, warnings: attempt.gate.warnings },
+  };
+  elementRecordSchema.parse(raw);
+
+  let plan: any;
+  if (sceneFile !== undefined) {
+    plan = JSON.parse(readFileSync(sceneFile, "utf8"));
+    plan.cost.pixellabGenerations += cost.pixellabGenerations;
+    for (const [name, usd] of Object.entries(meteredByService)) plan.cost.meteredUsd[name] = round((plan.cost.meteredUsd[name] ?? 0) + usd);
+    scenePlanSchema.parse(plan);
+  }
+
+  const strip = join(ELEMENTS, `${record.id}.strip.png`);
+  copyFileSync(stripPath, strip);
+  writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
+  if (sceneFile !== undefined) writeFileSync(sceneFile, JSON.stringify(plan, null, 2) + "\n");
+
+  return { element: record.id, strip, record: file, frames: attempt.frames, cost, ...(sceneFile !== undefined ? { plan: sceneFile } : {}) };
+}
+
 main(async () => {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -148,6 +208,8 @@ main(async () => {
   const [id, ...rest] = positionals;
   if (!id || rest.length > 0) throw new Error(USAGE);
   const record = readProp(id);
+  if (values.accept !== undefined) return accept(record, values.accept, values.scene);
+  if (values.scene !== undefined) throw new Error("--scene goes with --accept");
   const service = (values.service ?? "pixellab") as StripService;
   if (!SERVICES.includes(service)) throw new Error(`--service must be pixellab or retro-diffusion, got ${values.service}`);
   const frames = values.frames === undefined ? DEFAULT_FRAMES[service] : Number(values.frames);

@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import type { FixtureReply, ServiceFixture } from "../../fixture-server.ts";
-import { breathingRgba, decodePng } from "./pixellab.ts";
+import { breathingRgba, decodePng, OFF_PALETTE_ACTION, offPaletteRgba } from "./pixellab.ts";
 
 export const RETRO_DIFFUSION_KEY = "fixture-retro-diffusion-key";
 export const SUBTLE_MOTION = "rd_advanced_animation__subtle_motion";
@@ -26,9 +26,9 @@ export const retroDiffusionState = {
   },
 };
 
-async function gifOf(inputImage: string, frames: number): Promise<Buffer> {
+async function gifOf(inputImage: string, frames: number, prompt: string): Promise<Buffer> {
   const still = await decodePng(Buffer.from(inputImage, "base64"));
-  const stacked = Buffer.concat(breathingRgba(still, frames));
+  const stacked = Buffer.concat((prompt === OFF_PALETTE_ACTION ? offPaletteRgba : breathingRgba)(still, frames));
   return sharp(stacked, { raw: { width: still.width, height: still.height * frames, channels: 4, pageHeight: still.height } }).gif({ dither: 0 }).toBuffer();
 }
 
@@ -48,7 +48,7 @@ export const retroDiffusion: ServiceFixture = {
         retroDiffusionState.failTasks--;
         retroDiffusionState.tasks.set(id, { failed: true });
       } else {
-        retroDiffusionState.tasks.set(id, { gif: await gifOf(body.input_image, body.frames_duration), failed: false });
+        retroDiffusionState.tasks.set(id, { gif: await gifOf(body.input_image, body.frames_duration, body.prompt), failed: false });
       }
       return { json: { task_id: id, status: "pending" } };
     }
