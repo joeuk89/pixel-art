@@ -744,3 +744,17 @@ test("eight parallel accepts into one plan all land in it", async () => {
   for (const id of ids) assert.equal(placementIn(plan, id).generate, undefined, `${id} is resolved in the plan`);
   assert.equal(plan.cost.pixellabGenerations, 40);
 });
+
+for (const [what, generate] of [
+  ["a local-Finish prop", { kind: "prop", brief: "plain rug", realSize: { w: 1, h: 0.5 }, tags: ["rug"], finish: "local", generator: "rect", params: { fill: 3 } }],
+  ["a Seamless texture", { kind: "texture", brief: "night sky", tags: ["sky"], size: { w: 64, h: 32 }, generator: "stars", params: { sky: 1, stars: [7] } }],
+] as const) {
+  test(`generate-element refuses ${what}, names draw-element and calls no service`, async () => {
+    server.requests.length = 0;
+    const root = tree((plan) => { placementIn(plan, "cat").generate = generate; });
+    const result = await run(root, "cat");
+    assert.equal(result.code, 1);
+    assert.match(result.json.error, /draw it with draw-element/);
+    assert.equal(server.requests.length, 0);
+  });
+}

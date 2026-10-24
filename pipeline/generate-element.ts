@@ -1,8 +1,8 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 import sharp from "sharp";
-import { elementRecordSchema, placementsOf, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
+import { elementRecordSchema, isLocal, placementsOf, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
 import { budget } from "./lib/budget.ts";
 import { anchorFits, deriveCanvas, layerScale } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
@@ -10,7 +10,10 @@ import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { checkService, generateImage, parseService, serviceInfo, type ImageService } from "./lib/image-services.ts";
 import { PixelLabError } from "./lib/pixellab.ts";
-import { chargeStillAttempts, logAbandoned, stillAttemptsDir, type Abandoned, type StillAttempt } from "./lib/attempts.ts";
+import {
+  attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, logAbandoned, rawPlacement, sidecarOf, stillAttemptsDir,
+  type Abandoned, type StillAttempt,
+} from "./lib/attempts.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
@@ -40,39 +43,6 @@ function findPlacement(plan: ScenePlan, id: string): Found {
   return { placement, scale: layerScale(plan.scale, layer) };
 }
 
-const attemptStem = (dir: string, placementId: string, n: number) => `${dir}/${placementId}-a${n}`;
-
-function attemptNumbers(dir: string, placementId: string): number[] {
-  const prefix = `${placementId}-a`;
-  return readdirSync(dir)
-    .filter((n) => n.startsWith(prefix))
-    .map((n) => n.slice(prefix.length).match(/^(\d+)\.(png|json)$/)?.[1])
-    .filter((n) => n !== undefined)
-    .map(Number);
-}
-
-function createExclusive(path: string, data: Uint8Array): boolean {
-  try {
-    writeFileSync(path, data, { flag: "wx" });
-    return true;
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "EEXIST") return false;
-    throw e;
-  }
-}
-
-// The PNG is created exclusively, so parallel runs never write over each other's Attempt and lose its generations.
-function claimAttempt(dir: string, placementId: string, wanted: number | null, png: Uint8Array): number {
-  for (let n = wanted ?? 1 + Math.max(0, ...attemptNumbers(dir, placementId)); ; n++) {
-    const stem = attemptStem(dir, placementId, n);
-    if (!existsSync(`${stem}.json`) && createExclusive(`${stem}.png`, png)) return n;
-    if (wanted !== null) throw new Error(attemptTaken(dir, placementId, n));
-  }
-}
-
-const attemptTaken = (dir: string, placementId: string, n: number) =>
-  `Attempt ${n} of ${basename(dir)}/${placementId} is already in scratch; leave out --attempt to take the next free number`;
-
 function checkBudget(plan: ScenePlan, placement: Placement, service: ImageService): void {
   const report = budget(plan);
   const still = report.stills.find((s) => s.placement === placement.id)!;
@@ -88,6 +58,9 @@ function checkBudget(plan: ScenePlan, placement: Placement, service: ImageServic
 
 async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { attempt: number | null; seed: number; brief?: string; service: ImageService }) {
   const generate = placement.generate!;
+  if (isLocal(generate) || generate.kind === "texture") {
+    throw new Error(`Placement ${placement.id} is ${generate.kind === "texture" ? "a Seamless texture" : "a local Finish"}; draw it with draw-element`);
+  }
   const dir = stillAttemptsDir(plan.id);
   const canvas = deriveCanvas(scale, generate);
   checkService(opts.service, generate.kind, placement.id, canvas);
@@ -160,19 +133,6 @@ function addMetered(raw: any, byService: Record<string, number>): void {
   for (const [name, usd] of Object.entries(byService)) raw.cost.meteredUsd[name] = roundUsd((raw.cost.meteredUsd[name] ?? 0) + usd);
 }
 
-const sidecarOf = (png: string) => png.replace(/\.png$/, ".json");
-
-function freeId(proposed: string): string {
-  const m = proposed.match(/^(.*)-(\d+)$/)!;
-  const taken = (id: string) => existsSync(join(ELEMENTS, `${id}.json`)) || existsSync(join(ELEMENTS, `${id}.png`));
-  let n = Number(m[2]);
-  let id = proposed;
-  while (taken(id)) id = `${m[1]}-${String(++n).padStart(m[2].length, "0")}`;
-  return id;
-}
-
-const rawPlacement = (raw: any, id: string) => raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
-
 function checkAnchor(placement: Placement, canvas: { width: number; height: number }): void {
   if (placement.generate!.kind !== "prop") throw new Error("the Style anchor must be a prop, not a backdrop");
   if (Math.max(canvas.width, canvas.height) < ANCHOR_MIN_SIDE) {
@@ -183,6 +143,7 @@ function checkAnchor(placement: Placement, canvas: { width: number; height: numb
 function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean) {
   if (!existsSync(attemptPath) || !existsSync(sidecarOf(attemptPath))) throw new Error(`${attemptPath} is not an Attempt written by generate-element`);
   const attempt = JSON.parse(readFileSync(sidecarOf(attemptPath), "utf8")) as StillAttempt;
+  if (attempt.service === "local") throw new Error(`${attemptPath} was drawn by draw-element; accept it with draw-element`);
   if (attempt.scene !== plan.id || attempt.placement !== placement.id) {
     throw new Error(`${attemptPath} is an Attempt for ${attempt.scene}/${attempt.placement}, not ${plan.id}/${placement.id}`);
   }
@@ -191,7 +152,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
 
   const generate = placement.generate!;
   const proposed = placement.element;
-  const id = freeId(proposed);
+  const id = freeElementId(proposed);
   const service = serviceInfo(attempt.service ?? "pro-flash");
   const cost = { pixellabGenerations: attempt.generations, meteredUsd: attempt.meteredUsd ?? 0 };
   const base = {

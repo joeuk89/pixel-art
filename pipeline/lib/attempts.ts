@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { editJsonLocked } from "./plan-file.ts";
 import type { GateReport } from "./quality-gate.ts";
 
@@ -9,13 +9,14 @@ export type StillAttempt = {
   scene: string;
   placement: string;
   element?: string;
-  kind?: "prop" | "backdrop";
+  kind?: "prop" | "backdrop" | "texture";
   strip?: { service: string; frames: number };
   attempt: number;
   canvas: { width: number; height: number };
   prompt: string;
-  seed: number;
-  service?: "pro-flash" | "pro" | "pixflux" | "rd-plus";
+  seed: number | null;
+  service?: "pro-flash" | "pro" | "pixflux" | "rd-plus" | "local";
+  generator?: string;
   generations: number;
   meteredUsd?: number;
   params: Record<string, unknown>;
@@ -93,3 +94,51 @@ export function forgetAbandoned(sceneId: string, placements: string[]): void {
     entries.splice(0, entries.length, ...kept);
   });
 }
+
+export const attemptStem = (dir: string, placementId: string, n: number) => `${dir}/${placementId}-a${n}`;
+
+export const sidecarOf = (png: string) => png.replace(/\.png$/, ".json");
+
+export function attemptNumbers(dir: string, placementId: string): number[] {
+  const prefix = `${placementId}-a`;
+  return readdirSync(dir)
+    .filter((n) => n.startsWith(prefix))
+    .map((n) => n.slice(prefix.length).match(/^(\d+)\.(png|json)$/)?.[1])
+    .filter((n) => n !== undefined)
+    .map(Number);
+}
+
+function createExclusive(path: string, data: Uint8Array): boolean {
+  try {
+    writeFileSync(path, data, { flag: "wx" });
+    return true;
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw e;
+  }
+}
+
+export const attemptTaken = (dir: string, placementId: string, n: number) =>
+  `Attempt ${n} of ${basename(dir)}/${placementId} is already in scratch; leave out --attempt to take the next free number`;
+
+// The PNG is created exclusively, so parallel runs never write over each other's Attempt and lose its generations.
+export function claimAttempt(dir: string, placementId: string, wanted: number | null, png: Uint8Array): number {
+  for (let n = wanted ?? 1 + Math.max(0, ...attemptNumbers(dir, placementId)); ; n++) {
+    const stem = attemptStem(dir, placementId, n);
+    if (!existsSync(`${stem}.json`) && createExclusive(`${stem}.png`, png)) return n;
+    if (wanted !== null) throw new Error(attemptTaken(dir, placementId, n));
+  }
+}
+
+const ELEMENTS = "library/elements";
+
+export function freeElementId(proposed: string): string {
+  const m = proposed.match(/^(.*)-(\d+)$/)!;
+  const taken = (id: string) => existsSync(join(ELEMENTS, `${id}.json`)) || existsSync(join(ELEMENTS, `${id}.png`));
+  let n = Number(m[2]);
+  let id = proposed;
+  while (taken(id)) id = `${m[1]}-${String(++n).padStart(m[2].length, "0")}`;
+  return id;
+}
+
+export const rawPlacement = (raw: any, id: string) => raw.layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === id);
