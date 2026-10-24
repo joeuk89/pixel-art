@@ -5,7 +5,7 @@ import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { createCompositor, type ElementPixels } from "../viewer/compositor.ts";
-import { fixtureScene, makeTree, readJson, repo } from "./helpers.ts";
+import { editJson, fixtureScene, fixtures, makeTree, readJson, repo } from "./helpers.ts";
 
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
 
@@ -97,4 +97,16 @@ test("poster fails with a JSON error when the Scene plan does not parse", () => 
   const { code, stdout } = poster(root, "scenes/nope/scene.json");
   assert.equal(code, 1);
   assert.equal(JSON.parse(stdout).ok, false);
+});
+
+test("adding all six Primitives to the plan leaves the Poster and its Open Graph copy byte-identical", () => {
+  const root = makeTree();
+  const files = () => [readFileSync(join(root, sceneDir, "poster.png")), readFileSync(join(root, sceneDir, "poster-og.png"))];
+  editJson(root, fixtureScene, (plan) => { plan.primitives = []; });
+  assert.equal(poster(root, fixtureScene).code, 0);
+  const without = files();
+  editJson(root, fixtureScene, (plan) => { plan.primitives = readJson(join(fixtures, "primitives"), "scene.json").primitives; });
+  assert.equal(readJson(root, fixtureScene).primitives.length, 6);
+  assert.equal(poster(root, fixtureScene).code, 0);
+  assert.deepEqual(files(), without);
 });

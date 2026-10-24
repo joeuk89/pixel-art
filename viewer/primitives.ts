@@ -179,7 +179,7 @@ function snow(p: Of<"snow">, ctx: Context): PrimitiveDraw {
         const gen = Math.floor(u / period[k]);
         const local = u - gen * period[k];
         const across = random(seed, salt, k, gen, 3) * region.w + local * wind + drift * Math.sin(2 * Math.PI * (local / SNOW_SWAY_STEPS + sway[k]));
-        const x = region.x + ((((Math.round(across)) % region.w) + region.w) % region.w);
+        const x = region.x + (((Math.round(across) % region.w) + region.w) % region.w);
         const y = Math.round(region.y - 1 + local * speed[k]);
         const colour = colours[Math.floor(random(seed, salt, k, gen, 4) * colours.length)];
         plotIn(out, c, region, x, y, colour);
@@ -271,7 +271,7 @@ function glow(p: Of<"glow">, ctx: Context): PrimitiveDraw {
     state(timeMs) {
       const strength = level(step(timeMs, PROP_FPS)) / GLOW_LEVELS;
       let signature = 0;
-      for (const a of ringAlphas) signature = signature * (GLOW_LEVELS + 1) + Math.round(a * strength * GLOW_LEVELS);
+      for (let k = 0; k < ringAlphas.length; k++) signature = signature * (GLOW_LEVELS + 1) + Math.round(ringAlphas[k] * strength * GLOW_LEVELS);
       return signature;
     },
     draw(out, timeMs) {

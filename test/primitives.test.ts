@@ -147,3 +147,75 @@ test("a Scene with Primitives of both kinds wakes for whichever clock is next", 
   assert.equal(c.tick(99), false);
   assert.equal(c.tick(100), true);
 });
+
+function changedPixels(primitives: Primitive[], times = TIMES): Set<number> {
+  const c = stillScene(primitives);
+  const plain = stillScene([]);
+  const changed = new Set<number>();
+  for (const t of times) {
+    const a = c.render(t);
+    const b = plain.render(t);
+    for (let i = 0; i < a.length; i += 4) if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]) changed.add(i / 4);
+  }
+  return changed;
+}
+
+test("rain stays inside its region and, anchored to the skyline, draws under the window frame", () => {
+  const [rain] = only("rain");
+  const { region } = rain as Extract<Primitive, { type: "rain" }>;
+  const window = elements.get("window-wood-transparent-panes-01")!.still;
+  const frameAt = (x: number, y: number) => {
+    const sx = x - 72, sy = y - 14;
+    return sx >= 0 && sy >= 0 && sx < window.width && sy < window.height && window.data[(sy * window.width + sx) * 4 + 3] >= 128;
+  };
+  const anchored = changedPixels([rain]);
+  assert.ok(anchored.size > 0);
+  for (const pixel of anchored) {
+    const x = pixel % W, y = Math.floor(pixel / W);
+    assert.ok(x >= region.x && x < region.x + region.w && y >= region.y && y < region.y + region.h, `rain at ${x},${y} is outside its region`);
+    assert.equal(frameAt(x, y), false, `rain at ${x},${y} covers the window frame`);
+  }
+  const onTop = changedPixels([{ ...rain, anchor: undefined } as Primitive]);
+  assert.ok([...onTop].some((pixel) => frameAt(pixel % W, Math.floor(pixel / W))), "unanchored rain draws over every Layer");
+});
+
+test("blink swaps only the anchored Placement's from colour, and twinkle only the anchor's light colours", () => {
+  const swapped = changedPixels(only("blink"), Array.from({ length: 200 }, (_, k) => k * 100));
+  const window = elements.get("window-wood-transparent-panes-01")!.still;
+  const wood = palette.colours[10];
+  assert.ok(swapped.size > 0);
+  for (const pixel of swapped) {
+    const sx = (pixel % W) - 72, sy = Math.floor(pixel / W) - 14;
+    const i = (sy * window.width + sx) * 4;
+    const hex = "#" + [...window.data.subarray(i, i + 3)].map((v) => v.toString(16).padStart(2, "0")).join("");
+    assert.equal(hex, wood, `blink changed ${sx},${sy} of the window, which is ${hex}`);
+  }
+  const dimmed = changedPixels(only("twinkle"));
+  const plain = stillScene([]).render(0);
+  for (const pixel of dimmed) {
+    const hex = "#" + [...plain.subarray(pixel * 4, pixel * 4 + 3)].map((v) => v.toString(16).padStart(2, "0")).join("");
+    assert.equal(hex, palette.colours[8], `twinkle changed a pixel that is ${hex}, not a light`);
+  }
+});
+
+test("a Primitive anchored to a missing Placement fails with its index and anchor", () => {
+  const plan = { ...catalogue, primitives: [{ ...only("steam")[0], anchor: "teapot" } as Primitive] };
+  assert.throws(() => createPrimitives({ plan, elements, palette }), /Primitive 0 \(steam\): no Placement teapot/);
+});
+
+test("the Primitives module bundles for a neutral platform and draws where no Node, DOM or Canvas API exists", async () => {
+  const { build } = await import("esbuild");
+  const { runInNewContext } = await import("node:vm");
+  const { fileURLToPath } = await import("node:url");
+  const entry = fileURLToPath(new URL("../viewer/primitives.ts", import.meta.url));
+  const result = await build({ entryPoints: [entry], bundle: true, platform: "neutral", format: "iife", globalName: "primitives", write: false, logLevel: "silent" });
+  const sandbox: Record<string, any> = {};
+  runInNewContext(`${result.outputFiles[0].text}; globalThis.primitives = primitives;`, sandbox);
+  for (const name of ["document", "window", "OffscreenCanvas", "ImageData", "Buffer", "process", "require"]) {
+    assert.equal(name in sandbox, false, `${name} leaked into the sandbox`);
+  }
+  const draws = sandbox.primitives.createPrimitives({ plan: catalogue, elements, palette });
+  const out = new Uint8ClampedArray(W * 120 * 4);
+  for (const d of draws) d.draw(out, 500);
+  assert.equal(draws.length, 6);
+});
