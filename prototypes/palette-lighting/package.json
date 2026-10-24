@@ -1,0 +1,9 @@
+{
+  "name": "prototype-palette-lighting",
+  "private": true,
+  "type": "module",
+  "description": "PROTOTYPE, throwaway. Answers wayfinder ticket #68: does palette lighting look right on the penthouse, and what does the pass cost?",
+  "scripts": {
+    "start": "../../node_modules/.bin/esbuild main.ts --bundle --format=esm --outfile=out/app.js --servedir=../.. --serve=8068"
+  }
+}
