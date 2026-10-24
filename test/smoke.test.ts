@@ -644,6 +644,8 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
   const frameOnPoster = async () =>
     Array.from(await sharp(join(root, `scenes/${id}/poster.png`)).extract({ left: windowFrame.x, top: windowFrame.y, width: windowFrame.w, height: windowFrame.h }).raw().toBuffer());
   const variantButton = (page: Page) => page.locator(".overlay button.variant");
+  const variantShown = (page: Page, title: string) =>
+    page.waitForFunction((t) => document.querySelector(".overlay button.variant")?.textContent === t, title);
   const sourcesStarted = (page: Page) => page.evaluate(() => (window as any).audio.starts.length as number);
 
   test("the Variant control switches to the second Variant, relights the canvas, pushes ?variant= and fades in its loop", async () => {
@@ -658,7 +660,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.equal(await control.textContent(), "Rainy night");
     await control.click();
     await page.waitForURL(`${site}scenes/${id}/?variant=clear-night`);
-    assert.equal(await control.textContent(), "Clear night");
+    await variantShown(page, "Clear night");
     await page.waitForFunction((before) => (window as any).audio.starts.length > before, 5);
     assert.equal(await sourcesStarted(page), 6, "the Variant's loop did not start once");
     await page.waitForFunction(([r, before]) => {
@@ -674,14 +676,14 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
 
     await page.keyboard.press("v");
     await page.waitForURL(`${site}scenes/${id}/`);
-    assert.equal(await control.textContent(), "Rainy night");
+    await variantShown(page, "Rainy night");
     assert.deepEqual(errors, []);
   });
 
   test("opening ?variant= draws that Variant directly and Back after a switch returns to the default", async () => {
     const { page, errors } = await open(`scenes/${id}/?variant=clear-night`);
     await page.locator("canvas").waitFor();
-    assert.equal(await variantButton(page).textContent(), "Clear night");
+    await variantShown(page, "Clear night");
     const clear = await frameOnCanvas(page);
     assert.notDeepEqual(clear, await frameOnPoster(), "the clear night draws like the rainy night");
     await page.waitForFunction(() => (window as any).audio.starts.length >= 6);
@@ -694,17 +696,24 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     }, [windowFrame, clear.join()] as const);
     assert.deepEqual(await frameOnCanvas(page), await frameOnPoster());
 
+    await page.route("**/scene.json", async (route) => {
+      await pause(300);
+      await route.continue();
+    });
     await page.goBack();
     await page.waitForURL(`${site}scenes/${id}/?variant=clear-night`);
-    await page.locator("canvas").waitFor();
-    assert.equal(await variantButton(page).textContent(), "Clear night");
+    await variantShown(page, "Clear night");
+    await page.waitForFunction(([r, after]) => {
+      const c = document.querySelector("canvas");
+      return c !== null && Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data).join() === after;
+    }, [windowFrame, clear.join()] as const);
     assert.deepEqual(errors, []);
   });
 
   test("an unknown ?variant= plays the default Variant", async () => {
     const { page, errors } = await open(`scenes/${id}/?variant=snowy-dawn`);
     await page.locator("canvas").waitFor();
-    assert.equal(await variantButton(page).textContent(), "Rainy night");
+    await variantShown(page, "Rainy night");
     assert.deepEqual(await frameOnCanvas(page), await frameOnPoster());
     assert.deepEqual(errors, []);
   });
