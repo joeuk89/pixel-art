@@ -1,0 +1,42 @@
+{
+  "id": "freesound-rain-soft-595717",
+  "kind": "loop",
+  "distance": [
+    "mid"
+  ],
+  "subject": "soft rain",
+  "tags": [
+    "rain",
+    "soft",
+    "light rain",
+    "drizzle",
+    "weather",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 595717,
+  "sourceUrl": "https://freesound.org/people/_lynks/sounds/595717/",
+  "sourceName": "Soft Rain Loop",
+  "author": "_lynks",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Soft Rain Loop\" by _lynks on Freesound, CC0",
+  "file": "freesound-rain-soft-595717.ogg",
+  "durationSec": 22.506,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 22.5,
+    "sourceType": "ogg",
+    "method": "whole",
+    "seamJump": 0.0028,
+    "maxInnerJump": 0.1839,
+    "target": "-20 dBFS RMS",
+    "gainDb": 8.1,
+    "rmsDbfs": -20,
+    "peakDbfs": -1.9,
+    "limitedBy": null
+  },
+  "fetchedAt": "2026-10-24"
+}

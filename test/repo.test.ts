@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { repo, validate } from "./helpers.ts";
@@ -22,10 +22,10 @@ test("the cosy-night Palette validates and index 0 is the background colour", ()
   assert.equal(palette.colours[0], "#120e1a");
 });
 
-test("all thirteen Ambient loop records validate", () => {
+test("all twenty-three Ambient loop records validate", () => {
   const { code, report } = validate(repo, "library/ambient");
   assert.equal(code, 0);
-  assert.equal(report.checked.ambient, 13);
+  assert.equal(report.checked.ambient, 23);
   assert.deepEqual(report.errors, []);
 });
 
@@ -42,4 +42,21 @@ test("git tracks the Element library and scenes folders", () => {
     const run = spawnSync("git", ["ls-files", "--error-unmatch", dir], { cwd: repo, encoding: "utf8" });
     assert.equal(run.status, 0, `${dir} is not tracked`);
   }
+});
+
+test("the curation spec lists the thirteen curated sounds and the ten starter loops, once each", () => {
+  const spec = JSON.parse(readFileSync(join(repo, "pipeline/curate-sounds.spec.json"), "utf8"));
+  const ids = spec.map((e: any) => e.id);
+  assert.equal(new Set(ids).size, 23);
+  const starters = [242889, 238431, 595717, 444921, 813328, 650574, 223093, 844261, 723913, 167304];
+  for (const sourceId of starters) {
+    const entry = spec.find((e: any) => e.sourceId === sourceId);
+    assert.ok(entry, `starter ${sourceId} missing`);
+    assert.equal(entry.kind, "loop");
+    assert.match(entry.id, new RegExp(`^freesound-[a-z]+(-[a-z]+)*-${sourceId}$`));
+  }
+});
+
+test("the old scripts folder is gone", () => {
+  assert.equal(existsSync(join(repo, "scripts")), false);
 });

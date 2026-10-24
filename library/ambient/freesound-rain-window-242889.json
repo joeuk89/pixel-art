@@ -1,0 +1,44 @@
+{
+  "id": "freesound-rain-window-242889",
+  "kind": "loop",
+  "distance": [
+    "near",
+    "mid"
+  ],
+  "subject": "rain on glass",
+  "tags": [
+    "rain",
+    "window",
+    "glass",
+    "indoors",
+    "night",
+    "weather",
+    "bed"
+  ],
+  "source": "freesound",
+  "sourceId": 242889,
+  "sourceUrl": "https://freesound.org/people/samesamesame/sounds/242889/",
+  "sourceName": "Rain from Indoors - Perfect loop",
+  "author": "samesamesame",
+  "licence": "CC0-1.0",
+  "licenceUrl": "http://creativecommons.org/publicdomain/zero/1.0/",
+  "attribution": "\"Rain from Indoors - Perfect loop\" by samesamesame on Freesound, CC0",
+  "file": "freesound-rain-window-242889.ogg",
+  "durationSec": 48.013,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "from": "preview-hq-ogg",
+    "sourceDurationSec": 48,
+    "sourceType": "wav",
+    "method": "whole",
+    "seamJump": 0.014,
+    "maxInnerJump": 0.0278,
+    "target": "-20 dBFS RMS",
+    "gainDb": 8.9,
+    "rmsDbfs": -21,
+    "peakDbfs": -0.2,
+    "limitedBy": "peak"
+  },
+  "fetchedAt": "2026-10-24"
+}

@@ -37,9 +37,12 @@
     "pickCost": 0.4938,
     "seamJump": 0.0002,
     "maxInnerJump": 0.1452,
-    "normalisedTo": "-20 dBFS RMS",
-    "gainDb": 13.7
+    "target": "-20 dBFS RMS",
+    "gainDb": 13.7,
+    "rmsDbfs": -25.3,
+    "peakDbfs": -0.2,
+    "limitedBy": "peak"
   },
-  "fetchedAt": "2026-10-23",
+  "fetchedAt": "2026-10-24",
   "note": "Mono 2008 recording; listen for intelligible words at the seam before first use."
 }
