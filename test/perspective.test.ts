@@ -42,7 +42,7 @@ test("the Scale at the back of the floor equals scale and grows toward the front
 
 test("the penthouse floor polygon runs from the back wall to the canvas edges", () => {
   const polygon = floorPolygon(penthouse);
-  const expected = [[112, 172], [352, 172], [384, 192.9655], [384, 240], [1.0526, 240]];
+  const expected = [[112, 172], [352, 172], [384, 96 + (76 * 148) / 116], [384, 240], [1.0526, 240]];
   assert.equal(polygon.length, expected.length);
   polygon.forEach((p, i) => {
     close(p.x, expected[i][0], `vertex ${i} x`);
@@ -51,9 +51,9 @@ test("the penthouse floor polygon runs from the back wall to the canvas edges", 
 });
 
 test("a floor that leaves through both side edges of the canvas takes both bottom corners", () => {
-  const stage = { back: { x: 160, y: 60, w: 64, h: 40 }, vanishingPoint: { x: 192, y: 80 }, f: 120 };
+  const stage = { back: { x: 158, y: 60, w: 64, h: 40 }, vanishingPoint: { x: 190, y: 80 }, f: 100 };
   const polygon = floorPolygon(stage).map((p) => [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100]);
-  assert.deepEqual(polygon, [[160, 100], [224, 100], [384, 200], [384, 240], [0, 240], [0, 200]]);
+  assert.deepEqual(polygon, [[158, 100], [222, 100], [384, 201.25], [384, 240], [0, 240], [0, 198.75]]);
 });
 
 for (const [x, y, inside] of [

@@ -17,6 +17,7 @@ import {
   type ScenePlan,
 } from "../schema/index.ts";
 import { generators, paramIssues } from "./lib/kits/index.ts";
+import { onFloor } from "./lib/perspective.ts";
 import { pngSize } from "./lib/png.ts";
 
 type Problem = { path: string; message: string };
@@ -205,6 +206,9 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
             problems.push({ path: [`${at}.generate.params`, ...issue.path].join("."), message: issue.message });
           }
         }
+      }
+      if (p.foot && plan.stage && !onFloor(plan.stage, p.foot)) {
+        problems.push({ path: `${at}.foot`, message: `foot ${p.foot.x},${p.foot.y} is outside the floor polygon of the Stage` });
       }
       if (p.tileX && element?.seamless !== true) {
         const what = element ? `Element ${p.element} is not seamless` : `Element ${p.element} is not a Seamless texture yet`;

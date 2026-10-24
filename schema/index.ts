@@ -108,16 +108,24 @@ export const isLocal = (g: Generate) => g.kind === "texture" || (g.kind === "pro
 
 const stage = z.strictObject({ back: region, vanishingPoint: point, f: z.number().positive() });
 
-const placement = z.strictObject({
-  id: slug,
-  element: elementId,
-  x: int,
-  y: int,
-  flipX: z.boolean().optional(),
-  tileX: z.boolean().optional(),
-  animation: placementAnimation.optional(),
-  generate: generate.optional(),
-});
+const placement = z
+  .strictObject({
+    id: slug,
+    element: elementId,
+    x: int.optional(),
+    y: int.optional(),
+    foot: point.optional(),
+    flipX: z.boolean().optional(),
+    tileX: z.boolean().optional(),
+    animation: placementAnimation.optional(),
+    generate: generate.optional(),
+  })
+  .superRefine((p, ctx) => {
+    const xy = p.x !== undefined && p.y !== undefined;
+    const positions = (xy ? 1 : 0) + (p.foot ? 1 : 0);
+    const partial = (p.x === undefined) !== (p.y === undefined);
+    if (positions !== 1 || partial) ctx.addIssue({ code: "custom", path: [], message: "a Placement takes exactly one position: x, y or foot" });
+  });
 
 const layer = z.discriminatedUnion("kind", [
   z.strictObject({ name: slug, kind: z.literal("fill"), plane: planeSchema, colour: colourIndex }),
@@ -318,6 +326,7 @@ export const scenePlanSchema = z
     scale: z.number().positive(),
     dither: z.boolean().default(false),
     styleAnchor: elementId.nullable(),
+    stage: stage.optional(),
     layers: z.array(layer).min(1),
     primitives: z.array(primitiveSchema),
     variants: z.array(variant).min(1, "a Scene needs at least one Variant"),
@@ -333,6 +342,17 @@ export const scenePlanSchema = z
         seen.add(p.id);
       }),
     );
+    const vp = plan.stage?.vanishingPoint;
+    if (vp && (vp.x < 0 || vp.x >= SCENE_WIDTH || vp.y < 0 || vp.y >= SCENE_HEIGHT)) {
+      issue(["stage", "vanishingPoint"], `vanishing point ${vp.x},${vp.y} is outside the ${SCENE_WIDTH}x${SCENE_HEIGHT} canvas`);
+    }
+    if (!plan.stage) {
+      plan.layers.forEach((l, li) =>
+        placementsOf(l).forEach((p, pi) => {
+          if (p.foot) issue(["layers", li, "placements", pi, "foot"], "a foot position is allowed only with a Stage");
+        }),
+      );
+    }
     const names = new Set<string>();
     let deepest = 0;
     plan.layers.forEach((l, li) => {
