@@ -258,3 +258,18 @@ test("an effect draws after the Layer it names, under later Layers, and joins th
   assert.deepEqual(at(out, 21, 0), rgb(5));
   assert.equal(c.nextTick(0), 1000 / 24);
 });
+
+test("the compositor bundles for a neutral platform and renders where no Node, DOM or Canvas API exists", async () => {
+  const { build } = await import("esbuild");
+  const { runInNewContext } = await import("node:vm");
+  const { fileURLToPath } = await import("node:url");
+  const entry = fileURLToPath(new URL("../viewer/compositor.ts", import.meta.url));
+  const result = await build({ entryPoints: [entry], bundle: true, platform: "neutral", format: "iife", globalName: "compositor", write: false, logLevel: "silent" });
+  const sandbox: Record<string, any> = {};
+  runInNewContext(`${result.outputFiles[0].text}; globalThis.compositor = compositor;`, sandbox);
+  for (const name of ["document", "window", "OffscreenCanvas", "ImageData", "Buffer", "process", "require"]) {
+    assert.equal(name in sandbox, false, `${name} leaked into the sandbox`);
+  }
+  const out = sandbox.compositor.createCompositor({ plan: plan([{ name: "sky", fill: 2 }]), elements: new Map(), palette }).render(0);
+  assert.deepEqual([...out.subarray(0, 4)], rgb(2));
+});
