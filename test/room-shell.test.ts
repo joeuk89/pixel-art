@@ -6,8 +6,8 @@ import sharp from "sharp";
 import { editJson, fixturePalette, fixtureScene, makeTree, readJson, runScript } from "./helpers.ts";
 
 const sceneDir = "scenes/fixture-rainy-desk-a1b2";
-// The spec's illustrative Stage: the floor row at depth d sits at y = 118 + 86 * 150 / (150 - d).
-const STAGE = { back: { x: 36, y: 18, w: 312, h: 186 }, vanishingPoint: { x: 192, y: 118 }, f: 150 };
+// Near the spec's illustrative Stage: the floor row at depth d sits at y = 118 + 86 * 150 / (150 - d).
+const STAGE = { back: { x: 36, y: 18, w: 312, h: 186 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
 const FLAT = { back: { colour: 2 }, floor: { colour: 11 }, ceiling: { colour: 1 }, left: { colour: 3 }, right: { colour: 14 } };
 
 function sceneWithRoom(room: object, stage: object | undefined = STAGE): string {
@@ -41,8 +41,8 @@ test("room-shell paints each Surface its flat Palette colour into room.png besid
   const { out, at } = await shell(sceneWithRoom({}));
   assert.deepEqual(out, { ok: true, scene: "fixture-rainy-desk-a1b2", room: `${sceneDir}/room.png` });
   assert.deepEqual(at(100, 50), opaque(2), "back wall");
-  assert.deepEqual(at(192, 230), opaque(11), "floor");
-  assert.deepEqual(at(192, 5), opaque(1), "ceiling");
+  assert.deepEqual(at(190, 230), opaque(11), "floor");
+  assert.deepEqual(at(190, 5), opaque(1), "ceiling");
   assert.deepEqual(at(10, 110), opaque(3), "left wall");
   assert.deepEqual(at(375, 110), opaque(14), "right wall");
 });
@@ -50,14 +50,14 @@ test("room-shell paints each Surface its flat Palette colour into room.png besid
 test("a Surface left out of the room Layer is not drawn", async () => {
   const { back, floor, left, right } = FLAT;
   const { at } = await shell(sceneWithRoom({ surfaces: { back, floor, left, right } }));
-  assert.deepEqual(at(192, 5), CLEAR);
+  assert.deepEqual(at(190, 5), CLEAR);
   assert.deepEqual(at(100, 50), opaque(2));
 });
 
 test("floor boards draw one-pixel rows at their projected depth in the floor colour's dark Ramp step", async () => {
   const { at } = await shell(sceneWithRoom({ surfaces: { ...FLAT, floor: { colour: 11, lines: { pattern: "boards", spacing: 12 } } } }));
   // Depth 0, 12 and 24 land on rows 204, 211.48 and 220.38; colour 11 steps dark to colour 0.
-  for (const y of [204, 211, 220]) assert.deepEqual(at(192, y), opaque(0), `row ${y}`);
+  for (const y of [204, 211, 220]) assert.deepEqual(at(190, y), opaque(0), `row ${y}`);
   for (const y of [207, 216]) assert.deepEqual(at(150, y), opaque(11), `between rows at ${y}`);
 });
 

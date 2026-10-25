@@ -10,7 +10,7 @@ async function main(arg: string | undefined) {
   if (!arg) throw new Error("usage: poster <scene.json>");
   const planPath = resolve(root, arg);
   const plan = scenePlanSchema.parse(JSON.parse(readFileSync(planPath, "utf8")));
-  const frame = await posterFrame(root, plan);
+  const frame = await posterFrame(root, dirname(planPath), plan);
 
   const raw = { raw: { width: SCENE_WIDTH, height: SCENE_HEIGHT, channels: 4 as const } };
   const dir = dirname(planPath);

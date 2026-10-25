@@ -202,6 +202,15 @@ test("adding and removing a Light round-trips through Save", async () => {
   assert.deepEqual(readJson(root, fixtureScene).variants[0].lights.map((l: any) => l.id), ["lamp", "moonbeam"]);
 });
 
+test("the Tuner serves the Scene's room.png for its compositor", async () => {
+  const root = tunerTree();
+  const url = await startTuner(root);
+  const response = await fetch(new URL("room.png", url));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "image/png");
+  assert.ok(Buffer.from(await response.arrayBuffer()).equals(readFileSync(join(root, `scenes/${id}/room.png`))));
+});
+
 test("the Viewer bundle takes nothing from the Tuner", async () => {
   const bundled = await build({ entryPoints: [join(repo, "viewer/main.ts")], bundle: true, write: false, metafile: true, absWorkingDir: repo, logLevel: "silent" });
   const inputs = Object.keys(bundled.metafile.inputs);

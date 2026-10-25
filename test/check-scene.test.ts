@@ -33,7 +33,7 @@ test("an unresolved generate block fails the run and names the Placement", () =>
   const root = sceneTree();
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[3].placements[0].generate = { kind: "prop", brief: "wooden window", realSize: { w: 1, h: 1 }, tags: ["window"] };
+    plan.layers[4].placements[0].generate = { kind: "prop", brief: "wooden window", realSize: { w: 1, h: 1 }, tags: ["window"] };
   });
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
@@ -53,7 +53,7 @@ test("an unmeasured loop seam fails", () => {
 
 test("a Poster that no longer matches the plan fails", () => {
   const root = sceneTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].x += 3; });
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[0].x += 3; });
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
   assert.deepEqual(failed(out), ["poster"]);

@@ -322,7 +322,7 @@ test("x, y Placements keep their order around foot Placements", () => {
 });
 
 const room = (name: string) => ({ name, kind: "room", plane: "mid", surfaces: { back: { colour: 4 } }, openings: [], placements: [] });
-const stage = { back: { x: 0, y: 0, w: 384, h: 240 }, vanishingPoint: { x: 192, y: 120 }, f: 120 };
+const stage = { back: { x: 0, y: 0, w: 384, h: 240 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
 // A Room shell in colour 4 with a transparent Opening from 100,50 to 139,79.
 const shell = image(W, H, (x, y) => (x >= 100 && x < 140 && y >= 50 && y < 80 ? null : rgb(4)));
 
@@ -340,7 +340,7 @@ test("room.png draws in the room Layer's place: over the Layers before it, under
 });
 
 test("a far Layer shows through an Opening in room.png", () => {
-  const sky = image(W, H, (x) => rgb(x < 120 ? 1 : 3));
+  const sky = image(W, H, (x) => rgb(x < 124 ? 1 : 3));
   const out = createCompositor({
     plan: { ...plan([placed("city", [{ id: "city", element: "city-red-wide-01", x: 0, y: 0 }]), room("shell")]), stage },
     elements: new Map([["city-red-wide-01", { still: sky }]]),

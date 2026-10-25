@@ -35,7 +35,7 @@ async function poster(root: string, file: string, plan: ScenePlan): Promise<stri
   const problems = existsSync(join(dir, POSTER_OG_FILE)) ? [] : [`${relative(root, join(dir, POSTER_OG_FILE))} is missing; run poster`];
   let expected: Uint8ClampedArray;
   try {
-    expected = await posterFrame(root, plan);
+    expected = await posterFrame(root, dir, plan);
   } catch (e) {
     return [...problems, `cannot render frame 0: ${(e as Error).message}`];
   }

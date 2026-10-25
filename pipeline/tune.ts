@@ -5,6 +5,7 @@ import type { AddressInfo } from "node:net";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { ROOM_FILE } from "../schema/index.ts";
 import { readScene } from "./lib/library.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { applyTuning, TuningRefused } from "./lib/tuning.ts";
@@ -137,6 +138,7 @@ async function main() {
       if (path === "/") return send(res, 200, PAGE, TYPES[".html"]);
       if (path === "/tuner.js") return send(res, 200, readFileSync(join(bundleDir, "tuner.js")), TYPES[".js"]);
       if (path === "/scene.json") return send(res, 200, readFileSync(planPath), TYPES[".json"]);
+      if (path === `/${ROOM_FILE}` && existsSync(join(dirname(planPath), ROOM_FILE))) return send(res, 200, readFileSync(join(dirname(planPath), ROOM_FILE)), TYPES[".png"]);
       if (path.startsWith("/library/")) {
         const target = resolve(root, `.${path}`);
         const library = join(root, "library") + sep;

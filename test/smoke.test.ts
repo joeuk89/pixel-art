@@ -170,7 +170,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       return { width: c.width, height: c.height, first: [data[0], data[1], data[2]], colours: colours.size };
     });
     assert.deepEqual([pixels.width, pixels.height], [384, 240]);
-    assert.deepEqual(pixels.first, rgb(palette[0]), "the sky's colour 1 is three dark steps down under the rainy night");
+    assert.deepEqual(pixels.first, rgb(palette[1]), "the left wall's colour 3 is two dark steps down under the rainy night");
     assert.ok(pixels.colours > 4, `canvas shows only ${pixels.colours} colours`);
     assert.deepEqual(errors, []);
   });
@@ -197,6 +197,20 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
       return n;
     }, [city, yellow] as const);
     assert.ok(lights > 0, "no emissive city window inside the mask kept its colour");
+    assert.deepEqual(errors, []);
+  });
+
+  test("the room Layer draws the Room shell from room.png, as the Poster shows it", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    const canvas = page.locator("canvas");
+    await canvas.waitFor();
+    // Back wall below the Opening, out of reach of the flickering lamp and the Primitives.
+    const wall = { x: 64, y: 196, w: 86, h: 10 };
+    const drawn = await canvas.evaluate((c: HTMLCanvasElement, r) => Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data), wall);
+    const poster = await sharp(join(root, `scenes/${id}/poster.png`)).ensureAlpha().extract({ left: wall.x, top: wall.y, width: wall.w, height: wall.h }).raw().toBuffer();
+    assert.deepEqual(drawn, Array.from(poster));
+    const shell = readJson(root, fixtureScene).layers.find((l: any) => l.kind === "room");
+    assert.equal(shell.openings.length, 1);
     assert.deepEqual(errors, []);
   });
 
@@ -883,7 +897,7 @@ function rgb(hex: string): number[] {
 }
 
 const FRAME_TIME = `
-import { elementRecordSchema, paletteSchema, scenePlanSchema, allPlacements, SCENE_WIDTH, SCENE_HEIGHT } from "./schema/index.ts";
+import { elementRecordSchema, paletteSchema, scenePlanSchema, allPlacements, roomLayerOf, SCENE_WIDTH, SCENE_HEIGHT } from "./schema/index.ts";
 import { createCompositor, elementPixelsOf } from "./viewer/compositor.ts";
 import { createPrimitives } from "./viewer/primitives.ts";
 
@@ -904,7 +918,8 @@ export async function frameTime(id) {
     const record = elementRecordSchema.parse(await json("library/elements/" + element + ".json"));
     elements.set(element, await elementPixelsOf(record, (suffix) => decode("/library/elements/" + element + suffix)));
   }
-  const compositor = createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
+  const room = roomLayerOf(plan) ? await decode("/scenes/" + id + "/room.png") : undefined;
+  const compositor = createCompositor({ plan, elements, palette, room, primitives: createPrimitives({ plan, elements, palette }) });
   const ctx = new OffscreenCanvas(SCENE_WIDTH, SCENE_HEIGHT).getContext("2d");
   const draw = (t) => ctx.putImageData(new ImageData(compositor.render(t), SCENE_WIDTH, SCENE_HEIGHT), 0, 0);
   for (let k = 0; k < 6; k++) draw(k * 1000 / 24);

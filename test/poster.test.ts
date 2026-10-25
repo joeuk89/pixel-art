@@ -36,7 +36,8 @@ async function fixtureFrameZero(root: string, variant = 0): Promise<Uint8Clamped
     const mask = record.emissiveMask && await rgba(join(root, `library/elements/${id}.emissive.png`));
     elements.set(id, { still, ...(strip && { strip }), ...(record.emissive && { emissive: record.emissive }), ...(mask && { mask }) });
   }
-  return createCompositor({ plan, elements, palette, variant: plan.variants[variant] }).render(0);
+  const room = await rgba(join(root, sceneDir, "room.png"));
+  return createCompositor({ plan, elements, palette, variant: plan.variants[variant], room }).render(0);
 }
 
 test("poster run against the fixture Scene prints one JSON object, exits 0 and writes both PNGs beside the plan", async () => {
