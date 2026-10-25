@@ -92,3 +92,16 @@ test("ADR 0004 records lighting as a Ramp pass in the Viewer with the Halo as th
   assert.match(text, /Halo/);
   assert.match(text, /## Considered options/);
 });
+
+test("ADR 0004 and the lighting step name the Halo without its avoided synonyms", () => {
+  for (const path of ["docs/adr/0004-lighting-is-a-ramp-pass-in-the-viewer.md", ".claude/skills/director/lighting.md"]) {
+    const text = readFileSync(join(repo, path), "utf8");
+    assert.doesNotMatch(text, /\b(bloom|aura)\b/i, `${path} calls the Halo a bloom or aura`);
+  }
+});
+
+test("ADR 0004 agrees with the briefs: they name a light direction and ban painted-in light", () => {
+  const text = readFileSync(join(repo, "docs/adr/0004-lighting-is-a-ramp-pass-in-the-viewer.md"), "utf8");
+  assert.doesNotMatch(text, /leave out light words/i);
+  assert.match(text, /direction its light comes from/i);
+});

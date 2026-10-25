@@ -1,6 +1,6 @@
 # Lighting a Scene
 
-The Viewer lights the Scene at play time (ADR 0004). Every pixel moves along its colour's Ramp by a light level: the Variant's ambient level, plus its Layer's offset, plus the sum of the point and beam Lights at that pixel. Lit pixels stay on the Palette. The only exception is a point Light's Halo, which draws last as a smooth additive bloom in one Palette colour. Light is never painted into an Element: briefs describe objects at rest.
+The Viewer lights the Scene at play time (ADR 0004). Every pixel moves along its colour's Ramp by a light level: the Variant's ambient level, plus its Layer's offset, plus the sum of the point and beam Lights at that pixel. Lit pixels stay on the Palette. The only exception is a point Light's Halo, which draws last, smooth and additive, in one Palette colour. Light is never painted into an Element: briefs describe objects at rest.
 
 ## Defaults
 
