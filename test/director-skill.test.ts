@@ -132,7 +132,7 @@ test("a proposed new Palette blocks reuse and forces colours to be re-picked onc
   const done = gate.text.slice(gate.text.indexOf("**Done when**"));
   assert.match(done, /re-pick every `fill` and Primitive colour index against the new Palette/);
   assert.match(done, /new Palette[\s\S]*pipeline\/validate\.ts/);
-  assert.match(done, /rejects the new Palette[\s\S]*step 5[\s\S]*house Palette/);
+  assert.match(done, /rejects the new Palette[\s\S]*step 7[\s\S]*house Palette/);
 });
 
 test("an owner edit to scale, a realSize or an Element re-derives canvases and re-shops before the brief is shown again", () => {
@@ -140,7 +140,7 @@ test("an owner edit to scale, a realSize or an Element re-derives canvases and r
   const edits = gate.text.slice(gate.text.indexOf("Wait for the owner"), gate.text.indexOf("**Done when**"));
   assert.match(edits, /`scale`[\s\S]*`realSize`[\s\S]*Element/);
   assert.match(edits, /`generate` block back on every reused Placement/);
-  assert.match(edits, /step 4[\s\S]*step 5/);
+  assert.match(edits, /step 6[\s\S]*step 7/);
   assert.match(edits, /reused Element's size[\s\S]*canvas/);
   assert.match(edits, /pipeline\/validate\.ts[\s\S]*show the brief again/);
 });
@@ -167,7 +167,7 @@ test("Build Primitives runs one subagent at a time by primitives.md, unattended,
   assert.match(text, /npm test/);
   assert.match(text, /staged/);
   assert.doesNotMatch(text, /git commit/);
-  assert.match(step("Preview").text, /Primitive built at step 7/);
+  assert.match(step("Preview").text, /Primitive built at step 9/);
 });
 
 test("Generate runs unattended in the agreed order and never asks the owner", () => {
@@ -201,5 +201,96 @@ test("Rejection reopens only the changed Placements under the same Scene id", ()
   assert.match(text, /pipeline\/reopen\.ts/);
   assert.match(text, /same Scene id/);
   assert.match(text, /only/);
-  assert.match(text, /step 8[\s\S]*step 9[\s\S]*step 10/);
+  assert.match(text, /step 10[\s\S]*step 11[\s\S]*step 12/);
+});
+
+test("steps 1 to 8 run Concept, Decompose, Lighting, Palette, Working draft, Derive canvases, Shop and the Plan gate", () => {
+  const titles = steps(skill()).map((s) => s.title);
+  assert.deepEqual(titles.slice(0, 8), ["Concept", "Decompose", "Lighting", "Palette", "Working draft", "Derive canvases", "Shop", "Plan gate"]);
+});
+
+test("the Concept adds the space and the eye height", () => {
+  const text = step("Concept").text;
+  assert.match(text, /room width, height and depth in metres/);
+  assert.match(text, /ground width and depth and the horizon height/);
+  assert.match(text, /eye height/);
+  assert.match(text, /all eight lines/);
+});
+
+test("Decompose reads staging.md and Lighting reads lighting.md", () => {
+  assert.match(step("Decompose").text, /\(staging\.md\)/);
+  assert.match(step("Lighting").text, /\(lighting\.md\)/);
+});
+
+const RULES: [string, RegExp][] = [
+  ["the zoom rule", /zoom 1\.0, or 1\.25 when the focal point sits on the back wall/],
+  ["the zoom ceiling", /never above 1\.5/],
+  ["the Layer count", /three to six Layers/i],
+  ["a room box or a doorway", /a `room` Layer or a doorway/],
+  ["Room shell colours and lines from materials", /colours and `lines` from the Concept's materials/],
+  ["Openings at real sizes", /Openings at real metre sizes/],
+  ["the Backdrop sized to its Opening", /Backdrop sized to the Opening it shows through/],
+  ["skylines as distinct props", /at least three distinct Elements per row/],
+  ["the bare-Surface rule", /judged by eye at the Plan gate and the preview/],
+  ["foot positions", /floor props take a `foot` position/i],
+  ["a lamp is a Light, not a Primitive", /a lamp is a point Light with a Halo/i],
+  ["the Light radius", /about 2\.5 m times the Scale at its foot/],
+  ["the Light strength", /strength \+2\.5/],
+  ["flicker for flame", /flicker 0\.1 at 0\.8 Hz/],
+  ["cool sources", /cool for screens, moonlight and sky/],
+  ["window spill", /window spill is a cool point Light `at` the Opening's centre/i],
+  ["ambient day", /\| day \| 0 \|/],
+  ["ambient golden hour", /\| golden hour \| −0\.5 \|/],
+  ["ambient dusk", /\| dusk \| −1\.5 \|/],
+  ["ambient night", /\| night \| −2\.5 \|/],
+  ["beams", /beam only when the Concept names a sun shaft/i],
+  ["Emissive colours", /Emissive colours are chosen at acceptance/],
+  ["Variants", /a second only when the Prompt asks/],
+  ["the house v2 Palette", /`-v2` copy/],
+  ["a proposed Palette", /hue-shifted ramps, then flattened to 16 colours/],
+  ["Feature briefs", /square-on/],
+  ["the perspective ban", /"in perspective"[^\n]*"receding"[^\n]*"angled"[^\n]*"seen from the side"/],
+  ["light direction", /names the Element's light direction/],
+  ["the Style anchor size", /48 to 96 px on its longer side/],
+  ["no style image for the anchor", /generated first, with no style image/],
+  ["own subject", /never anchors an Element on its own subject/i],
+  ["Finish eligibility", /mostly flat colour, straight edges and simple geometry/],
+  ["the default Finish", /default Finish is service/i],
+  ["never local", /characterful or shaded props, Backdrops and pictorial Features/],
+  ["the trade-off line", /"local: exact geometry, flat and plainer; service: richer detail and shading"/],
+  ["the freedom rule", /freedom over templates/i],
+  ["Backdrop briefs describe only the view", /For a Backdrop, describe only the view/],
+  ["the first Variant", /The first Variant is the Concept's time and weather/],
+  ["side-wall width", /at least 12 px wide at the canvas edge/],
+  ["the near frame prop", /one large prop cut by a canvas edge/],
+];
+
+for (const [rule, pattern] of RULES) {
+  test(`the skill states ${rule} once`, () => {
+    const global = new RegExp(pattern.source, `${pattern.flags}g`);
+    const hits = skillFiles().flatMap(({ name, text }) => [...text.matchAll(global)].map(() => name));
+    assert.equal(hits.length, 1, `${rule}: found in ${JSON.stringify(hits)}`);
+  });
+}
+
+test("no skill file plans a glow Primitive or a tiled Backdrop", () => {
+  for (const { name, text } of skillFiles()) {
+    assert.doesNotMatch(text, /\bglow\b/i, `${name} names glow`);
+    assert.doesNotMatch(text, new RegExp(`${2 * 96}x${2 * 60}|${2 ** 7}x${2 ** 6}`), `${name} keeps a v1 size`);
+    if (name !== "primitives.md") assert.doesNotMatch(text, /tileX|tiled across/, `${name} tiles a Backdrop`);
+  }
+});
+
+test("the Plan gate shows the v2 blocks and the Finish offer with both shortcuts", () => {
+  const gate = step("Plan gate").text;
+  for (const item of ["Stage", "zoom", "Room shell", "Surfaces", "`lines`", "Openings", "depth-derived canvas", "tier", "Variants", "Lights", "£0", "saving", "`finishOffer`", "each reused Element's Finish"]) {
+    assert.ok(gate.includes(item), `Plan gate names ${item}`);
+  }
+  assert.match(gate, /"all eligible local"/);
+  assert.match(gate, /"all service"/);
+  assert.match(gate, /\(cost\.md\)/);
+});
+
+test("Derive canvases names every eligible service-Finish Element so the gate can price it", () => {
+  assert.match(step("Derive canvases").text, /--eligible <placementId>/);
 });

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "id": "penthouse-rain-city-night-fl4q",
+  "title": "Top of the Tower",
+  "prompt": "View from the inside of a luxury, penthouse apartment, looking out to the huge floor to ceiling windows at the night sky, and the incredible city scape - include a variety of buildings, and a river dotted with boats ect.\n\nThe inside of the apartment it is cosy and modern. It is dark in the apartment apart from a lamp that lets out a gentle warm glow. The vibe is moody, atmospheric - it's raining hard outside, and you can hear the wind this high up buffeting the tallest building in the city that you're at the top of.\n\n---\n\nFeel free to add/tweak to this - those are my ideas so far. I want something moody, a bit melancholy - kind of like a modern 'lonely king' at the top of the tower feel",
+  "description": "A dark penthouse at the top of the city's tallest tower looks out through floor-to-ceiling windows at a rain-swept skyline and a river dotted with boats. One floor lamp lights an empty armchair and a side table: a lonely seat at the top of the world.",
+  "createdAt": "2026-10-25T00:16:02Z",
+  "seed": 1773644340,
+  "status": "draft",
+  "palette": "cosy-night-v2",
+  "scale": 53.33,
+  "dither": false,
+  "styleAnchor": null,
+  "stage": { "back": { "x": -48, "y": 47, "w": 480, "h": 149 }, "vanishingPoint": { "x": 192, "y": 116 }, "f": 150 },
+  "layers": [
+    { "name": "sky", "kind": "fill", "plane": "far", "colour": 1 },
+    { "name": "city", "kind": "placements", "plane": "far", "placements": [
+      { "id": "city", "element": "city-river-storm-night-01", "x": 56, "y": 47,
+        "generate": { "kind": "backdrop", "brief": "night city skyline seen from high above: varied towers, office blocks and spires with small yellow windows, a wide dark river winding below with tiny boats, heavy violet storm clouds, soft light rising from the streets below, fills the whole canvas edge to edge", "tags": ["city", "skyline", "river", "night", "storm"], "size": { "w": 256, "h": 148 } } } ] },
+    { "name": "room", "kind": "room", "plane": "mid",
+      "surfaces": {
+        "back": { "colour": 2, "skirting": { "height": 4, "colour": 1 } },
+        "floor": { "colour": 14, "lines": { "pattern": "boards", "spacing": 12 } },
+        "ceiling": { "colour": 1 } },
+      "openings": [
+        { "id": "window", "surface": "back", "along": 104, "across": 0, "w": 256, "h": 148,
+          "frame": { "width": 3, "colour": 0, "mullionsAcross": 3, "mullionsDown": 0 } } ],
+      "placements": [] },
+    { "name": "furniture", "kind": "placements", "plane": "mid", "placements": [
+      { "id": "lamp", "element": "lamp-floor-brass-linen-01", "foot": { "x": 132, "y": 210 },
+        "generate": { "kind": "prop", "brief": "tall slim floor lamp, brass stem, round brass base, cream linen drum shade, front view, cool light from behind", "realSize": { "w": 0.45, "h": 1.6 }, "tags": ["lamp", "floor lamp", "brass", "linen", "modern"] } },
+      { "id": "armchair", "element": "armchair-charcoal-wool-throw-01", "foot": { "x": 196, "y": 222 },
+        "generate": { "kind": "prop", "brief": "modern armchair, dark charcoal wool, cream throw over one arm, front view, warm light from the left", "realSize": { "w": 0.95, "h": 1 }, "tags": ["armchair", "wool", "throw", "modern", "night"] } },
+      { "id": "side-table", "element": "table-side-marble-tumbler-01", "foot": { "x": 262, "y": 228 },
+        "generate": { "kind": "prop", "brief": "small round side table, black metal legs, dark marble top, one crystal whisky tumbler on top, front view, warm light from the left", "realSize": { "w": 0.5, "h": 0.55 }, "tags": ["table", "side table", "marble", "whisky"] } } ] },
+    { "name": "frame", "kind": "placements", "plane": "near", "placements": [
+      { "id": "curtain", "element": "curtain-velvet-violet-folds-01", "x": 352, "y": -8,
+        "generate": { "kind": "prop", "brief": "heavy dark velvet curtain hanging in deep folds, deep violet, front view, warm light from the left", "realSize": { "w": 0.8, "h": 3 }, "tags": ["curtain", "velvet", "drape"] } } ] }
+  ],
+  "primitives": [
+    { "type": "rain", "anchor": "city", "region": { "x": 56, "y": 47, "w": 256, "h": 148 }, "colours": [5, 6, 7], "density": 128, "drift": 0.5 },
+    { "type": "twinkle", "anchor": "city", "colours": [8, 12], "count": 16 }
+  ],
+  "variants": [
+    { "id": "night-rain", "title": "Rainy night",
+      "ambient": { "level": -2.5 },
+      "lights": [
+        { "type": "point", "id": "lamp", "anchor": "lamp", "offset": { "x": 16, "y": 30 }, "radius": 157, "strength": 2.5, "tint": "warm",
+          "flicker": { "depth": 0.1, "rate": 0.8 }, "halo": { "colour": 8, "radius": 30, "strength": 0.6 } },
+        { "type": "point", "id": "window-spill", "at": { "x": 184, "y": 121 }, "radius": 180, "strength": 0.75, "tint": "cool" } ],
+      "emissiveOff": [] }
+  ],
+  "soundtrack": {
+    "music": { "brief": "slow sparse piano over low strings, melancholy and calm", "service": "stable-audio-3" },
+    "ambient": [
+      { "source": { "kind": "curated", "id": "freesound-rain-window-242889" }, "file": "rain.ogg", "distance": "near" },
+      { "source": { "kind": "curated", "id": "freesound-room-tone-641306" }, "file": "room.ogg", "distance": "mid" },
+      { "source": { "kind": "curated", "id": "elevenlabs-tower-wind-01" }, "file": "wind.ogg", "distance": "far" } ],
+    "oneshots": [
+      { "source": { "kind": "curated", "id": "freesound-thunder-distant-195522" }, "file": "thunder.ogg", "distance": "far", "every": [90, 240] } ]
+  },
+  "cost": { "pixellabGenerations": 0, "meteredUsd": {}, "attemptsAbandoned": 0, "approvedOverage": null }
+}

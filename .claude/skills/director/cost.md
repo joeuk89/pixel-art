@@ -29,6 +29,12 @@ The estimate is one first Attempt for every service-Finish Element at its tier, 
 
 Per-Scene budget: 3x that first-Attempt estimate, which leaves room for retries. This reads the spec's "3x planned Elements" in generations, because a single Pro Flash prop already costs 5 to 9.
 
+## Finish
+
+Propose a Finish for every eligible Element. An Element is eligible for a local Finish when it is mostly flat colour, straight edges and simple geometry: plain furniture, shelves, boxes, frames, skyline blocks. Never offer locally characterful or shaded props, Backdrops and pictorial Features: creatures, people, plants, food, paintings, anything with form shading. The default Finish is service, because depth and lighting outrank cost; propose local only where the plainer look loses nothing the Concept needs. The Room shell and Seamless textures are always local and are not offered.
+
+`derive-canvas --eligible <placementId>` prices the offer as `finishOffer`: each eligible Element's Pro Flash generations and USD against £0 local, and the saving if all switch. Show it at the Plan gate with this trade-off line, word for word: "local: exact geometry, flat and plainer; service: richer detail and shading".
+
 ## Metered USD
 
 | Item | Price |

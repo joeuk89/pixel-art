@@ -8,6 +8,8 @@ import { readElements } from "./library.ts";
 export const ATTEMPTS_PER_STILL = 4;
 export const GENERATION_MULTIPLIER = 3;
 export const METERED_CAP_USD = 1;
+// The spec sets ceilings in pounds but services bill in dollars; this rate is an assumption, printed with each result.
+export const USD_PER_GBP = 1.3;
 export const RETRO_DIFFUSION_ATTEMPTS_PER_PROP = 2;
 export const RETRO_DIFFUSION_PROPS_PER_SCENE = 4;
 export const STRIPS_DIR = "scratch/strips";
@@ -27,7 +29,7 @@ export function stripAttempts(id: string): StripAttempt[] {
     .map((n) => JSON.parse(readFileSync(join(STRIPS_DIR, n), "utf8")) as StripAttempt);
 }
 
-const round = (n: number) => Math.round(n * 1e4) / 1e4;
+export const roundUsd = (n: number) => Math.round(n * 1e4) / 1e4;
 
 type Planned = { canvas: Canvas; pixellabStrip: boolean; local: boolean };
 
@@ -61,7 +63,7 @@ export function budget(plan: ScenePlan) {
   const meteredUsed = Object.values(plan.cost.meteredUsd).reduce((sum, usd) => sum + usd, 0) +
     unchargedStrips.reduce((sum, a) => sum + a.cost.meteredUsd, 0) +
     attempts.filter((a) => !a.charged).reduce((sum, a) => sum + (a.meteredUsd ?? 0), 0);
-  const meteredUsd = { used: round(meteredUsed), cap: round(METERED_CAP_USD + (overage?.meteredUsd ?? 0)) };
+  const meteredUsd = { used: roundUsd(meteredUsed), cap: roundUsd(METERED_CAP_USD + (overage?.meteredUsd ?? 0)) };
 
   const stills = placements.filter((p) => p.generate).map((p) => ({
     placement: p.id,

@@ -31,7 +31,7 @@ for (const name of ["cosy-night", "golden-hour"]) {
 test("no v1 canvas or Backdrop size survives in schema, pipeline, viewer or tests", () => {
   // Built from parts so the pattern does not match this file.
   const pattern = `(^|[^0-9A-Za-z_#])(${2 * 96}|${2 * 60})([^0-9A-Za-z_]|$)|${2 ** 7}x${2 ** 6}|${"BACKDROP"}_`;
-  const args = ["grep", "-nIE", "--untracked", "-e", pattern, "--and", "--not", "-e", "DEFAULT_STAGE_F = ", "--", "schema", "pipeline", "viewer", "test"];
+  const args = ["grep", "-nIE", "--untracked", "-e", pattern, "--and", "--not", "-e", "DEFAULT_STAGE_F = ", "--and", "--not", "-e", "\"vanishingPoint\": { \"x\": 192,", "--", "schema", "pipeline", "viewer", "test"];
   const run = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
   assert.equal(run.stdout, "", run.stdout);
 });
@@ -82,4 +82,26 @@ test("the curation spec lists the thirteen curated sounds and the ten starter lo
 
 test("the old scripts folder is gone", () => {
   assert.equal(existsSync(join(repo, "scripts")), false);
+});
+
+test("ADR 0004 records lighting as a Ramp pass in the Viewer with the Halo as the only exception", () => {
+  const file = join(repo, "docs/adr/0004-lighting-is-a-ramp-pass-in-the-viewer.md");
+  assert.ok(existsSync(file), "ADR 0004 exists");
+  const text = readFileSync(file, "utf8");
+  assert.match(text, /^# .*Ramp pass/m);
+  assert.match(text, /Halo/);
+  assert.match(text, /## Considered options/);
+});
+
+test("ADR 0004 and the lighting step name the Halo without its avoided synonyms", () => {
+  for (const path of ["docs/adr/0004-lighting-is-a-ramp-pass-in-the-viewer.md", ".claude/skills/director/lighting.md"]) {
+    const text = readFileSync(join(repo, path), "utf8");
+    assert.doesNotMatch(text, /\b(bloom|aura)\b/i, `${path} calls the Halo a bloom or aura`);
+  }
+});
+
+test("ADR 0004 agrees with the briefs: they name a light direction and ban painted-in light", () => {
+  const text = readFileSync(join(repo, "docs/adr/0004-lighting-is-a-ramp-pass-in-the-viewer.md"), "utf8");
+  assert.doesNotMatch(text, /leave out light words/i);
+  assert.match(text, /direction its light comes from/i);
 });
