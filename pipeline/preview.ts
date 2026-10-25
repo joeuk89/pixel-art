@@ -89,6 +89,7 @@ async function preview(file: string) {
   git("add", "--", relative(root, dirname(planPath)), "library", "gallery.json");
   const staged = git("diff", "--cached", "--name-only").split("\n").filter(Boolean).sort();
 
+  const planFile = relative(root, planPath);
   const elements = elementsOf(plan);
   const abandoned = readAbandoned(plan.id);
   return {
@@ -96,12 +97,12 @@ async function preview(file: string) {
     scene: plan.id,
     previewUrl: `${DEV_URL}scenes/${plan.id}/`,
     devServer: { url: DEV_URL, listening: await listening(DEV_URL) },
-    tuner: { url: TUNER_URL, command: `node pipeline/tune.ts ${relative(root, planPath)}` },
+    tuner: { url: TUNER_URL, command: `node pipeline/tune.ts ${planFile}` },
     staged,
     cost: plan.cost,
     ledger: ledger(plan),
     elements,
-    localElements: localElements(plan, relative(root, planPath)),
+    localElements: localElements(plan, planFile),
     abandoned,
     commitMessage: commitMessage(plan, elements, abandoned),
     checks: report.checks,

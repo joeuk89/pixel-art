@@ -31,11 +31,11 @@ export type EmissiveResult = { fields: { emissive: number[]; emissiveMask?: true
 // The mask covers only the emissive-coloured pixels inside the regions, so the same colour elsewhere in the Element stays lit by the Ramp pass.
 export async function emissiveOf(pngPath: string, palette: readonly string[], choice: EmissiveChoice): Promise<EmissiveResult> {
   const pixels = await decodePng(pngPath);
-  const keys = palette.map((hex) => rgbOf(hex).join(","));
+  const indexOfKey = new Map(palette.map((hex, i) => [rgbOf(hex).join(","), i] as const).reverse());
   const index = new Int16Array(pixels.width * pixels.height).fill(-1);
   for (let k = 0; k < index.length; k++) {
     if (pixels.data[k * 4 + 3] === 0) continue;
-    index[k] = keys.indexOf(`${pixels.data[k * 4]},${pixels.data[k * 4 + 1]},${pixels.data[k * 4 + 2]}`);
+    index[k] = indexOfKey.get(`${pixels.data[k * 4]},${pixels.data[k * 4 + 1]},${pixels.data[k * 4 + 2]}`) ?? -1;
   }
   const used = new Set(index);
   for (const c of choice.colours) if (!used.has(c)) throw new Error(`--emissive: colour ${c} does not appear in the Element`);

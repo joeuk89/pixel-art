@@ -106,7 +106,6 @@ async function finish(root: string) {
   return step(root, "preview", PLAN);
 }
 
-// Step 9 of the spec for every Placement still carrying a generate block, then step 10.
 async function generateAll(root: string) {
   await step(root, "room-shell", PLAN);
   const [, anchor, desk] = await Promise.all([step(root, "music", PLAN), element(root, "lamp", "--style-anchor"), drawn(root, "desk")]);
