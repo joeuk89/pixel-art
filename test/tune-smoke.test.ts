@@ -97,6 +97,12 @@ describe("Tuner smoke test", { skip: browser ? false : "no Playwright browser in
     const plan = readJson(root, fixtureScene);
     assert.equal(plan.stage.f, 180);
     assert.equal(plan.status, "draft");
+
+    assert.equal(await page.getByRole("button", { name: "Save" }).isDisabled(), true, "Save stays on after a zoom Save, so a second Save zooms the plan again");
+    assert.equal(await zoom.isDisabled(), true, "the zoom control stays on after a zoom Save");
+    await page.getByRole("button", { name: "Add point Light" }).click();
+    assert.equal(await page.getByRole("button", { name: "Save" }).isDisabled(), true, "a re-render turns Save back on");
+    assert.equal(readJson(root, fixtureScene).stage.f, 180);
     assert.deepEqual(errors, []);
   });
 });

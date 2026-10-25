@@ -105,6 +105,7 @@ async function boot(): Promise<void> {
 
   let zoom = 1;
   let preview: Preview | undefined;
+  let zoomSaved = false;
   let loading = 0;
 
   const canvas = el("canvas", { width: SCENE_WIDTH, height: SCENE_HEIGHT });
@@ -346,7 +347,7 @@ async function boot(): Promise<void> {
   };
 
   function zoomControl(): HTMLLabelElement {
-    const range = el("input", { type: "range", min: String(ZOOM_MIN), max: String(ZOOM_MAX), step: String(ZOOM_STEP), value: String(zoom) });
+    const range = el("input", { type: "range", min: String(ZOOM_MIN), max: String(ZOOM_MAX), step: String(ZOOM_STEP), value: String(zoom), disabled: zoomSaved });
     const shown = el("output", { textContent: `${zoom}x` });
     range.setAttribute("aria-label", "Zoom");
     range.addEventListener("input", () => (shown.textContent = `${Number(range.value)}x`));
@@ -411,7 +412,7 @@ async function boot(): Promise<void> {
         v.emissiveOff = on ? v.emissiveOff.filter((id) => id !== p.id) : [...v.emissiveOff, p.id];
       }));
 
-    const saveButton = el("button", { type: "button", className: "save", textContent: "Save" });
+    const saveButton = el("button", { type: "button", className: "save", textContent: "Save", disabled: zoomSaved });
     saveButton.addEventListener("click", () => save(saveButton));
 
     panel.replaceChildren(
@@ -438,6 +439,8 @@ async function boot(): Promise<void> {
       const out = await response.json();
       if (response.status !== 200) return say(`Not saved. ${out.error}`, true);
       if (out.zoom !== undefined) {
+        zoomSaved = true;
+        panel.querySelector<HTMLInputElement>('input[aria-label="Zoom"]')!.disabled = true;
         const lines = [
           `Saved at ${out.zoom}x. The Scene is ${out.status}.`,
           `Reopened: ${out.reopened.join(", ") || "none"}.`,
@@ -456,7 +459,8 @@ async function boot(): Promise<void> {
     } catch (e) {
       say(`Not saved: ${(e as Error).message}`, true);
     } finally {
-      button.disabled = false;
+      // This page still holds the unzoomed plan and Lights; a second Save would zoom the Scene again.
+      button.disabled = zoomSaved;
     }
   }
 
