@@ -63,12 +63,14 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
         { source: { kind: "generated", service: "elevenlabs-fal", brief: "kettle hiss", id: "elevenlabs-kettle-01" }, file: "room.ogg", distance: "near" },
         { source: { kind: "generated", service: "elevenlabs-fal", brief: "distant wind", id: "elevenlabs-wind-01" }, file: "thunder.ogg", distance: "far", gain: 0.5 },
       );
+      plan.variants[1].soundtrack = { ambient: [{ source: { kind: "curated", id: "freesound-vent-hum-753540" }, file: "room.ogg", distance: "near" }] };
     });
     const quiet = `scenes/${quietId}`;
     cpSync(join(root, `scenes/${id}`), join(root, quiet), { recursive: true });
     editJson(root, `${quiet}/scene.json`, (plan) => {
       Object.assign(plan, { id: quietId, title: "Fixture quiet desk" });
       Object.assign(plan.soundtrack, { ambient: [], oneshots: [] });
+      for (const variant of plan.variants) delete variant.soundtrack;
     });
     const still = `scenes/${stillId}`;
     cpSync(join(root, `scenes/${id}`), join(root, still), { recursive: true });
@@ -514,7 +516,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     }
     const row = await page.locator(".overlay").evaluate((nav) =>
       [...nav.children].map((el) => el.querySelector("input")?.getAttribute("aria-label") ?? el.textContent));
-    assert.deepEqual(row.slice(2, 6), ["Sound", "Music", "Ambient", "Fullscreen"]);
+    assert.deepEqual(row.slice(1, 7), [title, "Rainy night", "Sound", "Music", "Ambient", "Fullscreen"]);
     assert.equal(await page.getByRole("slider", { name: "Volume" }).count(), 0);
     assert.deepEqual(errors, []);
   });
@@ -636,6 +638,97 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual(errors, []);
   });
 
+  const windowFrame = { x: 168, y: 28, w: 48, h: 3 };
+  const frameOnCanvas = (page: Page) =>
+    page.locator("canvas").evaluate((c: HTMLCanvasElement, r) => Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data), windowFrame);
+  const frameOnPoster = async () =>
+    Array.from(await sharp(join(root, `scenes/${id}/poster.png`)).extract({ left: windowFrame.x, top: windowFrame.y, width: windowFrame.w, height: windowFrame.h }).raw().toBuffer());
+  const variantButton = (page: Page) => page.locator(".overlay button.variant");
+  const variantShown = (page: Page, title: string) =>
+    page.waitForFunction((t) => document.querySelector(".overlay button.variant")?.textContent === t, title);
+  const sourcesStarted = (page: Page) => page.evaluate(() => (window as any).audio.starts.length as number);
+
+  test("the Variant control switches to the second Variant, relights the canvas, pushes ?variant= and fades in its loop", async () => {
+    const { page, errors } = await open(`scenes/${id}/`, { permissions: ["clipboard-read", "clipboard-write"] });
+    await page.locator("canvas").waitFor();
+    await page.evaluate(() => { (window as any).sameDocument = true; });
+    await page.waitForFunction(() => (window as any).audio.starts.length >= 5);
+    const rainy = await frameOnCanvas(page);
+    assert.deepEqual(rainy, await frameOnPoster());
+    await page.mouse.move(300, 300);
+    const control = variantButton(page);
+    assert.equal(await control.textContent(), "Rainy night");
+    await control.click();
+    await page.waitForURL(`${site}scenes/${id}/?variant=clear-night`);
+    await variantShown(page, "Clear night");
+    await page.waitForFunction((before) => (window as any).audio.starts.length > before, 5);
+    assert.equal(await sourcesStarted(page), 6, "the Variant's loop did not start once");
+    await page.waitForFunction(([r, before]) => {
+      const c = document.querySelector("canvas")!;
+      return Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data).join() !== before;
+    }, [windowFrame, rainy.join()] as const);
+    assert.equal(await page.locator("canvas").count(), 1);
+    assert.equal(await page.evaluate(() => (window as any).sameDocument), true);
+
+    await page.getByRole("button", { name: "Copy link" }).click();
+    await page.getByRole("button", { name: "Copied" }).waitFor();
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${site}scenes/${id}/?variant=clear-night`);
+
+    await page.keyboard.press("v");
+    await page.waitForURL(`${site}scenes/${id}/`);
+    await variantShown(page, "Rainy night");
+    assert.deepEqual(errors, []);
+  });
+
+  test("opening ?variant= draws that Variant directly and Back after a switch returns to the default", async () => {
+    const { page, errors } = await open(`scenes/${id}/?variant=clear-night`);
+    await page.locator("canvas").waitFor();
+    await variantShown(page, "Clear night");
+    const clear = await frameOnCanvas(page);
+    assert.notDeepEqual(clear, await frameOnPoster(), "the clear night draws like the rainy night");
+    await page.waitForFunction(() => (window as any).audio.starts.length >= 6);
+
+    await page.keyboard.press("v");
+    await page.waitForURL(`${site}scenes/${id}/`);
+    await page.waitForFunction(([r, before]) => {
+      const c = document.querySelector("canvas")!;
+      return Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data).join() !== before;
+    }, [windowFrame, clear.join()] as const);
+    assert.deepEqual(await frameOnCanvas(page), await frameOnPoster());
+
+    await page.route("**/scene.json", async (route) => {
+      await pause(300);
+      await route.continue();
+    });
+    await page.goBack();
+    await page.waitForURL(`${site}scenes/${id}/?variant=clear-night`);
+    await variantShown(page, "Clear night");
+    await page.waitForFunction(([r, after]) => {
+      const c = document.querySelector("canvas");
+      return c !== null && Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data).join() === after;
+    }, [windowFrame, clear.join()] as const);
+    assert.deepEqual(errors, []);
+  });
+
+  test("an unknown ?variant= plays the default Variant", async () => {
+    const { page, errors } = await open(`scenes/${id}/?variant=snowy-dawn`);
+    await page.locator("canvas").waitFor();
+    await variantShown(page, "Rainy night");
+    assert.deepEqual(await frameOnCanvas(page), await frameOnPoster());
+    assert.deepEqual(errors, []);
+  });
+
+  test("a one-Variant Scene hides the Variant control and V does nothing", async () => {
+    const { page, errors } = await open(`scenes/${stillId}/`);
+    await page.locator("canvas").waitFor();
+    await page.mouse.move(300, 300);
+    assert.equal(await variantButton(page).isHidden(), true);
+    await page.keyboard.press("v");
+    await pause(200);
+    assert.equal(page.url(), `${site}scenes/${stillId}/`);
+    assert.deepEqual(errors, []);
+  });
+
   test("Copy link writes the Scene's Share link to the clipboard", async () => {
     const { page, errors } = await open("", { permissions: ["clipboard-read", "clipboard-write"] });
     await page.getByRole("link", { name: title }).click();
@@ -659,8 +752,8 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.doesNotMatch(text, /a cosy desk by a rainy window at night, cat asleep/);
     await info.getByText("Artwork, music and sound effects generated with AI using PixelLab, Stable Audio 3.0 and ElevenLabs.").waitFor();
     const lines = info.getByRole("listitem");
-    assert.equal(await lines.count(), 2);
-    for (const [n, record] of ["freesound-room-tone-641306", "freesound-thunder-distant-195522"].entries()) {
+    assert.equal(await lines.count(), 3);
+    for (const [n, record] of ["freesound-room-tone-641306", "freesound-thunder-distant-195522", "freesound-vent-hum-753540"].entries()) {
       const { attribution, licence, sourceUrl } = readJson(root, `library/ambient/${record}.json`);
       const line = lines.nth(n);
       assert.match(await line.innerText(), new RegExp(`${escape(attribution)}.*${escape(licence)}`));

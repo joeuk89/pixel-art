@@ -526,6 +526,55 @@ test("more than 2 One-shots in one Scene fails", () => {
   failsWith(validate(root), fixtureScene, "soundtrack.oneshots", /at most 2 One-shots per Scene/);
 });
 
+const addToVariant = (root: string, sounds: { ambient?: unknown[]; oneshots?: unknown[] }) =>
+  editJson(root, fixtureScene, (plan) => { plan.variants[1].soundtrack = sounds; });
+
+test("a Variant's added sounds within the caps validate with the base", () => {
+  const root = makeTree();
+  addToVariant(root, { ambient: [ambientAt("near"), ambientAt("far")], oneshots: [readJson(root, fixtureScene).soundtrack.oneshots[0]] });
+  const { code, report } = validate(root);
+  assert.equal(code, 0, JSON.stringify(report.errors));
+  assert.equal(report.scenes[0].status, "resolved");
+});
+
+test("base plus Variant over the ambient cap fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.soundtrack.ambient = ["near", "mid", "far"].map((d) => ambientAt(d)); });
+  addToVariant(root, { ambient: [ambientAt("near"), ambientAt("mid"), ambientAt("far")] });
+  failsWith(validate(root), fixtureScene, "variants[1].soundtrack.ambient", /at most 5 ambient per Scene: base plus Variant clear-night has 6/);
+});
+
+test("base plus Variant over 2 ambient at one Distance fails", () => {
+  const root = makeTree();
+  addToVariant(root, { ambient: [ambientAt("mid"), ambientAt("mid")] });
+  failsWith(validate(root), fixtureScene, "variants[1].soundtrack.ambient[1]", /at most 2 ambient at Distance mid with Variant clear-night/);
+});
+
+test("base plus Variant over the One-shot cap fails", () => {
+  const root = makeTree();
+  const shot = readJson(root, fixtureScene).soundtrack.oneshots[0];
+  addToVariant(root, { oneshots: [shot, shot] });
+  failsWith(validate(root), fixtureScene, "variants[1].soundtrack.oneshots", /at most 2 One-shots per Scene: base plus Variant clear-night has 3/);
+});
+
+test("a resolved Scene whose Variant sound file is missing beside the plan fails, and a draft one is pending", () => {
+  const root = makeTree();
+  addToVariant(root, { ambient: [{ ...ambientAt("near"), file: "wind.ogg" }] });
+  failsWith(validate(root), fixtureScene, "variants[1].soundtrack.ambient[0].file", /declared resolved but wind\.ogg is missing/);
+  editJson(root, fixtureScene, (plan) => { plan.status = "draft"; });
+  const { code, report } = validate(root);
+  assert.equal(code, 0);
+  assert.deepEqual(report.scenes[0].pending.map((p: any) => p.path), ["variants[1].soundtrack.ambient[0].file"]);
+});
+
+test("a Variant's generated sound with no Sound library record yet keeps the Scene draft", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.status = "draft"; });
+  addToVariant(root, { ambient: [{ source: { kind: "generated", service: "elevenlabs-fal", brief: "wind" }, file: "room.ogg", distance: "near" }] });
+  const { report } = validate(root);
+  assert.deepEqual(report.scenes[0].pending.map((p: any) => p.path), ["variants[1].soundtrack.ambient[0].source"]);
+});
+
 test("an unknown Primitive type fails", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { plan.primitives.push({ type: "fog" }); });

@@ -310,3 +310,17 @@ test("the Primitives module bundles for a neutral platform and draws where no No
   for (const d of draws) d.draw(out, 500);
   assert.equal(draws.length, 8);
 });
+
+test("a Variant draws the base Primitives plus its own, and the base alone under a Variant that adds none", () => {
+  const [rain] = only("rain");
+  const [twinkle] = only("twinkle");
+  const [first] = catalogue.variants;
+  const plan: ScenePlan = { ...catalogue, primitives: [twinkle], variants: [first, { ...first, id: "storm", primitives: [rain] }] };
+  const render = (variant: ScenePlan["variants"][number]) =>
+    createCompositor({ plan, elements, palette, variant, primitives: createPrimitives({ plan, elements, palette, variant }) }).render(500);
+  const plain = Buffer.from(render(plan.variants[0]));
+  const storm = Buffer.from(render(plan.variants[1]));
+  assert.ok(plain.equals(Buffer.from(scene([twinkle]).render(500))), "the default Variant does not draw exactly the base Primitives");
+  assert.ok(storm.equals(Buffer.from(scene([twinkle, rain]).render(500))), "the storm Variant does not draw base plus its rain");
+  assert.ok(!storm.equals(plain));
+});

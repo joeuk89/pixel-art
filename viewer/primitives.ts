@@ -1,4 +1,4 @@
-import { placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
+import { placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan, type Variant } from "../schema/index.ts";
 import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
 import { positioned, type Positioned } from "./placement.ts";
 import { random } from "./random.ts";
@@ -6,7 +6,7 @@ import { random } from "./random.ts";
 export const WEATHER_FPS = 24;
 export const PROP_FPS = 10;
 
-export type PrimitivesInput = { plan: ScenePlan; elements: ReadonlyMap<string, ElementPixels>; palette: Palette; seed?: number };
+export type PrimitivesInput = { plan: ScenePlan; elements: ReadonlyMap<string, ElementPixels>; palette: Palette; seed?: number; variant?: Variant };
 
 type Of<T extends Primitive["type"]> = Extract<Primitive, { type: T }>;
 type Context = {
@@ -389,11 +389,11 @@ function birds(p: Of<"birds">, ctx: Context): PrimitiveDraw {
   };
 }
 
-export function createPrimitives({ plan, elements, palette, seed = plan.seed }: PrimitivesInput): PrimitiveDraw[] {
+export function createPrimitives({ plan, elements, palette, seed = plan.seed, variant = plan.variants[0] }: PrimitivesInput): PrimitiveDraw[] {
   const colours = coloursOf(palette);
   const placements = new Map<string, { placement: Placement; layer: number }>();
   plan.layers.forEach((layer, li) => placementsOf(layer).forEach((placement) => placements.set(placement.id, { placement, layer: li })));
-  return plan.primitives.map((raw, salt) => {
+  return [...plan.primitives, ...(variant.primitives ?? [])].map((raw, salt) => {
     const primitive = primitiveSchema.parse(raw);
     const ctx: Context = {
       seed,

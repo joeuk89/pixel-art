@@ -2,7 +2,9 @@ import type { Compositor } from "./compositor.ts";
 
 const MAX_RESUME_DELTA_MS = 100;
 
-export function startLoop(compositor: Compositor, draw: (frame: Uint8ClampedArray) => void, signal: AbortSignal): void {
+export type Loop = { swap(next: Compositor): void };
+
+export function startLoop(compositor: Compositor, draw: (frame: Uint8ClampedArray) => void, signal: AbortSignal): Loop {
   let sceneTime = 0;
   let last = performance.now();
   let clampNext = false;
@@ -44,4 +46,12 @@ export function startLoop(compositor: Compositor, draw: (frame: Uint8ClampedArra
   document.addEventListener("visibilitychange", () => (document.hidden ? cancel() : resume()), { signal });
   signal.addEventListener("abort", cancel);
   if (!document.hidden) raf = requestAnimationFrame(frame);
+  return {
+    swap(next) {
+      compositor = next;
+      if (signal.aborted || document.hidden) return;
+      cancel();
+      raf = requestAnimationFrame(frame);
+    },
+  };
 }

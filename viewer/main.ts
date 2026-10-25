@@ -4,7 +4,7 @@ import { renderGallery } from "./gallery.ts";
 import { createMuteState } from "./mute.ts";
 import { renderScene } from "./scene.ts";
 import { storedLevel, storedSoundOn, storeSoundOn } from "./settings.ts";
-import { routeOf, siteRoot, type Route } from "./site.ts";
+import { routeOf, siteRoot } from "./site.ts";
 import { injectStyle } from "./style.ts";
 
 export function parseScenePlan(json: unknown): ScenePlan {
@@ -26,20 +26,21 @@ function boot(root: URL): void {
   };
   for (const type of ["pointerdown", "keydown", "click"]) document.addEventListener(type, rearm, { capture: true });
 
-  const show = (route: Route) => {
+  const show = (url: URL) => {
+    const route = routeOf(url, root);
     view?.abort();
     const controller = new AbortController();
     view = controller;
     document.body.style.background = "";
     const shown = route.kind === "gallery"
       ? renderGallery(document.body, root, controller.signal)
-      : renderScene(document.body, root, route.id, controller.signal, { mute, audio, navigate });
+      : renderScene(document.body, root, route.id, controller.signal, { mute, audio, navigate, url });
     shown.catch((e) => console.error(e));
   };
 
   const navigate = (url: URL) => {
     if (url.href !== location.href) history.pushState(null, "", url);
-    show(routeOf(url, root));
+    show(url);
   };
 
   document.addEventListener("click", (e) => {
@@ -50,10 +51,10 @@ function boot(root: URL): void {
     e.preventDefault();
     navigate(url);
   });
-  addEventListener("popstate", () => show(routeOf(new URL(location.href), root)));
+  addEventListener("popstate", () => show(new URL(location.href)));
 
   injectStyle();
-  show(routeOf(new URL(location.href), root));
+  show(new URL(location.href));
 }
 
 const script = document.currentScript as HTMLScriptElement | null;

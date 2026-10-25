@@ -15,8 +15,22 @@ class FakeNode {
   }
 }
 
+class FakeParam {
+  value = 1;
+  readonly ramps: [number, number][] = [];
+  setValueAtTime(value: number, _at: number) {
+    this.value = value;
+  }
+  linearRampToValueAtTime(value: number, at: number) {
+    this.ramps.push([value, at]);
+  }
+  cancelScheduledValues() {
+    this.ramps.length = 0;
+  }
+}
+
 class FakeGain extends FakeNode {
-  readonly gain = { value: 1 };
+  readonly gain = new FakeParam();
 }
 
 class FakeFilter extends FakeNode {
@@ -36,10 +50,13 @@ class FakeSource extends FakeNode {
     super();
     this.context = context;
   }
+  stoppedAt: number | undefined;
   start() {
     this.context.started.push(this);
   }
-  stop() {}
+  stop(when = 0) {
+    this.stoppedAt = when;
+  }
 }
 
 class FakeContext {
@@ -75,9 +92,10 @@ function loudness(context: FakeContext, from: FakeNode): number {
 
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
 
-function plan(soundtrack: object) {
+function plan(soundtrack: object, variants: object[] = [{ id: "night" }]) {
   return {
     seed: 1337,
+    variants,
     soundtrack: {
       music: { brief: "piano", service: "s", file: "music.mp3", loopStart: 0, loopEnd: 2, gain: 0.6 },
       ambient: [
@@ -109,12 +127,12 @@ before(async () => {
 
 after(() => server.close());
 
-async function play(levels: { music: number; ambient: number }, scene = plan({})) {
+async function play(levels: { music: number; ambient: number }, scene = plan({}), variant = scene.variants[0]) {
   const context = new FakeContext();
   const audio = createAudio(levels, context as unknown as AudioContext);
-  await playSoundtrack(audio, scene, base, new AbortController().signal);
+  const soundtrack = await playSoundtrack(audio, scene, base, new AbortController().signal, variant);
   const byFile = () => Object.fromEntries(context.started.map((s) => [s.buffer!.file, round(loudness(context, s))]));
-  return { context, audio, byFile };
+  return { context, audio, byFile, soundtrack };
 }
 
 test("at Music 1 and Ambient 1 each source plays at the plan's gain through its Distance bus", async () => {
@@ -180,4 +198,58 @@ test("a Scene has ambient sound when it has an Ambient loop or a One-shot", () =
   assert.equal(hasAmbientSound(plan({ ambient: [] })), true);
   assert.equal(hasAmbientSound(plan({ oneshots: [] })), true);
   assert.equal(hasAmbientSound(plan({ ambient: [], oneshots: [] })), false);
+  assert.equal(hasAmbientSound(plan({ ambient: [], oneshots: [] }, [{ id: "night" }, { id: "storm", soundtrack: { oneshots: [] } }])), false);
+  assert.equal(hasAmbientSound(plan({ ambient: [], oneshots: [] }, [{ id: "night" }, { id: "storm", soundtrack: { ambient: [wind] } }])), true);
+});
+
+const wind = { source: { kind: "curated", id: "w" }, file: "wind.ogg", distance: "near" };
+const owl = { source: { kind: "curated", id: "o" }, file: "owl.ogg", distance: "near", every: [30, 60] };
+const withVariants = () => plan({}, [{ id: "night-rain" }, { id: "clear-night", soundtrack: { ambient: [wind], oneshots: [owl] } }]);
+
+function fadeGain(source: FakeSource): FakeParam {
+  let at: FakeNode = source;
+  for (;;) {
+    const next = at.outputs[0];
+    if (next instanceof FakeGain && next.gain.ramps.length) return next.gain;
+    if (!next) throw new Error(`no fading gain after ${source.buffer!.file}`);
+    at = next;
+  }
+}
+
+test("opened on a Variant, its added loop plays at the plan's gain from the start alongside the base", async () => {
+  const scene = withVariants();
+  const { byFile } = await play({ music: 1, ambient: 1 }, scene, scene.variants[1]);
+  const gains = byFile();
+  assert.equal(gains["wind.ogg"], 0.7);
+  assert.equal(gains["rain.ogg"], round(0.8 * 0.7));
+  assert.ok(gains["owl.ogg"] > 0);
+});
+
+test("switching to a Variant crossfades its added loop in over about two seconds and the base loops keep playing", async () => {
+  const scene = withVariants();
+  const { context, soundtrack } = await play({ music: 1, ambient: 1 }, scene);
+  const baseSources = [...context.started];
+  context.currentTime = 10;
+  soundtrack.setVariant(scene.variants[1]);
+  const added = context.started.slice(baseSources.length);
+  assert.deepEqual(added.map((s) => s.buffer!.file).sort(), ["owl.ogg", "wind.ogg"]);
+  const loop = added.find((s) => s.buffer!.file === "wind.ogg")!;
+  assert.equal(loop.loop, true);
+  const fade = fadeGain(loop);
+  assert.equal(fade.value, 0);
+  assert.deepEqual(fade.ramps, [[1, 12]]);
+  assert.ok(baseSources.every((s) => s.stoppedAt === undefined), "a base source stopped");
+});
+
+test("switching back fades the added loop out over the crossfade and stops it, leaving the base untouched", async () => {
+  const scene = withVariants();
+  const { context, soundtrack } = await play({ music: 1, ambient: 1 }, scene);
+  const baseCount = context.started.length;
+  soundtrack.setVariant(scene.variants[1]);
+  const loop = context.started.find((s) => s.buffer!.file === "wind.ogg")!;
+  context.currentTime = 20;
+  soundtrack.setVariant(scene.variants[0]);
+  assert.deepEqual(fadeGain(loop).ramps, [[0, 22]]);
+  assert.equal(loop.stoppedAt, 22);
+  assert.ok(context.started.slice(0, baseCount).every((s) => s.stoppedAt === undefined), "a base source stopped");
 });

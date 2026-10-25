@@ -37,6 +37,16 @@ test("a draft Scene's Style anchor, ambient and One-shots count as references", 
   for (const id of ["freesound-vent-hum-753540", "freesound-owl-tawny-454842", "freesound-room-tone-641306"]) assert.ok(!ids.includes(id), id);
 });
 
+test("a sound only a Variant adds counts as referenced", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[1].soundtrack = { ambient: [{ source: { kind: "curated", id: "freesound-vent-hum-753540" }, file: "vent.ogg", distance: "mid" }] };
+  });
+  const { code, out } = runScript(root, "orphans");
+  assert.equal(code, 0);
+  assert.ok(!out.ambient.some((a: any) => a.id === "freesound-vent-hum-753540"));
+});
+
 test("a generated sound's Sound library record counts as referenced", () => {
   const root = makeTree();
   const record = readJson(root, "library/ambient/freesound-room-tone-641306.json");

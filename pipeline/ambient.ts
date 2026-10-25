@@ -12,7 +12,8 @@ const SERVICE = "elevenlabs-fal";
 const METERED_SERVICE = "fal";
 
 type Entry = ScenePlan["soundtrack"]["ambient"][number];
-type Slot = { entry: Entry; list: "ambient" | "oneshots"; index: number; slot: string; kind: SoundKind };
+type Lists = { ambient?: Entry[]; oneshots?: Entry[] };
+type Slot = { entry: Entry; slot: string; kind: SoundKind; listsIn(raw: any): Lists; list: "ambient" | "oneshots"; index: number };
 type Report = {
   slot: string; file: string; source: "curated" | "generated"; action: "copied" | "generated" | "kept";
   record: string; costUsd?: number; rmsDbfs?: number; peakDbfs?: number;
@@ -76,9 +77,13 @@ async function run(planPath: string, work: string) {
   const plan = readScene(planPath);
   const sounds = new Map(readSounds().map((s) => [s.id, s]));
   const sceneDir = dirname(planPath);
+  const slotsOf = (prefix: string, lists: Lists, listsIn: (raw: any) => Lists): Slot[] => [
+    ...(lists.ambient ?? []).map((entry, index) => ({ entry, list: "ambient" as const, index, slot: `${prefix}soundtrack.ambient[${index}]`, kind: "loop" as const, listsIn })),
+    ...(lists.oneshots ?? []).map((entry, index) => ({ entry, list: "oneshots" as const, index, slot: `${prefix}soundtrack.oneshots[${index}]`, kind: "oneshot" as const, listsIn })),
+  ];
   const slots: Slot[] = [
-    ...plan.soundtrack.ambient.map((entry, index) => ({ entry, list: "ambient" as const, index, slot: `soundtrack.ambient[${index}]`, kind: "loop" as const })),
-    ...plan.soundtrack.oneshots.map((entry, index) => ({ entry, list: "oneshots" as const, index, slot: `soundtrack.oneshots[${index}]`, kind: "oneshot" as const })),
+    ...slotsOf("", plan.soundtrack, (raw) => raw.soundtrack),
+    ...plan.variants.flatMap((v, vi) => (v.soundtrack ? slotsOf(`variants[${vi}].`, v.soundtrack, (raw) => raw.variants[vi].soundtrack) : [])),
   ];
   for (const { entry, slot, kind } of slots) {
     if (entry.source.kind === "generated") {
@@ -112,7 +117,7 @@ async function run(planPath: string, work: string) {
     taken.add(id);
     const { record, costUsd, norm } = await generate(slot, entry.source.brief, id, work, planPath);
     copyFileSync(join(AMBIENT, record.file), join(sceneDir, entry.file));
-    editPlan(planPath, (raw) => { raw.soundtrack[slot.list][slot.index].source.id = id; });
+    editPlan(planPath, (raw) => { slot.listsIn(raw)[slot.list]![slot.index].source.id = id; });
     entries.push({ slot: slot.slot, file: entry.file, source: "generated", action: "generated", record: id, costUsd, rmsDbfs: norm.rmsDbfs, peakDbfs: norm.peakDbfs });
   }
   return { scene: plan.id, entries, costUsd: roundUsd(entries.reduce((sum, e) => sum + (e.costUsd ?? 0), 0)) };

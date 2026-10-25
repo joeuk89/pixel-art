@@ -382,6 +382,24 @@ export const scenePlanSchema = z
       v.emissiveOff.forEach((id, ei) => {
         if (!seen.has(id)) issue(["variants", vi, "emissiveOff", ei], `no Placement ${id} in this plan to switch off`);
       });
+      const ambient = v.soundtrack?.ambient ?? [];
+      const oneshots = v.soundtrack?.oneshots ?? [];
+      const at = ["variants", vi, "soundtrack"];
+      const ambientCount = plan.soundtrack.ambient.length + ambient.length;
+      if (ambient.length > 0 && ambientCount > MAX_AMBIENT_PER_SCENE) {
+        issue([...at, "ambient"], `at most ${MAX_AMBIENT_PER_SCENE} ambient per Scene: base plus Variant ${v.id} has ${ambientCount}`);
+      }
+      const oneshotCount = plan.soundtrack.oneshots.length + oneshots.length;
+      if (oneshots.length > 0 && oneshotCount > MAX_ONESHOTS_PER_SCENE) {
+        issue([...at, "oneshots"], `at most ${MAX_ONESHOTS_PER_SCENE} One-shots per Scene: base plus Variant ${v.id} has ${oneshotCount}`);
+      }
+      for (const distance of distanceSchema.options) {
+        let count = plan.soundtrack.ambient.filter((a) => a.distance === distance).length;
+        ambient.forEach((a, ai) => {
+          if (a.distance !== distance || ++count !== MAX_AMBIENT_PER_DISTANCE + 1) return;
+          issue([...at, "ambient", ai], `at most ${MAX_AMBIENT_PER_DISTANCE} ambient at Distance ${distance} with Variant ${v.id}`);
+        });
+      }
     });
   });
 
@@ -526,4 +544,17 @@ export function placementsOf(layer: Layer): Placement[] {
 
 export function allPlacements(plan: Pick<ScenePlan, "layers">): Placement[] {
   return plan.layers.flatMap(placementsOf);
+}
+
+type SoundEntry = ScenePlan["soundtrack"]["ambient"][number] | ScenePlan["soundtrack"]["oneshots"][number];
+
+export function sceneSounds(plan: Pick<ScenePlan, "soundtrack" | "variants">): { entry: SoundEntry; at: string }[] {
+  const listed = (prefix: string, sounds: { ambient?: readonly SoundEntry[]; oneshots?: readonly SoundEntry[] }) => [
+    ...(sounds.ambient ?? []).map((entry, i) => ({ entry, at: `${prefix}soundtrack.ambient[${i}]` })),
+    ...(sounds.oneshots ?? []).map((entry, i) => ({ entry, at: `${prefix}soundtrack.oneshots[${i}]` })),
+  ];
+  return [
+    ...listed("", plan.soundtrack),
+    ...plan.variants.flatMap((v, vi) => (v.soundtrack ? listed(`variants[${vi}].`, v.soundtrack) : [])),
+  ];
 }
