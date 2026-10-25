@@ -25,7 +25,7 @@ You need Claude Code and API keys for the generation services.
 
 1. Set up the project (see [Setup](#setup)) and fill in `.env`.
 2. In Claude Code, from the repo root, run `/director <your Prompt>`, for example `/director a rainy attic study at midnight with a sleeping cat`.
-3. The Director writes a Scene plan and stops once at the **Plan gate**: it shows the Elements it will reuse or generate, the Soundtrack, and the estimated cost. Edit the plan or say yes.
+3. The Director writes a Scene plan and stops once at the **Plan gate**: it shows the Stage and Room shell, the Elements it will reuse or generate with their canvas and Finish, the Variants and their Lights, the Soundtrack, and the estimated cost. Edit the plan or say yes.
 4. After your yes it generates everything without asking again, checks the result, and stages the files.
 5. Open the preview URL it prints. If you like the Scene, commit and push. If not, tell the Director what to change; it redoes only that.
 
