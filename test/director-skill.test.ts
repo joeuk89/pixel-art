@@ -267,7 +267,7 @@ const RULES: [string, RegExp][] = [
 
 for (const [rule, pattern] of RULES) {
   test(`the skill states ${rule} once`, () => {
-    const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+    const global = new RegExp(pattern.source, `${pattern.flags}g`);
     const hits = skillFiles().flatMap(({ name, text }) => [...text.matchAll(global)].map(() => name));
     assert.equal(hits.length, 1, `${rule}: found in ${JSON.stringify(hits)}`);
   });

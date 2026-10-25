@@ -1,13 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
-import { USD_PER_GBP } from "./lib/budget.ts";
+import { roundUsd, USD_PER_GBP } from "./lib/budget.ts";
 import { main } from "./lib/cli.ts";
 import { readScene, sceneFiles } from "./lib/library.ts";
 
 const PIXELLAB_GENERATIONS_CEILING = 2000;
 const METERED_CEILING_GBP = 50;
-
-const roundUsd = (n: number) => Math.round(n * 1e4) / 1e4;
 
 function committedFiles(): Set<string> {
   const run = spawnSync("git", ["ls-tree", "-r", "--name-only", "HEAD", "--", "scenes"], { encoding: "utf8" });

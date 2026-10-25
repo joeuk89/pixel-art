@@ -1,12 +1,10 @@
 import { placementsOf, type ScenePlan } from "../../schema/index.ts";
-import { USD_PER_GBP } from "./budget.ts";
+import { roundUsd, USD_PER_GBP } from "./budget.ts";
 import { deriveCanvas, placementScale, proFlashPrice, type Canvas } from "./canvas.ts";
 
-export const TRADE_OFF = "local: exact geometry, flat and plainer; service: richer detail and shading";
+const TRADE_OFF = "local: exact geometry, flat and plainer; service: richer detail and shading";
 
 type Offered = { placement: string; finish: "local" | "service"; canvas: Canvas; service: { generations: number; usd: number }; local: { gbp: 0 } };
-
-const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
 
 export function finishOffer(plan: ScenePlan, named: string[]) {
   const placements = plan.layers.flatMap((layer) => placementsOf(layer).map((p) => ({ layer, p })));
@@ -22,10 +20,10 @@ export function finishOffer(plan: ScenePlan, named: string[]) {
     const canvas = deriveCanvas(placementScale(plan, layer, p), g);
     return [{ placement: p.id, finish: g.finish, canvas, service: proFlashPrice(canvas), local: { gbp: 0 } }];
   });
-  const usd = round4(eligible.reduce((sum, e) => sum + e.service.usd, 0));
+  const usd = roundUsd(eligible.reduce((sum, e) => sum + e.service.usd, 0));
   return {
     eligible,
-    saving: { generations: eligible.reduce((sum, e) => sum + e.service.generations, 0), usd, gbp: round4(usd / USD_PER_GBP) },
+    saving: { generations: eligible.reduce((sum, e) => sum + e.service.generations, 0), usd, gbp: roundUsd(usd / USD_PER_GBP) },
     tradeOff: TRADE_OFF,
   };
 }
