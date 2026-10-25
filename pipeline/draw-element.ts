@@ -13,11 +13,12 @@ import { loadPalette } from "./lib/element-pixels.ts";
 import { drawLocal, generatorOf } from "./lib/kits/index.ts";
 import { readScene } from "./lib/library.ts";
 import { projectAccepted } from "./lib/features.ts";
+import { emissiveOf, parseEmissive, type EmissiveChoice } from "./lib/emissive.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
 const ELEMENTS = "library/elements";
-const USAGE = "usage: draw-element <scene.json> <placementId> [--generator name] [--param key=value...] [--attempt n] | --accept <attemptPath>";
+const USAGE = "usage: draw-element <scene.json> <placementId> [--generator name] [--param key=value...] [--attempt n] | --accept <attemptPath> [--emissive i,j [--emissive-region x,y,w,h]...]";
 
 type Found = { placement: Placement; scale: number };
 
@@ -98,7 +99,7 @@ async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { gen
   };
 }
 
-async function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string) {
+async function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, emissiveChoice: EmissiveChoice | null) {
   const sidecarPath = sidecarOf(attemptPath);
   const attempt = existsSync(attemptPath) && existsSync(sidecarPath) ? (JSON.parse(readFileSync(sidecarPath, "utf8")) as StillAttempt) : null;
   if (!attempt || attempt.service !== "local" || attempt.generator === undefined) throw new Error(`${attemptPath} is not an Attempt written by draw-element`);
@@ -106,6 +107,7 @@ async function accept(file: string, plan: ScenePlan, placement: Placement, attem
     throw new Error(`${attemptPath} is an Attempt for ${attempt.scene}/${attempt.placement}, not ${plan.id}/${placement.id}`);
   }
   if (!attempt.gate.ok) throw new Error(`${attemptPath} failed the Quality gate: ${attempt.gate.failed.join("; ")}`);
+  const emissive = emissiveChoice ? await emissiveOf(attemptPath, loadPalette(process.cwd(), plan.palette).colours, emissiveChoice) : null;
 
   const generate = placement.generate!;
   const proposed = placement.element;
@@ -127,6 +129,7 @@ async function accept(file: string, plan: ScenePlan, placement: Placement, attem
     firstScene: plan.id,
     cost: { pixellabGenerations: 0, meteredUsd: 0 },
     checks: { attempt: attempt.attempt, passed: attempt.gate.passed, warnings: attempt.gate.warnings },
+    ...emissive?.fields,
   };
   const record: ElementRecord = elementRecordSchema.parse(generate.kind === "prop"
     ? { ...base, kind: "prop", ...attempt.canvas, realSize: generate.realSize, transparent: true }
@@ -144,6 +147,7 @@ async function accept(file: string, plan: ScenePlan, placement: Placement, attem
   mkdirSync(ELEMENTS, { recursive: true });
   copyFileSync(attemptPath, join(ELEMENTS, `${id}.png`));
   writeFileSync(join(ELEMENTS, `${id}.json`), JSON.stringify(record, null, 2) + "\n");
+  emissive?.write(join(ELEMENTS, `${id}.emissive.png`));
   charge.commit();
   const projection = await projectAccepted(process.cwd(), file, placement.id, loadPalette(process.cwd(), plan.palette));
 
@@ -165,6 +169,7 @@ main(async () => {
     allowPositionals: true,
     options: {
       generator: { type: "string" }, param: { type: "string", multiple: true }, attempt: { type: "string" }, accept: { type: "string" },
+      emissive: { type: "string" }, "emissive-region": { type: "string", multiple: true },
     },
   });
   const [file, placementId, ...rest] = positionals;
@@ -173,8 +178,9 @@ main(async () => {
   const found = findPlacement(plan, placementId);
   if (values.accept !== undefined) {
     if (values.generator !== undefined || values.param !== undefined || values.attempt !== undefined) throw new Error("--accept takes no --generator, --param or --attempt");
-    return accept(file, plan, found.placement, values.accept);
+    return accept(file, plan, found.placement, values.accept, parseEmissive(values.emissive, values["emissive-region"]));
   }
+  if (values.emissive !== undefined || values["emissive-region"] !== undefined) throw new Error("--emissive goes with --accept");
   const attemptNo = values.attempt === undefined ? null : Number(values.attempt);
   if (attemptNo !== null && (!Number.isInteger(attemptNo) || attemptNo < 1)) throw new Error(`--attempt must be a positive integer, got ${values.attempt}`);
   return attempt(plan, found, { generator: values.generator, params: parseParams(values.param ?? []), attempt: attemptNo });

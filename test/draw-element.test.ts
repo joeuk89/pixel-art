@@ -215,3 +215,15 @@ test("draw-element --accept on a local-Finish floor Feature writes its projected
   const png = await pixelsOf(root, accepted.out.projected.file);
   assert.deepEqual([png.width, png.height], [89, 17]);
 });
+
+test("draw-element --accept --emissive lists the lit windows of a local skyline as emissive colours", async () => {
+  const root = tree(localProp("towers", "skyline", { w: 3.5, h: 2 }, { colour: 2, windows: [8, 9] }));
+  const attempt = draw(root, "towers");
+  assert.equal(attempt.code, 0, attempt.stderr);
+  const accepted = draw(root, "towers", "--accept", attempt.out.scratch.png, "--emissive", "8,9");
+  assert.equal(accepted.code, 0, accepted.stderr);
+  const record = readJson(root, `library/elements/${accepted.out.element}.json`);
+  assert.deepEqual(record.emissive, [8, 9]);
+  assert.equal(record.service, "local");
+  assert.equal(validate(root).code, 0);
+});
