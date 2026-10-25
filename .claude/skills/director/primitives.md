@@ -17,7 +17,7 @@ Write one function in `viewer/primitives.ts` that takes the parsed Primitive and
 
 - **Deterministic**: draw from `random(seed, salt, …)` and `step(timeMs, fps)` alone, so any frame comes out byte-identical in any render order. Counter-based draws mean a frame never replays earlier ones.
 - **fps**: `WEATHER_FPS` for particles that move across the Scene, `PROP_FPS` for effects on a prop.
-- **Palette only**: write pixels with `paint` or `plotIn`, which take Palette indices; blend through `nearest` the way `glow` does.
+- **Palette only**: write pixels with `paint` or `plotIn`, which take Palette indices. A Primitive draws only Palette colours; light belongs to the Variant's Lights.
 - **Inside its region**: `plotIn` clips to it.
 - **On the anchor's pixels**: find them with `eachPlacedPixel` and `sourceIndex`, which handle `tileX` and `flipX`.
 - **state** is optional: two times with equal states must draw identical pixels. Return 0 while the Primitive draws nothing, so the Viewer can skip those steps.
