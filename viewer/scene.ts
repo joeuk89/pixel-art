@@ -1,6 +1,8 @@
 import {
   allPlacements,
   elementRecordSchema,
+  featureFile,
+  isProjected,
   paletteSchema,
   POSTER_FILE,
   ROOM_FILE,
@@ -44,6 +46,11 @@ async function loadElements(root: URL, plan: ScenePlan): Promise<Map<string, Ele
     }),
   );
   return new Map(loaded);
+}
+
+async function loadFeatures(base: URL, plan: ScenePlan): Promise<Map<string, Pixels>> {
+  const ids = allPlacements(plan).filter(isProjected).map((p) => p.id);
+  return new Map(await Promise.all(ids.map(async (id): Promise<[string, Pixels]> => [id, await decode(new URL(featureFile(id), base))])));
 }
 
 function fitToViewport(elements: HTMLElement[], signal: AbortSignal): void {
@@ -128,14 +135,18 @@ export async function renderScene(
     return startSound();
   }
 
-  const [elements, room] = await Promise.all([loadElements(root, plan), roomLayerOf(plan) ? decode(new URL(ROOM_FILE, base)) : undefined]);
+  const [elements, room, features] = await Promise.all([
+    loadElements(root, plan),
+    roomLayerOf(plan) ? decode(new URL(ROOM_FILE, base)) : undefined,
+    loadFeatures(base, plan),
+  ]);
   if (signal.aborted) return;
-  const primitivesFor = (variant: Variant) => createPrimitives({ plan, elements, palette, variant });
+  const primitivesFor = (variant: Variant) => createPrimitives({ plan, elements, palette, variant, features });
   const compositorFor = async (variant: Variant) => {
     const companion = variant.companionPalette === undefined
       ? undefined
       : paletteSchema.parse(await fetchJson(new URL(`library/palettes/${variant.companionPalette}.json`, root)));
-    return createCompositor({ plan, elements, palette, variant, companion, room, primitives: primitivesFor(variant) });
+    return createCompositor({ plan, elements, palette, variant, companion, room, features, primitives: primitivesFor(variant) });
   };
   const compositor = await compositorFor(variants.current);
   if (signal.aborted) return;

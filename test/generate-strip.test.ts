@@ -4,7 +4,7 @@ import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { createCompositor } from "../viewer/compositor.ts";
-import { loadElementPixels, loadPalette, loadRoomPixels } from "../pipeline/lib/element-pixels.ts";
+import { loadElementPixels, loadPalette, loadFeaturePixels, loadRoomPixels } from "../pipeline/lib/element-pixels.ts";
 import { allPlacements, SCENE_WIDTH, scenePlanSchema } from "../schema/index.ts";
 import { editJson, fixturePalette, fixtureScene, makeTree, readJson, repo, validate, writeJson } from "./helpers.ts";
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
@@ -442,7 +442,8 @@ test("a Placement with animation overrides on the accepted Element passes valida
   assert.equal(valid.code, 0, JSON.stringify(valid.report));
 
   const room = await loadRoomPixels(join(root, "scenes", plan.id), plan);
-  const compositor = createCompositor({ plan, elements: await loadElementPixels(root, plan), palette: loadPalette(root, plan.palette), room });
+  const features = await loadFeaturePixels(join(root, "scenes", plan.id), plan);
+  const compositor = createCompositor({ plan, elements: await loadElementPixels(root, plan), palette: loadPalette(root, plan.palette), room, features });
   const seen = new Set<string>();
   for (let t = 0; t < 1500; t += 250) {
     const frame = compositor.render(t);

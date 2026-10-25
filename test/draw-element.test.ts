@@ -196,3 +196,22 @@ test("--accept charges service Attempts the Placement had before it turned local
   assert.deepEqual(plan.cost.meteredUsd, { "retro-diffusion": 0.02 });
   assert.equal(readJson(root, "scratch/attempts/rainy-desk-night-k7f2/cabinet-a1.json").charged, true);
 });
+
+test("draw-element --accept on a local-Finish floor Feature writes its projected file", async () => {
+  const root = makeTree();
+  const plan = JSON.parse(readFileSync(join(fixtures, "spec-example-scene.json"), "utf8"));
+  plan.styleAnchor = null;
+  plan.stage = { back: { x: 48, y: 26, w: 288, h: 190 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
+  plan.layers.splice(3, 0, { name: "shell", kind: "room", plane: "mid", surfaces: { floor: { colour: 14 } }, openings: [], placements: [
+    { ...localProp("rug", "rect", { w: 1.5, h: 0.4 }, { fill: 10 }), surface: "floor", along: 100, across: 4 },
+  ] });
+  writeJson(root, PLAN, plan);
+  const first = draw(root, "rug");
+  assert.equal(first.code, 0, first.stderr);
+  assert.deepEqual(first.out.canvas, { width: 88, height: 24 });
+  const accepted = draw(root, "rug", "--accept", first.out.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stderr);
+  assert.equal(accepted.out.projected.file, "scenes/rainy-desk-night-k7f2/features/rug.png");
+  const png = await pixelsOf(root, accepted.out.projected.file);
+  assert.deepEqual([png.width, png.height], [89, 17]);
+});

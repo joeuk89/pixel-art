@@ -11,6 +11,7 @@ const jsonCount = (dir: string) => readdirSync(dir).filter((name) => name.endsWi
 export const ambientRecordCount = jsonCount(join(repo, "library/ambient"));
 export const paletteCount = jsonCount(join(repo, "library/palettes")) + jsonCount(join(fixtures, "library/palettes"));
 export const fixturePalette = "fixture-night-v2";
+export const fixtureElementCount = jsonCount(join(fixtures, "library/elements"));
 
 export function makeTree(): string {
   const root = mkdtempSync(join(tmpdir(), "pixel-art-"));

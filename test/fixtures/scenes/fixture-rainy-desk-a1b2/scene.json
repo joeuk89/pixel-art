@@ -28,7 +28,9 @@
       "openings": [
         { "id": "picture-window", "surface": "back", "along": 16, "across": 14, "w": 256, "h": 128,
           "frame": { "width": 2, "colour": 1, "mullionsAcross": 1, "mullionsDown": 0 } } ],
-      "placements": [] },
+      "placements": [
+        { "id": "painting", "element": "painting-harbour-night-01", "surface": "left", "along": 4, "across": 40 },
+        { "id": "rug", "element": "rug-wool-stripe-01", "surface": "floor", "along": 100, "across": 4 } ] },
     { "name": "room", "kind": "placements", "plane": "mid", "placements": [
       { "id": "window", "element": "window-wood-transparent-panes-01", "x": 168, "y": 28 },
       { "id": "cat", "element": "cat-tabby-asleep-01", "foot": { "x": 292, "y": 216 }, "flipX": true,
