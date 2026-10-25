@@ -17,6 +17,18 @@ A Soundtrack is one music loop, Ambient loops at three Distances and up to two O
 
 At most 2 Ambient loops per Distance, 5 per Scene, and 2 One-shots per Scene.
 
+## Gain
+
+The Viewer plays each sound through its Distance's bus, set in `DISTANCE_BUSES` in `viewer/sound-schedule.ts`. The bus multiplies the entry's `gain`:
+
+| Distance | Bus gain | Low-pass |
+| --- | --- | --- |
+| near | 0.7 | none |
+| mid | 0.35 | 5,000 Hz |
+| far | 0.15 | 1,200 Hz |
+
+So a far sound at `gain` 1 plays at 0.15, under half as loud as a mid sound at the same `gain`. The low-pass also strips the hiss from wind and rain. A far sound that should be clearly heard, such as wind the Prompt names, needs a `gain` of about 2; `gain` has no upper limit. A mid feature sound that should stay in the background, such as a ticking clock, sits at about 0.25 against the bed's 1.
+
 ## Sources
 
 Search the Sound library with `library-search <words> --sounds` and read the record of each candidate: its `distance` list says where it fits, and its `note` flags known problems. A curated entry is `{ "kind": "curated", "id": <record id> }` with a `file` name such as `rain.ogg`; licence and attribution stay in the record.
