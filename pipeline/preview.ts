@@ -3,10 +3,11 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAbandoned, type Abandoned } from "./lib/attempts.ts";
 import { main } from "./lib/cli.ts";
+import { proFlashPrice } from "./lib/canvas.ts";
 import { hardChecks } from "./lib/hard-checks.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
-import { DEV_URL } from "./lib/site.ts";
+import { DEV_URL, TUNER_URL } from "./lib/site.ts";
 import { allPlacements, type ScenePlan } from "../schema/index.ts";
 
 const root = process.cwd();
@@ -46,6 +47,17 @@ function elementsOf(plan: ScenePlan) {
   };
 }
 
+// Priced like a paid retry: one first Attempt on Pro Flash at the Element's tier.
+function localElements(plan: ScenePlan, file: string) {
+  const records = new Map(readElements(root).map((e) => [e.id, e]));
+  return allPlacements(plan).flatMap((p) => {
+    const record = records.get(p.element);
+    if (!record || record.kind !== "prop" || record.service !== "local") return [];
+    const canvas = { width: record.width, height: record.height };
+    return [{ placement: p.id, element: p.element, canvas, upgrade: { service: "pro-flash", ...proFlashPrice(canvas), command: `node pipeline/reopen.ts ${file} --upgrade ${p.id}` } }];
+  });
+}
+
 function describe(a: Abandoned): string {
   if (a.outcome === "substituted") return `Substituted: ${a.substitute} for ${a.element} (${a.placement})`;
   if (a.outcome === "dropped") return `Dropped: ${a.placement} (${a.element})`;
@@ -77,6 +89,7 @@ async function preview(file: string) {
   git("add", "--", relative(root, dirname(planPath)), "library", "gallery.json");
   const staged = git("diff", "--cached", "--name-only").split("\n").filter(Boolean).sort();
 
+  const planFile = relative(root, planPath);
   const elements = elementsOf(plan);
   const abandoned = readAbandoned(plan.id);
   return {
@@ -84,10 +97,12 @@ async function preview(file: string) {
     scene: plan.id,
     previewUrl: `${DEV_URL}scenes/${plan.id}/`,
     devServer: { url: DEV_URL, listening: await listening(DEV_URL) },
+    tuner: { url: TUNER_URL, command: `node pipeline/tune.ts ${planFile}` },
     staged,
     cost: plan.cost,
     ledger: ledger(plan),
     elements,
+    localElements: localElements(plan, planFile),
     abandoned,
     commitMessage: commitMessage(plan, elements, abandoned),
     checks: report.checks,

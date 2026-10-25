@@ -23,7 +23,7 @@ Far Layers keep their Plane default, or shift toward the sky outdoors (a lighter
 
 **Beams.** Place a beam only when the Concept names a sun shaft; light from a window is spill, not a beam.
 
-**Emissive colours.** Emissive colours are chosen at acceptance, from the 8x upscale: the colours that light themselves (lit windows, bulbs, screens), with a mask when the same colour also appears unlit in that Element. List them in the Element record's `emissive`.
+**Emissive colours.** Emissive colours are chosen at acceptance, from the 8x upscale: the colours that light themselves (lit windows, bulbs, screens), with a mask when the same colour also appears unlit in that Element. Pass them to `--accept` as `--emissive <i,j>`, with one `--emissive-region x,y,w,h` per lit area when the colour also appears unlit; the script writes the record's `emissive` and the mask.
 
 ## Variants
 

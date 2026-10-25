@@ -12,6 +12,7 @@ import { readElements, readScene } from "./lib/library.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import type { Pixels } from "./lib/pixel-ops.ts";
 import { roomShellOf } from "./lib/room-shell.ts";
+import { TUNER_PORT } from "./lib/site.ts";
 import { standInFeature, standInImage, type StandInImage, type StandInSuffix } from "./lib/stand-in.ts";
 import { applyTuning, TuningRefused } from "./lib/tuning.ts";
 import { zoomIssue, zoomScene, type Zoomed } from "./lib/zoom.ts";
@@ -19,7 +20,6 @@ import { zoomIssue, zoomScene, type Zoomed } from "./lib/zoom.ts";
 const root = process.cwd();
 const here = dirname(fileURLToPath(import.meta.url));
 const bundleDir = join(root, "scratch/tuner");
-const DEFAULT_PORT = 8001;
 const TYPES: Record<string, string> = { ".json": "application/json", ".png": "image/png", ".js": "text/javascript", ".html": "text/html; charset=utf-8" };
 
 type Args = { file: string; port: number; open: boolean };
@@ -27,7 +27,7 @@ type Args = { file: string; port: number; open: boolean };
 function parseArgs(argv: string[]): Args {
   const usage = "usage: tune <scene.json> [--port <n>] [--no-open]";
   let file: string | undefined;
-  let port = DEFAULT_PORT;
+  let port = TUNER_PORT;
   let open = true;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--port") port = Number(argv[++i]);

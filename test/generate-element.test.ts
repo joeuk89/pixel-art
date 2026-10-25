@@ -123,6 +123,60 @@ test("--accept moves the Attempt into the library, writes the record and rewrite
   assert.equal(check.code, 0, check.stderr);
 });
 
+// A 24x16 cat in colour 3 with colour 8 at (2,2) and (20,2): a lit eye on the left, the same yellow unlit on the right.
+async function queueTwoEyedCat(root: string): Promise<string> {
+  const rgba = new Uint8Array(24 * 16 * 4);
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  for (let p = 0; p < 24 * 16; p++) rgba.set([...rgb(PALETTE[3]), 255], p * 4);
+  for (const x of [2, 20]) rgba.set([...rgb(PALETTE[8]), 255], (2 * 24 + x) * 4);
+  pixellabState.images.set(placementIn(readJson(root, PLAN), "cat").generate.brief, encodePng(24, 16, rgba));
+  const first = await run(root, "cat");
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  assert.equal(first.json.gate.ok, true, JSON.stringify(first.json.gate));
+  return first.json.scratch.png;
+}
+
+test("--accept --emissive lists the Element's emissive colours, and --emissive-region masks them to the lit part only", async () => {
+  const root = tree();
+  const png = await queueTwoEyedCat(root);
+  const accepted = await run(root, "cat", "--accept", png, "--emissive", "8", "--emissive-region", "0,0,12,16");
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const id = accepted.json.element;
+  const record = readJson(root, `library/elements/${id}.json`);
+  assert.deepEqual(record.emissive, [8]);
+  assert.equal(record.emissiveMask, true);
+  const { data, info } = await sharp(join(root, `library/elements/${id}.emissive.png`)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  assert.deepEqual([info.width, info.height], [24, 16]);
+  const white = (x: number, y: number) => data[(y * 24 + x) * 4] === 255 && data[(y * 24 + x) * 4 + 3] === 255;
+  assert.equal(white(2, 2), true, "the lit eye is masked in");
+  assert.equal(white(20, 2), false, "the same colour outside the region stays unlit");
+  assert.equal(white(5, 5), false, "a colour that is not emissive stays unlit");
+  const check = validate(root);
+  assert.equal(check.code, 0, check.stderr);
+});
+
+test("--accept --emissive without a region writes the colours and no mask", async () => {
+  const root = tree();
+  const accepted = await run(root, "cat", "--accept", await queueTwoEyedCat(root), "--emissive", "8");
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  const record = readJson(root, `library/elements/${accepted.json.element}.json`);
+  assert.deepEqual(record.emissive, [8]);
+  assert.equal(record.emissiveMask, undefined);
+  assert.equal(existsSync(join(root, `library/elements/${accepted.json.element}.emissive.png`)), false);
+});
+
+test("--accept refuses an emissive colour the Element does not use, and a region without emissive colours", async () => {
+  const root = tree();
+  const png = await queueTwoEyedCat(root);
+  const unused = await run(root, "cat", "--accept", png, "--emissive", "9");
+  assert.notEqual(unused.code, 0);
+  assert.match(unused.stderr + unused.stdout, /colour 9/);
+  const bare = await run(root, "cat", "--accept", png, "--emissive-region", "0,0,4,4");
+  assert.notEqual(bare.code, 0);
+  assert.match(bare.stderr + bare.stdout, /--emissive-region needs --emissive/);
+  assert.equal(placementIn(readJson(root, PLAN), "cat").generate !== undefined, true, "nothing was accepted");
+});
+
 test("--accept reports a planned strip with no frames at the PixelLab default of 5", async () => {
   const root = tree((plan) => { placementIn(plan, "cat").generate.strip = { service: "pixellab" }; });
   const first = await run(root, "cat");

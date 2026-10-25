@@ -15,13 +15,14 @@ import {
   type Abandoned, type StillAttempt,
 } from "./lib/attempts.ts";
 import { projectAccepted } from "./lib/features.ts";
+import { emissiveOf, parseEmissive, type EmissiveChoice } from "./lib/emissive.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
 const ELEMENTS = "library/elements";
 const ANCHOR_MIN_SIDE = 48;
 const FILLS_CANVAS = "fills its canvas";
-const USAGE = "usage: generate-element <scene.json> <placementId> [--service pro-flash|pro|pixflux|rd-plus] [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor] | --abandon [--substitute elementId]";
+const USAGE = "usage: generate-element <scene.json> <placementId> [--service pro-flash|pro|pixflux|rd-plus] [--attempt n] [--seed n] [--brief text] | --accept <attemptPath> [--style-anchor] [--emissive i,j [--emissive-region x,y,w,h]...] | --abandon [--substitute elementId]";
 
 const targetBox = (scale: number, realSize: { w: number; h: number }) => ({ width: scale * realSize.w, height: scale * realSize.h });
 
@@ -135,7 +136,7 @@ function checkAnchor(placement: Placement, canvas: { width: number; height: numb
   }
 }
 
-async function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean) {
+async function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean, emissiveChoice: EmissiveChoice | null) {
   if (!existsSync(attemptPath) || !existsSync(sidecarOf(attemptPath))) throw new Error(`${attemptPath} is not an Attempt written by generate-element`);
   const attempt = JSON.parse(readFileSync(sidecarOf(attemptPath), "utf8")) as StillAttempt;
   if (attempt.service === "local") throw new Error(`${attemptPath} was drawn by draw-element; accept it with draw-element`);
@@ -144,6 +145,7 @@ async function accept(file: string, plan: ScenePlan, placement: Placement, attem
   }
   if (!attempt.gate.ok) throw new Error(`${attemptPath} failed the Quality gate: ${attempt.gate.failed.join("; ")}`);
   if (asAnchor) checkAnchor(placement, attempt.canvas);
+  const emissive = emissiveChoice ? await emissiveOf(attemptPath, loadPalette(process.cwd(), plan.palette).colours, emissiveChoice) : null;
 
   const generate = placement.generate!;
   const proposed = placement.element;
@@ -166,6 +168,7 @@ async function accept(file: string, plan: ScenePlan, placement: Placement, attem
     firstScene: plan.id,
     cost,
     checks: { attempt: attempt.attempt, passed: attempt.gate.passed, warnings: attempt.gate.warnings },
+    ...emissive?.fields,
   };
   const record: ElementRecord = elementRecordSchema.parse(generate.kind === "prop"
     ? { ...base, kind: "prop", ...attempt.canvas, realSize: generate.realSize, transparent: true }
@@ -185,6 +188,7 @@ async function accept(file: string, plan: ScenePlan, placement: Placement, attem
   mkdirSync(ELEMENTS, { recursive: true });
   copyFileSync(attemptPath, join(ELEMENTS, `${id}.png`));
   writeFileSync(join(ELEMENTS, `${id}.json`), JSON.stringify(record, null, 2) + "\n");
+  emissive?.write(join(ELEMENTS, `${id}.emissive.png`));
   charge.commit();
   const projection = await projectAccepted(process.cwd(), file, placement.id, loadPalette(process.cwd(), plan.palette));
 
@@ -253,6 +257,7 @@ main(async () => {
       attempt: { type: "string" }, seed: { type: "string" }, brief: { type: "string" },
       accept: { type: "string" }, "style-anchor": { type: "boolean" },
       abandon: { type: "boolean" }, substitute: { type: "string" }, service: { type: "string" },
+      emissive: { type: "string" }, "emissive-region": { type: "string", multiple: true },
     },
   });
   const [file, placementId, ...rest] = positionals;
@@ -261,7 +266,9 @@ main(async () => {
   const found = findPlacement(plan, placementId);
   if (values.service !== undefined && (values.accept !== undefined || values.abandon)) throw new Error("--service goes with an Attempt, not with --accept or --abandon");
   const service = parseService(values.service);
-  if (values.accept !== undefined) return accept(file, plan, found.placement, values.accept, values["style-anchor"] === true);
+  const emissive = parseEmissive(values.emissive, values["emissive-region"]);
+  if (values.accept !== undefined) return accept(file, plan, found.placement, values.accept, values["style-anchor"] === true, emissive);
+  if (emissive) throw new Error("--emissive goes with --accept");
   if (values["style-anchor"]) throw new Error("--style-anchor goes with --accept");
   if (values.abandon) return abandon(file, plan, found, values.substitute);
   if (values.substitute !== undefined) throw new Error("--substitute goes with --abandon");
