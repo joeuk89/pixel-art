@@ -25,7 +25,7 @@ for (let y = 4; y < 16; y++) for (let x = 3; x < 13; x++) mugPixels.set([0xf6, 0
 const mugPng = await sharp(mugPixels, { raw: { width: 16, height: 16, channels: 4 } }).png().toBuffer();
 
 // The fixture Scene plus a local-Finish rug on the floor, a small service prop whose canvas stays clamped at 16,
-// and a copy of that prop in the top-left corner, which a 1.2x zoom pushes wholly off the canvas.
+// a copy of that prop in the top-left corner, which a 1.2x zoom pushes wholly off the canvas, and steam on the cat.
 function prepare(root: string): void {
   const mug = {
     id: "mug-ceramic-plain-01", kind: "prop", width: 16, height: 16, realSize: { w: 0.1, h: 0.1 }, transparent: true,
@@ -41,6 +41,7 @@ function prepare(root: string): void {
       { id: "mug", element: "mug-ceramic-plain-01", foot: { x: 230, y: 214 } },
       { id: "mug-2", element: "mug-ceramic-plain-01", x: 0, y: 0, flipX: true },
     );
+    plan.primitives.push({ type: "steam", anchor: "cat", offset: { x: 10, y: -5 }, colours: [8, 9] });
     const rug = placement(plan, "rug");
     rug.element = "rug-wool-plain-01";
     rug.generate = { kind: "prop", brief: "plain wool rug, front view, flat on", realSize: { w: 1.5, h: 0.4 }, tags: ["rug"], finish: "local", generator: "rect", params: { fill: 13 } };
@@ -99,6 +100,7 @@ test("a zoom Save bakes the Stage, moves Placements and Lights about the vanishi
   assert.deepEqual(spill.at, { x: 190, y: 39 });
   assert.equal(spill.radius, 100 + 20);
   assert.deepEqual(beam.corners, [{ x: 168, y: 68 }, { x: 216, y: 68 }, { x: 264, y: 260 }, { x: 130, y: 260 }]);
+  assert.deepEqual(plan.primitives.find((prim: any) => prim.type === "steam").offset, { x: 12, y: -6 });
 
   for (const pid of ["window", "skyline", "painting", "cat", "cat-2"]) {
     assert.ok(placement(plan, pid).generate, `${pid} was not reopened`);

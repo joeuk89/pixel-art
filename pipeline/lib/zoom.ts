@@ -131,7 +131,10 @@ function moveRaw(raw: any, zoom: number): void {
       }
     }
   }
-  const primitives = (list: any[] | undefined) => list?.forEach((prim) => prim.region && (prim.region = zoomRegion(vp, zoom, prim.region)));
+  const primitives = (list: any[] | undefined) => list?.forEach((prim) => {
+    if (prim.region) prim.region = zoomRegion(vp, zoom, prim.region);
+    if (prim.offset) prim.offset = { x: Math.round(prim.offset.x * zoom), y: Math.round(prim.offset.y * zoom) };
+  });
   primitives(raw.primitives);
   for (const v of raw.variants) {
     v.lights = zoomLights(v.lights, vp, zoom);
