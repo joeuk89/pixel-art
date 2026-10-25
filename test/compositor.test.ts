@@ -323,7 +323,6 @@ test("x, y Placements keep their order around foot Placements", () => {
 
 const room = (name: string) => ({ name, kind: "room", plane: "mid", surfaces: { back: { colour: 4 } }, openings: [], placements: [] });
 const stage = { back: { x: 0, y: 0, w: 384, h: 240 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
-// A Room shell in colour 4 with a transparent Opening from 100,50 to 139,79.
 const shell = image(W, H, (x, y) => (x >= 100 && x < 140 && y >= 50 && y < 80 ? null : rgb(4)));
 
 test("room.png draws in the room Layer's place: over the Layers before it, under the Layers after it", () => {

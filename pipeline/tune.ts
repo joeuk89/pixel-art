@@ -83,6 +83,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const planPath = resolve(root, args.file);
   const file = relative(root, planPath);
+  const roomPath = join(dirname(planPath), ROOM_FILE);
   const plan = readScene(planPath);
   const palette = loadPalette(root, plan.palette);
 
@@ -138,7 +139,7 @@ async function main() {
       if (path === "/") return send(res, 200, PAGE, TYPES[".html"]);
       if (path === "/tuner.js") return send(res, 200, readFileSync(join(bundleDir, "tuner.js")), TYPES[".js"]);
       if (path === "/scene.json") return send(res, 200, readFileSync(planPath), TYPES[".json"]);
-      if (path === `/${ROOM_FILE}` && existsSync(join(dirname(planPath), ROOM_FILE))) return send(res, 200, readFileSync(join(dirname(planPath), ROOM_FILE)), TYPES[".png"]);
+      if (path === `/${ROOM_FILE}` && existsSync(roomPath)) return send(res, 200, readFileSync(roomPath), TYPES[".png"]);
       if (path.startsWith("/library/")) {
         const target = resolve(root, `.${path}`);
         const library = join(root, "library") + sep;

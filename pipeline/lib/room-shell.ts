@@ -1,8 +1,9 @@
 import { isWall, roomLayerOf, SCENE_HEIGHT, SCENE_WIDTH, surfaceSchema, type Opening, type Palette, type RoomLayer, type ScenePlan, type Stage, type Surface } from "../../schema/index.ts";
 import { locate, project, surfaceExtent } from "./perspective.ts";
+import { rgbOf } from "./pixel-ops.ts";
 
 const MIN_LINE_GAP = 3;
-// The room-shell prototype's floor had 6 px rows of 64 px boards with joints staggered by (k * 23 + 7) % 64.
+// Boards are 64 px long on 6 px rows; the stagger keeps joints in neighbouring rows from lining up.
 const BOARD_LENGTH_PER_ROW = 64 / 6;
 const STAGGER = (row: number) => ((row * 23 + 7) % 64) / 64;
 
@@ -87,10 +88,7 @@ function linesOf(stage: Stage, surface: Surface, lines: NonNullable<RoomLayer["s
 }
 
 export function drawRoomShell(stage: Stage, room: RoomLayer, palette: Palette): Uint8ClampedArray {
-  const rgb = palette.colours.map((hex) => {
-    const n = parseInt(hex.slice(1), 16);
-    return [n >> 16, (n >> 8) & 255, n & 255];
-  });
+  const rgb = palette.colours.map(rgbOf);
   const darker = (colour: number) => palette.ramps?.[colour]?.dark ?? colour;
   const out = new Uint8ClampedArray(SCENE_WIDTH * SCENE_HEIGHT * 4);
   const kind = new Uint8Array(SCENE_WIDTH * SCENE_HEIGHT);
