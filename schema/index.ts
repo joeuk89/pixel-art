@@ -10,6 +10,7 @@ export const MIN_PROP_SIDE = 16;
 export const MAX_PROP_SIDE = 256;
 export const SIDE_STEP = 4;
 export const POSTER_FILE = "poster.png";
+export const ROOM_FILE = "room.png";
 export const MUSIC_FILE = "music.mp3";
 export const POSTER_OG_FILE = "poster-og.png";
 export const POSTER_OG_SCALE = 2;
@@ -128,6 +129,37 @@ const placement = z
     if (positions !== 1 || partial) ctx.addIssue({ code: "custom", path: [], message: "a Placement takes exactly one position: x, y or foot" });
   });
 
+export const surfaceSchema = z.enum(["back", "floor", "ceiling", "left", "right"]);
+export type Surface = z.infer<typeof surfaceSchema>;
+export const isWall = (surface: Surface) => surface !== "floor" && surface !== "ceiling";
+
+const surfaceStyle = z.strictObject({
+  colour: colourIndex,
+  lines: z.strictObject({ pattern: z.enum(["boards", "grid", "coffers"]), spacing: int.positive() }).optional(),
+  skirting: z.strictObject({ height: int.positive(), colour: colourIndex }).optional(),
+});
+
+const opening = z.strictObject({
+  id: slug,
+  surface: surfaceSchema,
+  along: int.min(0),
+  across: int.min(0),
+  w: int.positive(),
+  h: int.positive(),
+  frame: z
+    .strictObject({ width: int.positive(), colour: colourIndex, mullionsAcross: int.min(0), mullionsDown: int.min(0) })
+    .optional(),
+});
+
+const roomLayer = z.strictObject({
+  name: slug,
+  kind: z.literal("room"),
+  plane: planeSchema,
+  surfaces: z.strictObject(Object.fromEntries(surfaceSchema.options.map((s) => [s, surfaceStyle.optional()])) as Record<Surface, z.ZodOptional<typeof surfaceStyle>>),
+  openings: z.array(opening),
+  placements: z.array(placement).max(0, "Features on a Surface are not supported yet; leave placements empty"),
+});
+
 const layer = z.discriminatedUnion("kind", [
   z.strictObject({ name: slug, kind: z.literal("fill"), plane: planeSchema, colour: colourIndex }),
   z.strictObject({
@@ -137,6 +169,7 @@ const layer = z.discriminatedUnion("kind", [
     scale: z.number().positive().optional(),
     placements: z.array(placement),
   }),
+  roomLayer,
 ]);
 
 const colours = z.array(colourIndex).min(1);
@@ -364,6 +397,22 @@ export const scenePlanSchema = z
       deepest = Math.max(deepest, depth);
       if (l.kind === "placements" && l.scale !== undefined && l.plane !== "far") issue(["layers", li, "scale"], "only a far Layer may set its own scale");
     });
+    const rooms = plan.layers.flatMap((l, li) => (l.kind === "room" ? [{ room: l, li }] : []));
+    rooms.slice(1).forEach(({ li }) => issue(["layers", li, "kind"], "a Scene has at most one room Layer"));
+    for (const { room, li } of rooms) {
+      if (!plan.stage) issue(["layers", li, "kind"], "a room Layer is allowed only with a Stage");
+      for (const surface of surfaceSchema.options) {
+        if (!isWall(surface) && room.surfaces[surface]?.skirting) {
+          issue(["layers", li, "surfaces", surface, "skirting"], `skirting goes on walls only, not the ${surface}`);
+        }
+      }
+      const openingIds = new Set<string>();
+      room.openings.forEach((o, oi) => {
+        if (openingIds.has(o.id)) issue(["layers", li, "openings", oi, "id"], `duplicate Opening id ${o.id}`);
+        openingIds.add(o.id);
+        if (!room.surfaces[o.surface]) issue(["layers", li, "openings", oi, "surface"], `Opening ${o.id} is on the ${o.surface}, which this room Layer does not draw`);
+      });
+    }
     const variantIds = new Set<string>();
     plan.variants.forEach((v, vi) => {
       if (variantIds.has(v.id)) issue(["variants", vi, "id"], `duplicate Variant id ${v.id}`);
@@ -527,6 +576,8 @@ export const ambientLoopRecordSchema = z.strictObject({
 
 export type ScenePlan = z.infer<typeof scenePlanSchema>;
 export type Layer = z.infer<typeof layer>;
+export type RoomLayer = z.infer<typeof roomLayer>;
+export type Opening = z.infer<typeof opening>;
 export type Variant = z.infer<typeof variant>;
 export type Light = z.infer<typeof lightSchema>;
 export type Tint = z.infer<typeof tintSchema>;
@@ -540,6 +591,10 @@ export type GalleryEntry = Pick<ScenePlan, "id" | "title" | "createdAt" | "descr
 
 export function placementsOf(layer: Layer): Placement[] {
   return layer.kind === "placements" ? layer.placements : [];
+}
+
+export function roomLayerOf(plan: Pick<ScenePlan, "layers">): RoomLayer | undefined {
+  return plan.layers.find((l): l is RoomLayer => l.kind === "room");
 }
 
 export function allPlacements(plan: Pick<ScenePlan, "layers">): Placement[] {
