@@ -8,13 +8,13 @@ import { editPlan } from "./lib/plan-file.ts";
 type Size = { w: number; h: number };
 
 function generateFrom(record: ElementRecord, size?: Size, upgrade = false) {
+  if (upgrade && (record.kind !== "prop" || record.service !== "local")) throw new Error(`Element ${record.id} is not a local-Finish prop, so it has nothing to upgrade`);
   if (record.kind === "backdrop") return { kind: "backdrop", brief: record.brief, tags: record.tags, size: size ?? { w: record.width, h: record.height } };
   if (size) throw new Error(`Element ${record.id} is a ${record.kind}; --size applies only to a Backdrop`);
   if (record.kind === "texture") throw new Error(`Element ${record.id} is a Seamless texture, which reopen does not regenerate`);
   const animation = record.animation;
   const keepFrames = animation && (animation.service !== "pixellab" || isPixelLabFrames(animation.frames));
   const strip = animation ? { service: animation.service, ...(keepFrames ? { frames: animation.frames } : {}) } : undefined;
-  if (upgrade && record.service !== "local") throw new Error(`Element ${record.id} is not a local Finish, so it has nothing to upgrade`);
   const finish = record.service === "local" && !upgrade ? { finish: "local", generator: record.generator, params: record.params } : {};
   return { kind: "prop", brief: record.brief, realSize: record.realSize, tags: record.tags, ...(strip ? { strip } : {}), ...finish };
 }

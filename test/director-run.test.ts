@@ -254,7 +254,10 @@ test("reopen --upgrade refuses a Placement whose Element is not a local-Finish p
   await generateAll(root);
   const run = await runScript(join(repo, "pipeline/reopen.ts"), [PLAN, "--upgrade", "lamp"], { cwd: root, env: server.env });
   assert.notEqual(run.code, 0);
-  assert.match(run.stderr + run.stdout, /local Finish/);
+  assert.match(run.stderr + run.stdout, /local-Finish prop/);
+  const backdrop = await runScript(join(repo, "pipeline/reopen.ts"), [PLAN, "--upgrade", "skyline"], { cwd: root, env: server.env });
+  assert.notEqual(backdrop.code, 0);
+  assert.match(backdrop.stderr + backdrop.stdout, /local-Finish prop/);
 });
 
 test("after a rejection, preview no longer reports a strip fallback for a Placement that was reopened and regenerated", async () => {
