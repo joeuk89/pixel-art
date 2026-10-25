@@ -52,13 +52,14 @@ export function variantSounds(plan: SoundsPlan, variant: Pick<Variant, "id" | "s
 type AnySlot = VariantSounds["ambient"][number] | VariantSounds["oneshots"][number];
 export type Crossfade = { keep: AnySlot[]; fadeIn: AnySlot[]; fadeOut: AnySlot[] };
 
+export function variantSlots(plan: SoundsPlan, variant: Pick<Variant, "id" | "soundtrack">): AnySlot[] {
+  const { ambient, oneshots } = variantSounds(plan, variant);
+  return [...ambient, ...oneshots];
+}
+
 export function crossfade(plan: SoundsPlan, from: Pick<Variant, "id" | "soundtrack">, to: Pick<Variant, "id" | "soundtrack">): Crossfade {
-  const all = (v: Pick<Variant, "id" | "soundtrack">): AnySlot[] => {
-    const { ambient, oneshots } = variantSounds(plan, v);
-    return [...ambient, ...oneshots];
-  };
-  const before = all(from);
-  const after = all(to);
+  const before = variantSlots(plan, from);
+  const after = variantSlots(plan, to);
   const had = new Set(before.map((s) => s.key));
   const has = new Set(after.map((s) => s.key));
   return {

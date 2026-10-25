@@ -1,7 +1,7 @@
 import type { ScenePlan, Variant } from "../schema/index.ts";
 import { fetchOk } from "./http.ts";
 import type { Channel } from "./settings.ts";
-import { CROSSFADE_SEC, crossfade, DISTANCE_BUSES, loopOffset, oneshotFires, variantSounds, type VariantSounds } from "./sound-schedule.ts";
+import { CROSSFADE_SEC, crossfade, DISTANCE_BUSES, loopOffset, oneshotFires, variantSlots, type VariantSounds } from "./sound-schedule.ts";
 
 type Distance = keyof typeof DISTANCE_BUSES;
 
@@ -16,10 +16,7 @@ export type Audio = {
 };
 
 export function hasAmbientSound(plan: Pick<ScenePlan, "soundtrack" | "variants">): boolean {
-  return plan.variants.some((v) => {
-    const { ambient, oneshots } = variantSounds(plan, v);
-    return ambient.length + oneshots.length > 0;
-  });
+  return plan.variants.some((v) => variantSlots(plan, v).length > 0);
 }
 
 export function createAudio(levels: Levels, context: AudioContext = new AudioContext()): Audio {
@@ -55,10 +52,7 @@ export async function playSoundtrack(
   variant: Variant = plan.variants[0],
 ): Promise<Soundtrack> {
   const { music } = plan.soundtrack;
-  const files = new Set(plan.variants.flatMap((v) => {
-    const { ambient, oneshots } = variantSounds(plan, v);
-    return [...ambient, ...oneshots].map((slot) => slot.entry.file);
-  }));
+  const files = new Set(plan.variants.flatMap((v) => variantSlots(plan, v).map((slot) => slot.entry.file)));
   const decode = async (file: string) => context.decodeAudioData(await (await fetchOk(new URL(file, base))).arrayBuffer());
   const [musicBuffer, buffers] = await Promise.all([
     music.file ? decode(music.file) : undefined,
@@ -143,8 +137,7 @@ export async function playSoundtrack(
   const play = (variant: Variant, fadeIn: boolean) => {
     const now = context.currentTime;
     const at = fadeIn ? now : startAt;
-    const { ambient, oneshots } = variantSounds(plan, variant);
-    for (const slot of [...ambient, ...oneshots]) {
+    for (const slot of variantSlots(plan, variant)) {
       if (playing.has(slot.key)) continue;
       const bus = buses[slot.entry.distance];
       const fade = gain(1, bus);
