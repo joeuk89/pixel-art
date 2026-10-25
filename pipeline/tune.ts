@@ -106,7 +106,7 @@ async function main() {
   const plan = readScene(planPath);
   const palette = loadPalette(root, plan.palette);
   const records = () => new Map<string, ElementRecord>(readElements(root).map((r) => [r.id, r]));
-  const zoomed = (zoom: number) => zoomScene(JSON.parse(readFileSync(planPath, "utf8")), zoom, records());
+  const zoomed = (zoom: number, library = records()) => zoomScene(JSON.parse(readFileSync(planPath, "utf8")), zoom, library);
 
   mkdirSync(bundleDir, { recursive: true });
   await build({ entryPoints: [join(here, "tuner/page.ts")], bundle: true, format: "esm", outfile: join(bundleDir, "tuner.js"), logLevel: "silent" });
@@ -242,9 +242,10 @@ async function main() {
       const standIn = path.match(/^\/stand-in\/(features\/)?([a-z0-9-]+)(\.png|\.strip\.png|\.emissive\.png)$/);
       if (standIn) {
         const [, projected, placementId, suffix] = standIn;
-        const z = zoomed(zoomFrom(url) ?? 1);
+        const library = records();
+        const z = zoomed(zoomFrom(url) ?? 1, library);
         const entry = z.placements.find((p) => p.placement === placementId);
-        const record = entry && records().get(entry.element);
+        const record = entry && library.get(entry.element);
         const image = !record ? undefined
           : projected ? (suffix === ".png" ? await standInFeature(root, z, placementId, record, palette) : undefined)
           : await standInImage(root, z, placementId, suffix as StandInSuffix, record, palette);

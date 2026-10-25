@@ -2,7 +2,7 @@ import {
   isFeature, roomLayerOf, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema, SIDE_STEP,
   type ElementRecord, type Layer, type Placement, type ScenePlan,
 } from "../../schema/index.ts";
-import { placementScale, propCanvas, type Canvas } from "./canvas.ts";
+import { hundredths, placementScale, propCanvas, type Canvas } from "./canvas.ts";
 import { featureBox, type Box, type Point } from "./perspective.ts";
 
 export const ZOOM_MIN = 0.8;
@@ -38,7 +38,6 @@ export type Zoomed = {
   removed: { placements: string[]; lights: string[]; primitives: string[] };
 };
 
-const hundredths = (n: number) => Math.round(n * 100) / 100;
 const atLeastOne = (n: number) => Math.max(1, Math.round(n));
 
 export function zoomPoint(vp: Point, zoom: number, p: Point): Point {
@@ -97,6 +96,8 @@ function boxOf(plan: ScenePlan, p: Placement, size: Canvas): Box {
   }
   return { x: p.x!, y: p.y!, w: size.width, h: size.height };
 }
+
+const rawPlacementsById = (raw: any) => new Map<string, any>(raw.layers.flatMap((l: any) => l.placements ?? []).map((p: any) => [p.id, p]));
 
 const offCanvas = (b: Box) => b.x + b.w <= 0 || b.y + b.h <= 0 || b.x >= SCENE_WIDTH || b.y >= SCENE_HEIGHT;
 
@@ -173,7 +174,7 @@ function backdropWithoutOpening(plan: ScenePlan, layer: Layer, p: Placement, rec
 // A Backdrop not sized to an Opening fills the back of the Scene, and a tileX texture at the top covers the sky,
 // so moving either about the vanishing point would leave a band of the canvas uncovered.
 function keepCover(before: ScenePlan, raw: any, records: ReadonlyMap<string, ElementRecord>): void {
-  const rawPlacements = new Map<string, any>(raw.layers.flatMap((l: any) => l.placements ?? []).map((p: any) => [p.id, p]));
+  const rawPlacements = rawPlacementsById(raw);
   for (const { layer, p } of layered(before)) {
     if (p.x === undefined || p.y === undefined) continue;
     const moved = rawPlacements.get(p.id);
@@ -199,7 +200,7 @@ export function zoomScene(raw: unknown, zoom: number, records: ReadonlyMap<strin
   const placements: ZoomedPlacement[] = [];
   const sizes: Record<string, Canvas> = {};
   const dropped = new Set<string>();
-  const rawPlacements = new Map<string, any>(out.layers.flatMap((l: any) => l.placements ?? []).map((p: any) => [p.id, p]));
+  const rawPlacements = rawPlacementsById(out);
   for (const { layer, p } of layered(moved)) {
     if (p.generate) {
       const opening = p.generate.kind === "backdrop" && pendingOpening(before, p.generate.size);

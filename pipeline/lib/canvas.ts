@@ -33,7 +33,7 @@ export function layerScale(sceneScale: number, layer: Layer): number {
   return layer.kind === "placements" && layer.scale !== undefined ? layer.scale : sceneScale;
 }
 
-const hundredths = (n: number) => Math.round(n * 100) / 100;
+export const hundredths = (n: number) => Math.round(n * 100) / 100;
 
 type RealSize = { w: number; h: number };
 
