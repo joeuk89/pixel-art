@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import sharp from "sharp";
 import { allPlacements, featureFile, isFeature, isProjected, type Feature, type Palette, type ScenePlan, type Stage } from "../../schema/index.ts";
+import { decodePng } from "./element-pixels.ts";
 import { readScene } from "./library.ts";
 import { featureBox, featureSpan, locate, type Box } from "./perspective.ts";
 import { checkerboards, orphans, snapToPalette, type Pixels } from "./pixel-ops.ts";
@@ -47,11 +48,6 @@ export function renderProjection(stage: Stage, feature: Feature, source: Pixels,
     pixels: snapped.frame, box, opaque: snapped.opaque, offPalette: snapped.offPalette,
     orphans: orphan.count, orphanShare: orphan.share, checkerboards: checkerboards(snapped.frame),
   };
-}
-
-export async function decodePng(path: string): Promise<Pixels> {
-  const { data, info } = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  return { width: info.width, height: info.height, data: new Uint8Array(data) };
 }
 
 export const projectedFeatures = (plan: ScenePlan): Feature[] => allPlacements(plan).filter(isProjected);

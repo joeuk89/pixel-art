@@ -1,4 +1,4 @@
-import { isProjected, placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
+import { featureFile, isProjected, placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
 import { FLICKER_FPS } from "./flicker.ts";
 import { createLighting, NONE, UNLIT, type LightField, type Planes } from "./lighting.ts";
 import { positioned, type Positioned } from "./placement.ts";
@@ -250,7 +250,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
       const p = positioned(placement, pixels.still, plan.stage);
       if (isProjected(placement)) {
         const projected = features.get(placement.id);
-        if (!projected) throw new Error(`Feature ${placement.id}: features/${placement.id}.png has no pixels; run project-features`);
+        if (!projected) throw new Error(`Feature ${placement.id}: ${featureFile(placement.id)} has no pixels; run project-features`);
         blit(current, sourceOf(pixels, projected, placement), p.x, p.y, false, li);
         drawn = true;
         continue;

@@ -7,7 +7,7 @@ import { elementPixelsOf, type ElementPixels, type Pixels } from "../../viewer/c
 const ELEMENTS = "library/elements";
 const PALETTES = "library/palettes";
 
-async function decode(path: string): Promise<Pixels> {
+export async function decodePng(path: string): Promise<Pixels> {
   let decoded;
   try {
     decoded = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -34,17 +34,17 @@ export async function loadElementPixels(root: string, plan: ScenePlan): Promise<
   const loaded = new Map<string, ElementPixels>();
   for (const id of ids) {
     const record = elementRecordSchema.parse(readJson(join(root, ELEMENTS, `${id}.json`)));
-    loaded.set(id, await elementPixelsOf(record, (suffix) => decode(join(root, ELEMENTS, `${id}${suffix}`))));
+    loaded.set(id, await elementPixelsOf(record, (suffix) => decodePng(join(root, ELEMENTS, `${id}${suffix}`))));
   }
   return loaded;
 }
 
 export async function loadRoomPixels(sceneDir: string, plan: ScenePlan): Promise<Pixels | undefined> {
-  return roomLayerOf(plan) ? decode(join(sceneDir, ROOM_FILE)) : undefined;
+  return roomLayerOf(plan) ? decodePng(join(sceneDir, ROOM_FILE)) : undefined;
 }
 
 export async function loadFeaturePixels(sceneDir: string, plan: ScenePlan): Promise<Map<string, Pixels>> {
   const loaded = new Map<string, Pixels>();
-  for (const p of allPlacements(plan).filter(isProjected)) loaded.set(p.id, await decode(join(sceneDir, featureFile(p.id))));
+  for (const p of allPlacements(plan).filter(isProjected)) loaded.set(p.id, await decodePng(join(sceneDir, featureFile(p.id))));
   return loaded;
 }
