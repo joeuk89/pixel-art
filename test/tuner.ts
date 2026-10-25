@@ -29,8 +29,8 @@ export function stopTuners(): void {
   for (const server of running.splice(0)) server.kill();
 }
 
-export async function startTuner(root: string): Promise<string> {
-  const server = spawn(process.execPath, [join(repo, "pipeline/tune.ts"), fixtureScene, "--port", "0", "--no-open"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+export async function startTuner(root: string, plan = fixtureScene): Promise<string> {
+  const server = spawn(process.execPath, [join(repo, "pipeline/tune.ts"), plan, "--port", "0", "--no-open"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
   running.push(server);
   let stderr = "";
   server.stderr!.on("data", (chunk) => (stderr += chunk));

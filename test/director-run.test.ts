@@ -7,13 +7,15 @@ import { editJson, fixturePalette, makeTree, readJson, repo, writeJson } from ".
 import { runScript, startFixtureServer, type FixtureServer } from "./fixture-server.ts";
 import { pixellabState } from "./fixtures/services/pixellab.ts";
 import sharp from "sharp";
+import { tuningOf } from "../pipeline/lib/tuning.ts";
+import { startTuner, stopTuners } from "./tuner.ts";
 
 const ID = "lamp-desk-rain-e2e1";
 const PLAN = `scenes/${ID}/scene.json`;
 
 let server: FixtureServer;
 before(async () => { server = await startFixtureServer(); });
-after(() => server.close());
+after(() => { stopTuners(); return server.close(); });
 beforeEach(() => pixellabState.reset());
 
 const draft = {
@@ -41,6 +43,8 @@ const draft = {
         generate: { kind: "prop", brief: "brass floor lamp with a linen shade", realSize: { w: 0.5, h: 1.4 }, tags: ["lamp"] } },
       { id: "desk", element: "desk-oak-plain-01", foot: { x: 200, y: 224 },
         generate: { kind: "prop", brief: "plain oak desk with two drawers, front view", realSize: { w: 1.2, h: 0.75 }, tags: ["desk"], finish: "local", generator: "box", params: { fill: 13, top: 12, drawers: 2 } } },
+      { id: "vase", element: "vase-ceramic-plain-01", x: 214, y: 168,
+        generate: { kind: "prop", brief: "plain ceramic vase", realSize: { w: 0.4, h: 0.4 }, tags: ["vase"] } },
       { id: "cat", element: "cat-grey-asleep-01", foot: { x: 290, y: 236 }, animation: { fps: 4 },
         generate: { kind: "prop", brief: "grey cat asleep, curled up", realSize: { w: 0.5, h: 0.25 }, tags: ["cat"], strip: { service: "pixellab" } } }] },
   ],
@@ -107,9 +111,9 @@ async function generateAll(root: string) {
   await step(root, "room-shell", PLAN);
   const [, anchor, desk] = await Promise.all([step(root, "music", PLAN), element(root, "lamp", "--style-anchor"), drawn(root, "desk")]);
   await step(root, "ambient", PLAN);
-  const [skyline, painting, cat] = await Promise.all([element(root, "skyline"), element(root, "painting"), element(root, "cat")]);
+  const [skyline, painting, vase, cat] = await Promise.all(["skyline", "painting", "vase", "cat"].map((pid) => element(root, pid)));
   await strip(root, cat);
-  return { anchor, desk, skyline, painting, cat };
+  return { anchor, desk, skyline, painting, vase, cat };
 }
 
 const placements = (plan: any) => Object.fromEntries(plan.layers.flatMap((l: any) => l.placements ?? []).map((p: any) => [p.id, p]));
@@ -119,7 +123,7 @@ const unresolved = async (root: string) => (await step(root, "derive-canvas", PL
 
 test("from a yes at the Plan gate a v2 plan is generated, checked and staged with a preview and a Tuner URL", async () => {
   const root = tree();
-  const { anchor, desk, skyline, painting, cat } = await generateAll(root);
+  const { anchor, desk, skyline, painting, vase, cat } = await generateAll(root);
 
   const first = await finish(root);
   assert.equal(first.ok, true, JSON.stringify(first.checks));
@@ -135,14 +139,14 @@ test("from a yes at the Plan gate a v2 plan is generated, checked and staged wit
   assert.equal(deskRecord.cost.pixellabGenerations, 0);
   const skylineRecord = readJson(root, `library/elements/${skyline}.json`);
   assert.deepEqual([skylineRecord.kind, skylineRecord.width, skylineRecord.height, skylineRecord.model], ["backdrop", 256, 128, "pro-flash"]);
-  for (const id of [anchor, skyline, painting, cat]) assert.equal(readJson(root, `library/elements/${id}.json`).service, "pixellab");
+  for (const id of [anchor, skyline, painting, vase, cat]) assert.equal(readJson(root, `library/elements/${id}.json`).service, "pixellab");
 
   const room = await sharp(sceneFile(root, "room.png")).metadata();
   assert.deepEqual([room.width, room.height], [384, 240]);
   const feature = await sharp(sceneFile(root, "features/painting.png")).metadata();
   assert.ok(feature.width! > 0 && feature.height! > 0);
   for (const f of ["room.png", "features/painting.png", "poster.png", "index.html", "scene.json"]) assert.ok(first.staged.includes(`scenes/${ID}/${f}`), `${f} is staged`);
-  assert.equal(plan.cost.pixellabGenerations, 4 * 5 + 1, "the fixture charges 5 per still and 1 per strip; the local desk is free");
+  assert.equal(plan.cost.pixellabGenerations, 5 * 5 + 1, "the fixture charges 5 per still and 1 per strip; the local desk is free");
   assert.equal(git(root, "rev-list", "--count", "HEAD").trim(), "1");
 });
 
@@ -173,6 +177,47 @@ test("a rejected Element resumes at the Plan gate for that Placement only, and e
   assert.deepEqual(readdirSync(join(root, "scenes")).sort(), ["fixture-rainy-desk-a1b2", ID], "no second Scene folder");
 });
 
+test("a zoom Save in the Tuner resumes at the Plan gate for the Placements it reopened only, then generates and previews again", async () => {
+  const root = tree();
+  const ids = await generateAll(root);
+  assert.equal((await finish(root)).ok, true);
+  const before = placements(readJson(root, PLAN));
+
+  const url = await startTuner(root, PLAN);
+  const response = await fetch(new URL("save", url), {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...tuningOf(readJson(root, PLAN)), zoom: 0.9 }),
+  });
+  const saved = await response.json();
+  assert.equal(saved.ok, true, saved.error);
+  assert.match(saved.resume, /step 8/);
+  stopTuners();
+
+  const reopened = [...saved.reopened].filter((id: string) => !saved.redrawn.some((r: any) => r.placement === id)).sort();
+  assert.ok(reopened.length > 0, "the zoom changed at least one service canvas");
+  assert.deepEqual(reopened, ["cat", "lamp", "painting", "skyline"]);
+  assert.deepEqual(saved.redrawn.map((r: any) => r.placement), ["desk"], "the local desk is redrawn by the Tuner, not reopened");
+  assert.deepEqual(await unresolved(root), reopened, "the Plan gate sees only the reopened Placements");
+  const untouched = Object.keys(before).filter((pid) => !saved.reopened.includes(pid));
+  assert.deepEqual(untouched, ["vase"], "the vase rounds to the same 20 px canvas at 0.9x");
+  const kept = Object.fromEntries(untouched.map((pid) => [pid, bytes(root, before[pid].element)]));
+
+  for (const pid of reopened) {
+    const placement = placements(readJson(root, PLAN))[pid];
+    const id = await element(root, pid);
+    if (placement.generate.strip) await strip(root, id);
+  }
+  const second = await finish(root);
+  assert.equal(second.ok, true, JSON.stringify(second.checks));
+  const now = placements(readJson(root, PLAN));
+  assert.equal(readJson(root, PLAN).status, "resolved");
+  for (const pid of untouched) {
+    assert.equal(now[pid].element, before[pid].element, `${pid} keeps its Element`);
+    assert.deepEqual(bytes(root, now[pid].element), kept[pid]);
+  }
+  for (const pid of reopened) assert.notEqual(now[pid].element, before[pid].element, `${pid} has a new Element`);
+  for (const id of Object.values(ids)) assert.equal(bytes(root, id).length, 2, `${id} stays in the library`);
+});
+
 test("after a rejection, preview no longer reports a strip fallback for a Placement that was reopened and regenerated", async () => {
   const root = tree();
   await step(root, "room-shell", PLAN);
@@ -182,6 +227,7 @@ test("after a rejection, preview no longer reports a strip fallback for a Placem
   await step(root, "ambient", PLAN);
   await element(root, "skyline");
   await element(root, "painting");
+  await element(root, "vase");
   const cat = await element(root, "cat");
   await step(root, "generate-strip", cat, "--scene", PLAN);
   await step(root, "generate-strip", cat, "--abandon", "--scene", PLAN);
