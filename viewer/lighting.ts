@@ -56,7 +56,7 @@ export function pointOf(light: Point, plan: ScenePlan, sizeOf: SizeOf): { x: num
   if (!found) throw new Error(`Light ${light.id}: no Placement ${light.anchor} to anchor to`);
   const size = sizeOf(found.element);
   if (!size) throw new Error(`Light ${light.id}: Element ${found.element} has no pixels`);
-  const anchor = positioned(found, size);
+  const anchor = positioned(found, size, plan.stage);
   return { x: anchor.x + (light.offset?.x ?? 0), y: anchor.y + (light.offset?.y ?? 0) };
 }
 

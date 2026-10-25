@@ -1,4 +1,4 @@
-import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
+import { isProjected, placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
 import { FLICKER_FPS } from "./flicker.ts";
 import { createLighting, NONE, UNLIT, type LightField, type Planes } from "./lighting.ts";
 import { positioned, type Positioned } from "./placement.ts";
@@ -37,6 +37,7 @@ export type CompositorInput = {
   variant?: Variant;
   companion?: Palette;
   room?: Pixels;
+  features?: ReadonlyMap<string, Pixels>;
 };
 
 export type Compositor = {
@@ -208,7 +209,7 @@ function emissiveOf(pixels: Pixels, index: Uint8Array, colours: readonly number[
 
 export const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
 
-export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [], variant = plan.variants[0], companion, room }: CompositorInput): Compositor {
+export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [], variant = plan.variants[0], companion, room, features = new Map() }: CompositorInput): Compositor {
   const colours = paletteRgba(palette);
   const lookup = lookupOf(palette);
   const switchedOff = new Set(variant.emissiveOff);
@@ -246,7 +247,14 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
     for (const placement of drawOrder(placementsOf(layer))) {
       const pixels = elements.get(placement.element);
       if (!pixels) throw new Error(`Placement ${placement.id}: Element ${placement.element} has no pixels`);
-      const p = positioned(placement, pixels.still);
+      const p = positioned(placement, pixels.still, plan.stage);
+      if (isProjected(placement)) {
+        const projected = features.get(placement.id);
+        if (!projected) throw new Error(`Feature ${placement.id}: features/${placement.id}.png has no pixels; run project-features`);
+        blit(current, sourceOf(pixels, projected, placement), p.x, p.y, false, li);
+        drawn = true;
+        continue;
+      }
       const animated = animatedOf(pixels, p, seed, li, (frame) => sourceOf(pixels, frame, p));
       if (animated) push({ animated });
       else {

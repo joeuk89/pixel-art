@@ -355,3 +355,63 @@ test("a far Layer shows through an Opening in room.png", () => {
 test("a plan with a room Layer and no room.png pixels fails to compose", () => {
   assert.throws(() => createCompositor({ plan: { ...plan([room("shell")]), stage }, elements: new Map(), palette }), /room Layer shell: room\.png has no pixels/);
 });
+
+const roomStage = { back: { x: 48, y: 26, w: 288, h: 190 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
+const flatShell = image(W, H, () => rgb(4));
+const featureRoom = (placements: object[]) => ({
+  name: "shell", kind: "room", plane: "mid", surfaces: { back: { colour: 4 }, floor: { colour: 4 }, left: { colour: 4 } }, openings: [], placements,
+});
+
+function colourCount(out: Uint8ClampedArray, colour: number[]): number {
+  let n = 0;
+  for (let i = 0; i < out.length; i += 4) if (out[i] === colour[0] && out[i + 1] === colour[1] && out[i + 2] === colour[2]) n++;
+  return n;
+}
+
+test("a back-wall Feature draws 1:1 from its library PNG at the back rectangle's corner plus along, across", () => {
+  const clock = image(4, 6, (x, y) => (x === 0 && y === 0 ? null : rgb(6)));
+  const out = createCompositor({
+    plan: { ...plan([featureRoom([{ id: "clock", element: "clock-plain-test-01", surface: "back", along: 10, across: 20 }])]), stage: roomStage },
+    elements: new Map([["clock-plain-test-01", { still: clock }]]),
+    room: flatShell,
+    palette,
+  }).render(0);
+  assert.deepEqual(at(out, 58, 46), rgb(4));
+  assert.deepEqual(at(out, 59, 46), rgb(6));
+  assert.deepEqual(at(out, 61, 51), rgb(6));
+  assert.deepEqual(at(out, 62, 51), rgb(4));
+  assert.deepEqual(at(out, 61, 52), rgb(4));
+  assert.equal(colourCount(out, rgb(6)), 23);
+});
+
+test("a floor Feature draws from its projected file at the projected box, never from its square-on PNG", () => {
+  const squareOn = image(88, 24, () => rgb(5));
+  // 88x24 square-on at along 100, across 4 spans 73.84 x 20.14 back-wall px; its corners project to x 139.9 to 227.9, y 218.7 to 234.8.
+  const projected = image(89, 17, (x, y) => (x === 0 && y === 0 ? null : rgb(6)));
+  const out = createCompositor({
+    plan: { ...plan([featureRoom([{ id: "rug", element: "rug-plain-test-01", surface: "floor", along: 100, across: 4 }])]), stage: roomStage },
+    elements: new Map([["rug-plain-test-01", { still: squareOn }]]),
+    features: new Map([["rug", projected]]),
+    room: flatShell,
+    palette,
+  }).render(0);
+  assert.deepEqual(at(out, 139, 218), rgb(4));
+  assert.deepEqual(at(out, 140, 218), rgb(6));
+  assert.deepEqual(at(out, 139, 219), rgb(6));
+  assert.deepEqual(at(out, 227, 234), rgb(6));
+  assert.deepEqual(at(out, 228, 234), rgb(4));
+  assert.deepEqual(at(out, 139, 217), rgb(4));
+  assert.deepEqual(at(out, 139, 235), rgb(4));
+  assert.equal(colourCount(out, rgb(6)), 89 * 17 - 1);
+  assert.equal(colourCount(out, rgb(5)), 0);
+});
+
+test("a side-wall Feature with no projected file fails to compose and names project-features", () => {
+  const painting = image(32, 36, () => rgb(5));
+  assert.throws(() => createCompositor({
+    plan: { ...plan([featureRoom([{ id: "painting", element: "painting-plain-test-01", surface: "left", along: 4, across: 40 }])]), stage: roomStage },
+    elements: new Map([["painting-plain-test-01", { still: painting }]]),
+    room: flatShell,
+    palette,
+  }), /Feature painting: features\/painting\.png has no pixels; run project-features/);
+});
