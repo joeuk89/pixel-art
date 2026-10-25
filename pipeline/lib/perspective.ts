@@ -93,3 +93,57 @@ export function surfaceExtent(stage: Stage, surface: Surface): { along: number; 
     case "right": return { along: x1 > vx ? depthTo((SCENE_WIDTH - vx) / (x1 - vx)) : 0, across: h };
   }
 }
+
+export type Size = { width: number; height: number };
+export type Box = { x: number; y: number; w: number; h: number };
+type At = { surface: Surface; along: number; across: number };
+type Named = At & { id: string };
+
+const depthAxis = (surface: Surface) => (surface === "floor" || surface === "ceiling" ? "across" : "along");
+
+function reachable(stage: Stage, f: Named, depth: number): void {
+  if (depth >= stage.f) {
+    throw new Error(`Feature ${f.id} reaches ${Math.round(depth * 100) / 100} px deep on the ${f.surface}, past the viewing distance of ${stage.f}`);
+  }
+}
+
+// A Feature is generated square-on at the Scale of its nearest edge, so projecting it onto its Surface only shrinks it.
+export function featureScale(stage: Stage, scale: number, f: Named, realSize: { w: number; h: number }): number {
+  if (f.surface === "back") return scale;
+  const axis = depthAxis(f.surface);
+  const depth = f[axis] + (axis === "across" ? realSize.h : realSize.w) * scale;
+  reachable(stage, f, depth);
+  return (scale * stage.f) / (stage.f - depth);
+}
+
+export type Span = { along: number; across: number; w: number; h: number };
+
+// The Feature's extent on its Surface in back-wall pixels, worked back from its square-on size so that its nearest
+// edge projects at exactly one square-on pixel per screen pixel.
+export function featureSpan(stage: Stage, f: Named, size: Size): Span {
+  const { f: distance } = stage;
+  if (f.surface === "back") return { along: f.along, across: f.across, w: size.width, h: size.height };
+  if (depthAxis(f.surface) === "across") {
+    reachable(stage, f, f.across);
+    const h = (size.height * (distance - f.across)) / (distance + size.height);
+    return { along: f.along, across: f.across, w: (size.width * (distance - f.across - h)) / distance, h };
+  }
+  reachable(stage, f, f.along);
+  const w = (size.width * (distance - f.along)) / (distance + size.width);
+  return { along: f.along, across: f.across, w, h: (size.height * (distance - f.along - w)) / distance };
+}
+
+export function featureCorners(stage: Stage, f: Named, size: Size): Point[] {
+  const s = featureSpan(stage, f, size);
+  return [[s.along, s.across], [s.along + s.w, s.across], [s.along + s.w, s.across + s.h], [s.along, s.across + s.h]]
+    .map(([a, c]) => project(stage, f.surface, a, c));
+}
+
+const EPSILON = 1e-9;
+
+export function featureBox(stage: Stage, f: Named, size: Size): Box {
+  const corners = featureCorners(stage, f, size);
+  const xs = corners.map((p) => p.x), ys = corners.map((p) => p.y);
+  const x = Math.floor(Math.min(...xs) + EPSILON), y = Math.floor(Math.min(...ys) + EPSILON);
+  return { x, y, w: Math.ceil(Math.max(...xs) - EPSILON) - x, h: Math.ceil(Math.max(...ys) - EPSILON) - y };
+}

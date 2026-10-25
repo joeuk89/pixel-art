@@ -11,6 +11,7 @@ export const MAX_PROP_SIDE = 256;
 export const SIDE_STEP = 4;
 export const POSTER_FILE = "poster.png";
 export const ROOM_FILE = "room.png";
+export const featureFile = (placementId: string) => `features/${placementId}.png`;
 export const MUSIC_FILE = "music.mp3";
 export const POSTER_OG_FILE = "poster-og.png";
 export const POSTER_OG_SCALE = 2;
@@ -110,6 +111,10 @@ export const isLocal = (g: Generate) => g.kind === "texture" || (g.kind === "pro
 
 const stage = z.strictObject({ back: region, vanishingPoint: point, f: z.number().positive() });
 
+export const surfaceSchema = z.enum(["back", "floor", "ceiling", "left", "right"]);
+export type Surface = z.infer<typeof surfaceSchema>;
+export const isWall = (surface: Surface) => surface !== "floor" && surface !== "ceiling";
+
 const placement = z
   .strictObject({
     id: slug,
@@ -117,6 +122,9 @@ const placement = z
     x: int.optional(),
     y: int.optional(),
     foot: point.optional(),
+    surface: surfaceSchema.optional(),
+    along: int.min(0).optional(),
+    across: int.min(0).optional(),
     flipX: z.boolean().optional(),
     tileX: z.boolean().optional(),
     animation: placementAnimation.optional(),
@@ -124,14 +132,14 @@ const placement = z
   })
   .superRefine((p, ctx) => {
     const xy = p.x !== undefined && p.y !== undefined;
-    const positions = (xy ? 1 : 0) + (p.foot ? 1 : 0);
-    const partial = (p.x === undefined) !== (p.y === undefined);
-    if (positions !== 1 || partial) ctx.addIssue({ code: "custom", path: [], message: "a Placement takes exactly one position: x, y or foot" });
+    const onSurface = p.surface !== undefined && p.along !== undefined && p.across !== undefined;
+    const positions = (xy ? 1 : 0) + (p.foot ? 1 : 0) + (onSurface ? 1 : 0);
+    const partial = (p.x === undefined) !== (p.y === undefined) ||
+      (p.surface === undefined) !== (p.along === undefined) || (p.along === undefined) !== (p.across === undefined);
+    if (positions !== 1 || partial) {
+      ctx.addIssue({ code: "custom", path: [], message: "a Placement takes exactly one position: x, y; foot; or surface, along, across" });
+    }
   });
-
-export const surfaceSchema = z.enum(["back", "floor", "ceiling", "left", "right"]);
-export type Surface = z.infer<typeof surfaceSchema>;
-export const isWall = (surface: Surface) => surface !== "floor" && surface !== "ceiling";
 
 const surfaceStyle = z.strictObject({
   colour: colourIndex,
@@ -157,7 +165,7 @@ const roomLayer = z.strictObject({
   plane: planeSchema,
   surfaces: z.strictObject(Object.fromEntries(surfaceSchema.options.map((s) => [s, surfaceStyle.optional()])) as Record<Surface, z.ZodOptional<typeof surfaceStyle>>),
   openings: z.array(opening),
-  placements: z.array(placement).max(0, "Features on a Surface are not supported yet; leave placements empty"),
+  placements: z.array(placement),
 });
 
 const layer = z.discriminatedUnion("kind", [
@@ -397,6 +405,17 @@ export const scenePlanSchema = z
       deepest = Math.max(deepest, depth);
       if (l.kind === "placements" && l.scale !== undefined && l.plane !== "far") issue(["layers", li, "scale"], "only a far Layer may set its own scale");
     });
+    plan.layers.forEach((l, li) =>
+      placementsOf(l).forEach((p, pi) => {
+        const at = ["layers", li, "placements", pi];
+        if (l.kind !== "room" && p.surface !== undefined) issue([...at, "surface"], `a surface position is allowed only in the room Layer; Layer ${l.name} is ${l.kind}`);
+        if (l.kind === "room" && p.surface === undefined) issue(at, `Placement ${p.id} in the room Layer is a Feature and takes a surface position`);
+        if (l.kind === "room" && p.surface !== undefined && !l.surfaces[p.surface]) {
+          issue([...at, "surface"], `Feature ${p.id} is on the ${p.surface}, which this room Layer does not draw`);
+        }
+        if (p.surface !== undefined && p.tileX) issue([...at, "tileX"], "tileX does not apply to a Feature");
+      }),
+    );
     const rooms = plan.layers.flatMap((l, li) => (l.kind === "room" ? [{ room: l, li }] : []));
     rooms.slice(1).forEach(({ li }) => issue(["layers", li, "kind"], "a Scene has at most one room Layer"));
     for (const { room, li } of rooms) {
@@ -590,8 +609,14 @@ export type AmbientLoopRecord = z.infer<typeof ambientLoopRecordSchema>;
 export type GalleryEntry = Pick<ScenePlan, "id" | "title" | "createdAt" | "description">;
 
 export function placementsOf(layer: Layer): Placement[] {
-  return layer.kind === "placements" ? layer.placements : [];
+  return layer.kind === "fill" ? [] : layer.placements;
 }
+
+export type Feature = Placement & { surface: Surface; along: number; across: number };
+
+export const isFeature = (p: Placement): p is Feature => p.surface !== undefined;
+
+export const isProjected = (p: Placement): p is Feature => isFeature(p) && p.surface !== "back";
 
 export function roomLayerOf(plan: Pick<ScenePlan, "layers">): RoomLayer | undefined {
   return plan.layers.find((l): l is RoomLayer => l.kind === "room");

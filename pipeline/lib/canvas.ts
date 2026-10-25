@@ -1,5 +1,5 @@
-import { isLocal, MAX_PROP_SIDE, MIN_PROP_SIDE, SIDE_STEP, type Layer, type Placement, type ScenePlan } from "../../schema/index.ts";
-import { scaleAt } from "./perspective.ts";
+import { isFeature, isLocal, MAX_PROP_SIDE, MIN_PROP_SIDE, SIDE_STEP, type Layer, type Placement, type ScenePlan } from "../../schema/index.ts";
+import { featureScale, scaleAt } from "./perspective.ts";
 
 export type Canvas = { width: number; height: number };
 type Generate = NonNullable<Placement["generate"]>;
@@ -33,9 +33,15 @@ export function layerScale(sceneScale: number, layer: Layer): number {
   return layer.kind === "placements" && layer.scale !== undefined ? layer.scale : sceneScale;
 }
 
+const hundredths = (n: number) => Math.round(n * 100) / 100;
+
 export function placementScale(plan: Pick<ScenePlan, "scale" | "stage">, layer: Layer, placement: Placement): number {
-  if (!placement.foot || !plan.stage) return layerScale(plan.scale, layer);
-  return Math.round(scaleAt(plan.stage, plan.scale, placement.foot.y) * 100) / 100;
+  if (!plan.stage) return layerScale(plan.scale, layer);
+  if (placement.foot) return hundredths(scaleAt(plan.stage, plan.scale, placement.foot.y));
+  if (isFeature(placement) && placement.generate?.kind === "prop") {
+    return hundredths(featureScale(plan.stage, plan.scale, placement, placement.generate.realSize));
+  }
+  return layerScale(plan.scale, layer);
 }
 
 export function deriveCanvas(scale: number, generate: Generate): Canvas {

@@ -241,3 +241,37 @@ for (const [what, id, message] of [
     assert.match(out.error, message);
   });
 }
+
+const roomStage = { back: { x: 48, y: 26, w: 288, h: 190 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
+const feature = (id: string, surface: string, along: number, across: number, w: number, h: number) => ({
+  id, element: `${id}-plain-test-01`, surface, along, across,
+  generate: { kind: "prop", brief: `a ${id}, front view, flat on`, realSize: { w, h }, tags: [id] },
+});
+
+test("derive-canvas gives a back-wall Feature the Scene's scale and a side-wall or floor Feature the Scale at its nearest edge", () => {
+  const root = treeWithExample((plan) => {
+    plan.styleAnchor = null;
+    plan.stage = roomStage;
+    plan.layers = [{ name: "shell", kind: "room", plane: "mid", surfaces: { back: { colour: 2 }, left: { colour: 3 }, floor: { colour: 4 } }, openings: [],
+      placements: [feature("clock", "back", 100, 20, 0.5, 0.5), feature("painting", "left", 4, 40, 0.5, 0.6), feature("rug", "floor", 100, 4, 1.5, 0.4)] }];
+  });
+  const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  const got = Object.fromEntries(out.placements.map((p: any) => [p.placement, [p.layer, p.scale, p.canvas]]));
+  assert.deepEqual(got.clock, ["shell", 48, { width: 24, height: 24 }]);
+  // Nearest edge 4 + 0.5 x 48 = 28 px deep: 48 x 150 / (150 - 28) = 59.02.
+  assert.deepEqual(got.painting, ["shell", 59.02, { width: 32, height: 36 }]);
+  // Nearest edge 4 + 0.4 x 48 = 23.2 px deep: 48 x 150 / (150 - 23.2) = 56.78.
+  assert.deepEqual(got.rug, ["shell", 56.78, { width: 88, height: 24 }]);
+});
+
+test("derive-canvas refuses a Feature that reaches past the viewing distance", () => {
+  const root = treeWithExample((plan) => {
+    plan.styleAnchor = null;
+    plan.stage = roomStage;
+    plan.layers = [{ name: "shell", kind: "room", plane: "mid", surfaces: { floor: { colour: 4 } }, openings: [], placements: [feature("rug", "floor", 100, 20, 1, 3)] }];
+  });
+  const { code, out } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 1);
+  assert.match(out.error, /Feature rug reaches 164 px deep on the floor, past the viewing distance of 150/);
+});
