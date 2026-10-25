@@ -200,3 +200,44 @@ test("derive-canvas reports a local Finish and a Seamless texture at zero cost a
   assert.equal(out.placements.find((p: any) => p.placement === "cat").finish, "service");
   assert.equal(out.generations, 14);
 });
+
+const furniture = (plan: any) => {
+  plan.styleAnchor = null;
+  plan.layers.push({ name: "furniture", kind: "placements", plane: "mid", placements: [
+    { id: "shelf", element: "shelf-plain-oak-01", x: 0, y: 0,
+      generate: { kind: "prop", brief: "plain oak shelf", realSize: { w: 1, h: 0.5 }, tags: ["shelf"], finish: "local", generator: "rect", params: { fill: 3 } } },
+    { id: "table", element: "table-plain-oak-01", x: 0, y: 0,
+      generate: { kind: "prop", brief: "plain oak table", realSize: { w: 3, h: 1 }, tags: ["table"] } },
+  ] });
+};
+
+test("the Finish offer prices each eligible Element's service tier against £0 local and sums the saving", () => {
+  const { code, out, stderr } = runScript(treeWithExample(furniture), "derive-canvas", PLAN, "--eligible", "table");
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(out.finishOffer.eligible, [
+    { placement: "shelf", finish: "local", canvas: { width: 48, height: 24 }, service: { generations: 5, usd: 0.024 }, local: { gbp: 0 } },
+    { placement: "table", finish: "service", canvas: { width: 144, height: 48 }, service: { generations: 6, usd: 0.029 }, local: { gbp: 0 } },
+  ]);
+  assert.deepEqual(out.finishOffer.saving, { generations: 11, usd: 0.053, gbp: 0.0408 });
+  assert.equal(out.finishOffer.tradeOff, "local: exact geometry, flat and plainer; service: richer detail and shading");
+  assert.equal(out.generations, 14 + 6, "the estimate still counts the service-Finish table and leaves the local shelf out");
+});
+
+test("with nothing eligible the Finish offer is empty and saves nothing", () => {
+  const { code, out, stderr } = runScript(treeWithExample(), "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(out.finishOffer.eligible, []);
+  assert.deepEqual(out.finishOffer.saving, { generations: 0, usd: 0, gbp: 0 });
+});
+
+for (const [what, id, message] of [
+  ["a Backdrop", "skyline", /skyline is a backdrop: only a prop is offered a local Finish/],
+  ["a Placement with no generate block", "window", /window has no generate block/],
+  ["an unknown Placement", "sofa", /no Placement sofa/],
+] as const) {
+  test(`derive-canvas refuses ${what} named eligible`, () => {
+    const { code, out } = runScript(treeWithExample(furniture), "derive-canvas", PLAN, "--eligible", id);
+    assert.equal(code, 1);
+    assert.match(out.error, message);
+  });
+}

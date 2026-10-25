@@ -1,12 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
+import { USD_PER_GBP } from "./lib/budget.ts";
 import { main } from "./lib/cli.ts";
 import { readScene, sceneFiles } from "./lib/library.ts";
 
 const PIXELLAB_GENERATIONS_CEILING = 2000;
 const METERED_CEILING_GBP = 50;
-// The spec sets the ceiling in pounds but services bill in dollars; this rate is an assumption, printed with the result.
-const USD_PER_GBP = 1.3;
 
 const roundUsd = (n: number) => Math.round(n * 1e4) / 1e4;
 

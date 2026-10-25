@@ -7,7 +7,11 @@ type Generate = NonNullable<Placement["generate"]>;
 export const PRO_FLASH_MAX_SIDE = 256;
 
 // Pro Flash charges by the longer side: 5 generations to 64 px and 9 at 256 (PixelLab price table); 196 px measured 6 and 216 px 9.
-const PRO_FLASH_TIERS = [{ upTo: 64, generations: 5 }, { upTo: 196, generations: 6 }, { upTo: PRO_FLASH_MAX_SIDE, generations: 9 }];
+const PRO_FLASH_TIERS = [
+  { upTo: 64, generations: 5, usd: 0.024 },
+  { upTo: 196, generations: 6, usd: 0.029 },
+  { upTo: PRO_FLASH_MAX_SIDE, generations: 9, usd: 0.033 },
+];
 
 export const OVER_CAP_SERVICES = [
   { service: "pro", generations: 25 },
@@ -41,9 +45,16 @@ export function deriveCanvas(scale: number, generate: Generate): Canvas {
 
 export const fitsProFlash = (canvas: Canvas) => canvas.width <= PRO_FLASH_MAX_SIDE && canvas.height <= PRO_FLASH_MAX_SIDE;
 
-export function proFlashGenerations(canvas: Canvas): number {
+function proFlashTier(canvas: Canvas) {
   const side = Math.max(canvas.width, canvas.height);
-  return PRO_FLASH_TIERS.find((t) => side <= t.upTo)?.generations ?? PRO_FLASH_TIERS[PRO_FLASH_TIERS.length - 1].generations;
+  return PRO_FLASH_TIERS.find((t) => side <= t.upTo) ?? PRO_FLASH_TIERS[PRO_FLASH_TIERS.length - 1];
+}
+
+export const proFlashGenerations = (canvas: Canvas) => proFlashTier(canvas).generations;
+
+export function proFlashPrice(canvas: Canvas): { generations: number; usd: number } {
+  const { generations, usd } = proFlashTier(canvas);
+  return { generations, usd };
 }
 
 export function tier(canvas: Canvas, generate?: Generate): Tier {

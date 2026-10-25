@@ -8,6 +8,8 @@ import { readElements } from "./library.ts";
 export const ATTEMPTS_PER_STILL = 4;
 export const GENERATION_MULTIPLIER = 3;
 export const METERED_CAP_USD = 1;
+// The spec sets ceilings in pounds but services bill in dollars; this rate is an assumption, printed with each result.
+export const USD_PER_GBP = 1.3;
 export const RETRO_DIFFUSION_ATTEMPTS_PER_PROP = 2;
 export const RETRO_DIFFUSION_PROPS_PER_SCENE = 4;
 export const STRIPS_DIR = "scratch/strips";
