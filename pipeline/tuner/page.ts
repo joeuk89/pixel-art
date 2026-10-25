@@ -37,18 +37,22 @@ type Preview = {
 };
 
 const HIT = 6;
+const PANEL_KEY = "tuner.panelOpen";
 const STYLE = `
   html, body { margin: 0; height: 100%; background: #14101c; color: #e6e0da; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; }
-  body { display: grid; grid-template-columns: 1fr 380px; }
-  #stage { display: grid; place-items: center; overflow: hidden; }
+  body { overflow: hidden; }
+  #stage { position: fixed; inset: 0; display: grid; place-items: center; overflow: hidden; }
   canvas { image-rendering: pixelated; display: block; cursor: crosshair; }
-  aside { overflow-y: auto; padding: 12px 14px 40px; background: #1c1726; border-left: 1px solid #3b2f52; }
+  aside { position: fixed; top: 0; right: 0; bottom: 0; z-index: 2; width: min(320px, 90vw); box-sizing: border-box; overflow: hidden auto; padding: 44px 14px 40px; background: #1c1726f2; border-left: 1px solid #3b2f52; transition: transform 0.15s; }
+  body.closed aside { transform: translateX(100%); }
+  .toggle { position: fixed; top: 8px; right: 8px; z-index: 3; }
   h2 { font-size: 13px; margin: 18px 0 6px; color: #f7d35c; }
   fieldset { border: 1px solid #3b2f52; border-radius: 4px; margin: 8px 0; padding: 6px 8px; }
   legend { padding: 0 4px; font-weight: 600; }
-  label { display: grid; grid-template-columns: 110px 1fr 64px; gap: 6px; align-items: center; margin: 3px 0; }
+  label { display: grid; grid-template-columns: 92px minmax(0, 1fr) 60px; gap: 6px; align-items: center; margin: 3px 0; }
   label.check { display: flex; gap: 6px; }
   input[type=number] { width: 60px; }
+  label > input:not([type=checkbox]), label > select { min-width: 0; width: 100%; box-sizing: border-box; }
   input, select, button { font: inherit; }
   button { background: #3b2f52; color: #f6e8cc; border: 0; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
   button.save { background: #f7d35c; color: #14101c; font-weight: 600; padding: 6px 16px; }
@@ -56,7 +60,6 @@ const STYLE = `
   .actions { position: sticky; bottom: -40px; background: #1c1726; padding: 8px 0 40px; border-top: 1px solid #3b2f52; }
   [role=status] { white-space: pre-wrap; margin-top: 8px; }
   .error { color: #ff8a80; }
-  #stage { position: relative; }
   .banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: #f7d35c; color: #14101c; padding: 2px 10px; border-radius: 4px; font-weight: 600; }
 `;
 
@@ -114,7 +117,8 @@ async function boot(): Promise<void> {
   const status = el("div");
   status.setAttribute("role", "status");
   const banner = el("div", { className: "banner", textContent: "preview: resampled", hidden: true });
-  document.body.append(el("div", { id: "stage" }, canvas, banner), panel);
+  const toggle = el("button", { className: "toggle", title: "Show or hide the panel (P)" });
+  document.body.append(el("div", { id: "stage" }, canvas, banner), panel, toggle);
 
   const fit = () => {
     const dpr = devicePixelRatio || 1;
@@ -123,8 +127,26 @@ async function boot(): Promise<void> {
     canvas.style.width = `${(scale * SCENE_WIDTH) / dpr}px`;
     canvas.style.height = `${(scale * SCENE_HEIGHT) / dpr}px`;
   };
-  addEventListener("resize", fit);
-  fit();
+  new ResizeObserver(fit).observe(canvas.parentElement!);
+
+  const showPanel = (open: boolean) => {
+    document.body.classList.toggle("closed", !open);
+    toggle.textContent = open ? "Hide panel" : "Show panel";
+    try {
+      localStorage.setItem(PANEL_KEY, String(open));
+    } catch {}
+  };
+  let savedOpen: string | null = null;
+  try {
+    savedOpen = localStorage.getItem(PANEL_KEY);
+  } catch {}
+  showPanel(savedOpen !== "false");
+  toggle.addEventListener("click", () => showPanel(document.body.classList.contains("closed")));
+  addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() !== "p" || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+    showPanel(document.body.classList.contains("closed"));
+  });
 
   const base = () => preview?.plan ?? plan;
   const shownLights = (lights: Light[]): Light[] => (preview ? zoomLights(lights, plan.stage!.vanishingPoint, preview.zoom) : lights);
