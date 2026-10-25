@@ -634,3 +634,68 @@ test("a texture generate block with finish service fails", () => {
   failsWith(validate(withGenerate({ ...starsTexture, finish: "service" }, 0, 1)), fixtureScene, "layers[1].placements[0].generate.finish",
     /Seamless texture is always local/);
 });
+
+const SHELL = { name: "shell", kind: "room", plane: "mid", surfaces: { back: { colour: 2 }, floor: { colour: 14 } }, openings: [], placements: [] };
+
+function withRoom(root: string, room: object = {}, also: (plan: any) => void = () => {}): void {
+  editJson(root, fixtureScene, (plan) => {
+    plan.layers = plan.layers.filter((l: any) => l.kind !== "room");
+    plan.layers.splice(3, 0, { ...SHELL, ...room });
+    also(plan);
+  });
+  writeFileSync(join(root, sceneDir, "room.png"), readFileSync(join(root, sceneDir, "poster.png")));
+}
+
+test("a Scene with two room Layers fails", () => {
+  const root = makeTree();
+  withRoom(root, {}, (plan) => plan.layers.splice(4, 0, { ...SHELL, name: "shell-2" }));
+  failsWith(validate(root), fixtureScene, "layers[4].kind", /at most one room Layer/);
+});
+
+test("a room Layer in a Scene without a Stage fails", () => {
+  const root = makeTree();
+  withRoom(root, {}, (plan) => { delete plan.stage; });
+  failsWith(validate(root), fixtureScene, "layers[3].kind", /room Layer is allowed only with a Stage/);
+});
+
+test("an Opening that runs past the edge of its Surface fails", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "window", surface: "back", along: 260, across: 10, w: 40, h: 40 }] });
+  failsWith(validate(root), fixtureScene, "layers[3].openings[0]", /Opening window runs outside the back: along 260 to 300 of 288/);
+});
+
+test("an Opening deeper than the floor the canvas shows fails", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "hatch", surface: "floor", along: 100, across: 20, w: 40, h: 20 }] });
+  failsWith(validate(root), fixtureScene, "layers[3].openings[0]", /Opening hatch runs outside the floor: across 20 to 40 of 29/);
+});
+
+test("an Opening on a Surface the room Layer does not draw fails", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "door", surface: "left", along: 4, across: 60, w: 20, h: 120 }] });
+  failsWith(validate(root), fixtureScene, "layers[3].openings[0].surface", /on the left, which this room Layer does not draw/);
+});
+
+test("skirting on the floor fails: skirting goes on walls only", () => {
+  const root = makeTree();
+  withRoom(root, { surfaces: { back: { colour: 2, skirting: { height: 4, colour: 0 } }, floor: { colour: 14, skirting: { height: 4, colour: 0 } } } });
+  failsWith(validate(root), fixtureScene, "layers[3].surfaces.floor.skirting", /skirting goes on walls only/);
+});
+
+test("a resolved Scene with a room Layer and no room.png fails, and a draft one lists it as pending", () => {
+  const root = makeTree();
+  withRoom(root);
+  rmSync(join(root, sceneDir, "room.png"));
+  failsWith(validate(root), fixtureScene, "layers[3]", /declared resolved but room\.png is missing beside the plan; run room-shell/);
+  editJson(root, fixtureScene, (plan) => { plan.status = "draft"; });
+  const { code, report } = validate(root);
+  assert.equal(code, 0);
+  assert.deepEqual(report.scenes[0].pending.map((p: any) => p.path), ["layers[3]"]);
+});
+
+test("a room Layer with its Openings inside their Surfaces and room.png in place validates", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "window", surface: "back", along: 116, across: 0, w: 60, h: 60, frame: { width: 2, colour: 1, mullionsAcross: 1, mullionsDown: 1 } }] });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
