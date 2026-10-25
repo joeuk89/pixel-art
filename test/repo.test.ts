@@ -83,3 +83,12 @@ test("the curation spec lists the thirteen curated sounds and the ten starter lo
 test("the old scripts folder is gone", () => {
   assert.equal(existsSync(join(repo, "scripts")), false);
 });
+
+test("ADR 0004 records lighting as a Ramp pass in the Viewer with the Halo as the only exception", () => {
+  const file = join(repo, "docs/adr/0004-lighting-is-a-ramp-pass-in-the-viewer.md");
+  assert.ok(existsSync(file), "ADR 0004 exists");
+  const text = readFileSync(file, "utf8");
+  assert.match(text, /^# .*Ramp pass/m);
+  assert.match(text, /Halo/);
+  assert.match(text, /## Considered options/);
+});
