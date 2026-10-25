@@ -161,6 +161,24 @@ function drop(raw: any, ids: Set<string>, removed: Zoomed["removed"]): void {
   }
 }
 
+function backdropWithoutOpening(plan: ScenePlan, layer: Layer, p: Placement, records: ReadonlyMap<string, ElementRecord>): boolean {
+  if (p.generate) return p.generate.kind === "backdrop" && !pendingOpening(plan, p.generate.size);
+  const record = records.get(p.element);
+  return record?.kind === "backdrop" && !canvasOf(plan, layer, p, record).opening;
+}
+
+// A Backdrop not sized to an Opening fills the back of the Scene, and a tileX texture at the top covers the sky,
+// so moving either about the vanishing point would leave a band of the canvas uncovered.
+function keepCover(before: ScenePlan, raw: any, records: ReadonlyMap<string, ElementRecord>): void {
+  const rawPlacements = new Map<string, any>(raw.layers.flatMap((l: any) => l.placements ?? []).map((p: any) => [p.id, p]));
+  for (const { layer, p } of layered(before)) {
+    if (p.x === undefined || p.y === undefined) continue;
+    const moved = rawPlacements.get(p.id);
+    if (backdropWithoutOpening(before, layer, p, records)) Object.assign(moved, { x: p.x, y: p.y });
+    else if (p.tileX && p.y === 0) moved.y = 0;
+  }
+}
+
 const layered = (plan: ScenePlan) => plan.layers.flatMap((layer) => ("placements" in layer ? layer.placements : []).map((p) => ({ layer, p })));
 
 // Every coordinate scales by the ratio about the vanishing point, as derive-stage's zoom does: the camera walks forward.
@@ -171,6 +189,7 @@ export function zoomScene(raw: unknown, zoom: number, records: ReadonlyMap<strin
   if (!before.stage) throw new Error(`Scene ${before.id} has no Stage to zoom`);
   const out = structuredClone(raw) as any;
   moveRaw(out, zoom);
+  keepCover(before, out, records);
   const moved = scenePlanSchema.parse(out);
   const oldByPlacement = new Map(layered(before).map(({ layer, p }) => [p.id, { layer, p }]));
 

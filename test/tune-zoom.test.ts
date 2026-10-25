@@ -209,3 +209,41 @@ test("a draft Scene with a Placement still waiting on its Element zooms too, and
   assert.ok(!out.reopened.includes("cat") && !out.reopened.includes("skyline"));
   assert.ok(out.reopened.includes("window"));
 });
+
+const fullBackdropPng = await sharp({ create: { width: 384, height: 240, channels: 4, background: { r: 0x1a, g: 0x1c, b: 0x2c, alpha: 1 } } }).png().toBuffer();
+
+function prepareFullBackdrop(root: string): void {
+  const sky = {
+    id: "sky-dusk-full-01", kind: "backdrop", width: 384, height: 240, transparent: false,
+    subject: "sky", tags: ["sky"], brief: "dusk sky over hills", prompt: "dusk sky over hills", service: "pixellab", model: "pro-flash",
+    params: { no_background: false }, seed: 1500, palette: "fixture-night-v2", styleAnchor: null, createdAt: "2026-10-24T20:02:00Z",
+    firstScene: id, cost: { pixellabGenerations: 1, meteredUsd: 0 }, checks: { attempt: 1, passed: ["dimensions", "alpha", "palette"], warnings: [] },
+  };
+  writeFileSync(join(root, "library/elements/sky-dusk-full-01.json"), JSON.stringify(sky, null, 2));
+  writeFileSync(join(root, "library/elements/sky-dusk-full-01.png"), fullBackdropPng);
+  editJson(root, fixtureScene, (plan) => {
+    plan.layers.find((l: any) => l.name === "city").placements.unshift({ id: "sky", element: "sky-dusk-full-01", x: 0, y: 0 });
+  });
+}
+
+const covers = (box: any) => box.x <= 0 && box.y <= 0 && box.x + box.w >= 384 && box.y + box.h >= 240;
+
+test("a full-canvas Backdrop and a tileX texture at the top keep covering the canvas at any zoom", async () => {
+  const root = tunerTree("pass", prepareFullBackdrop);
+  const url = await startTuner(root);
+  for (const zoom of [0.8, 1.2, 1.5]) {
+    const out = await (await fetch(new URL(`zoom.json?zoom=${zoom}`, url))).json();
+    assert.equal(out.ok, true, out.error);
+    const sky = out.placements.find((p: any) => p.placement === "sky");
+    assert.ok(covers(sky.box), `zoom ${zoom}: sky box ${JSON.stringify(sky.box)}`);
+    assert.equal(sky.changed, false);
+    assert.equal(placement(out.plan, "stars").y, 0, `zoom ${zoom}: stars moved`);
+  }
+  const { status, out } = await save(url, { ...tuningOf(readJson(root, fixtureScene)), zoom: 0.8 });
+  assert.equal(status, 200, JSON.stringify(out));
+  const plan = readJson(root, fixtureScene);
+  const sky = placement(plan, "sky");
+  assert.deepEqual([sky.x, sky.y, sky.element, sky.generate], [0, 0, "sky-dusk-full-01", undefined]);
+  assert.ok(!out.reopened.includes("sky"));
+  assert.equal(placement(plan, "stars").y, 0);
+});
