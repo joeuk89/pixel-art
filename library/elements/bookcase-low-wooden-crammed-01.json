@@ -1,0 +1,45 @@
+{
+  "id": "bookcase-low-wooden-crammed-01",
+  "subject": "bookcase",
+  "tags": [
+    "bookcase",
+    "books",
+    "wood",
+    "shelf",
+    "study"
+  ],
+  "brief": "low wooden bookcase, three shelves crammed with old books, dark stained wood, warm light from the right",
+  "prompt": "low wooden bookcase filling the whole canvas from edge to edge, wide and squat, three shelves crammed with old books, dark stained wood, warm light from the right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 325280317,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T14:39:56.374Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 84,
+  "height": 92,
+  "realSize": {
+    "w": 0.8,
+    "h": 0.9
+  },
+  "transparent": true
+}

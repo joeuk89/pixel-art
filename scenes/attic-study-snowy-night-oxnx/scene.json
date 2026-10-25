@@ -3,7 +3,7 @@
   "id": "attic-study-snowy-night-oxnx",
   "title": "Attic Study, Snowy Night",
   "prompt": "A small attic study late at night. A plain wooden desk sits under the sloping roof, with a tall straight-edged bookshelf beside it. A green banker's lamp on the desk throws a warm pool of light; the rest of the room is dim. A framed painting of a sailing ship hangs on the back wall, and a worn rectangular rug lies on the floorboards. One small window in the back wall looks out over snowy village rooftops with a few lit windows. Snow falls softly outside, and a clock ticks somewhere in the room. The walls are sloped like a real attic, with chunky wooden beams. Quiet, cosy, a little lonely.",
-  "description": "A small attic study late at night, tucked under chunky wooden rafters. A green banker's lamp throws a warm pool over a plain desk and a tall bookshelf, while snow falls past a small window over the village rooftops and a clock ticks in the quiet.",
+  "description": "A small attic study late at night, tucked under chunky wooden rafters. A green banker's lamp throws a warm pool over a plain desk beneath a round gable window, where snow falls past the village rooftops, while a pendulum clock swings and ticks on the wall.",
   "createdAt": "2026-10-25T08:01:41Z",
   "seed": 34645457,
   "status": "resolved",
@@ -38,9 +38,9 @@
       "placements": [
         {
           "id": "rooftops-view",
-          "element": "backdrop-rooftops-snowy-night-01",
-          "x": 226,
-          "y": 30
+          "element": "backdrop-rooftops-snowy-night-02",
+          "x": 164,
+          "y": 20
         }
       ]
     },
@@ -66,27 +66,35 @@
       },
       "openings": [
         {
-          "id": "gable-window",
+          "id": "oculus",
           "surface": "back",
-          "along": 226,
-          "across": 100,
+          "along": 164,
+          "across": 90,
           "w": 56,
-          "h": 68,
+          "h": 56,
           "frame": {
             "width": 3,
             "colour": 11,
             "mullionsAcross": 1,
             "mullionsDown": 1
-          }
+          },
+          "shape": "round"
         }
       ],
       "placements": [
         {
+          "id": "clock",
+          "element": "clock-pendulum-wall-wood-01",
+          "surface": "back",
+          "along": 124,
+          "across": 92
+        },
+        {
           "id": "ship-painting",
           "element": "painting-sailing-ship-framed-01",
           "surface": "back",
-          "along": 312,
-          "across": 158
+          "along": 300,
+          "across": 170
         },
         {
           "id": "worn-rug",
@@ -103,25 +111,25 @@
       "plane": "mid",
       "placements": [
         {
-          "id": "desk",
-          "element": "desk-plain-wooden-writing-01",
+          "id": "bookcase",
+          "element": "bookcase-low-wooden-crammed-01",
           "foot": {
-            "x": 92,
-            "y": 190
+            "x": 70,
+            "y": 186
           }
         },
         {
-          "id": "bookshelf",
-          "element": "bookshelf-tall-wooden-straight-01",
+          "id": "desk",
+          "element": "desk-plain-wooden-writing-01",
           "foot": {
-            "x": 184,
-            "y": 186
+            "x": 192,
+            "y": 190
           }
         },
         {
           "id": "bankers-lamp",
           "element": "lamp-bankers-green-glass-01",
-          "x": 98,
+          "x": 152,
           "y": 97
         }
       ]
@@ -152,10 +160,10 @@
       "type": "snow",
       "anchor": "rooftops-view",
       "region": {
-        "x": 226,
-        "y": 30,
+        "x": 164,
+        "y": 20,
         "w": 56,
-        "h": 68
+        "h": 56
       },
       "colours": [
         7,
@@ -163,6 +171,27 @@
       ],
       "drift": 1,
       "wind": 0.2
+    },
+    {
+      "type": "pendulum",
+      "anchor": "clock",
+      "region": {
+        "x": 134,
+        "y": 52,
+        "w": 11,
+        "h": 18
+      },
+      "pivot": {
+        "x": 139,
+        "y": 52
+      },
+      "colours": [
+        13,
+        9,
+        8
+      ],
+      "length": 12,
+      "bob": 2
     }
   ],
   "variants": [
@@ -197,8 +226,8 @@
           "type": "point",
           "id": "window-spill",
           "at": {
-            "x": 254,
-            "y": 64
+            "x": 192,
+            "y": 56
           },
           "radius": 56,
           "strength": 1,
@@ -268,7 +297,7 @@
     ]
   },
   "cost": {
-    "pixellabGenerations": 94,
+    "pixellabGenerations": 124,
     "meteredUsd": {
       "stability": 0.08,
       "fal": 0.044

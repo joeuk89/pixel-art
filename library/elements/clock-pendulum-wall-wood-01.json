@@ -1,0 +1,45 @@
+{
+  "id": "clock-pendulum-wall-wood-01",
+  "subject": "clock",
+  "tags": [
+    "clock",
+    "pendulum",
+    "wall",
+    "wood",
+    "antique"
+  ],
+  "brief": "pendulum wall clock, dark wood case, cream round face with black hands, tall glass door below the face with an empty dark cavity, front view flat on, warm light from the lower right",
+  "prompt": "pendulum wall clock, dark wood case, cream round face with black hands, tall glass door below the face with an empty dark cavity, front view flat on, warm light from the lower right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1777879743,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T14:39:18.751Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 32,
+  "height": 60,
+  "realSize": {
+    "w": 0.3,
+    "h": 0.6
+  },
+  "transparent": true
+}

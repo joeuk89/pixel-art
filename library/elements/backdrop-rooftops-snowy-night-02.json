@@ -1,0 +1,45 @@
+{
+  "id": "backdrop-rooftops-snowy-night-02",
+  "subject": "backdrop",
+  "tags": [
+    "rooftops",
+    "village",
+    "snow",
+    "night",
+    "winter"
+  ],
+  "brief": "snowy village rooftops at night from high up, the tops of steep snow-covered roofs and chimneys filling most of the view, bare snowy treetops and the top of an iron lamppost poking up between the roofs, no streets, doors or ground visible, a few small warm yellow dormer windows, dark violet sky across the upper third, fills the whole canvas edge to edge",
+  "prompt": "snowy village rooftops at night from high up, the tops of steep snow-covered roofs and chimneys filling most of the view, bare snowy treetops and the top of an iron lamppost poking up between the roofs, no streets, doors or ground visible, a few small warm yellow dormer windows, dark violet sky across the upper third, fills the whole canvas edge to edge",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": false
+  },
+  "seed": 1478313801,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T14:37:47.411Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "opaque"
+    ],
+    "warnings": []
+  },
+  "emissive": [
+    8,
+    9
+  ],
+  "kind": "backdrop",
+  "width": 56,
+  "height": 56,
+  "transparent": false
+}
