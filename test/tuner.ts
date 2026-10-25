@@ -11,8 +11,9 @@ export function git(root: string, ...args: string[]): string {
 }
 
 // A committed repo with a stubbed, rendered Scene, so preview's hard checks pass or fail on the test stub alone.
-export function tunerTree(tests: "pass" | "fail" = "pass"): string {
+export function tunerTree(tests: "pass" | "fail" = "pass", prepare?: (root: string) => void): string {
   const root = makeTree();
+  prepare?.(root);
   writeJson(root, "package.json", { private: true, scripts: { test: `node -e "process.exit(${tests === "pass" ? 0 : 1})"` } });
   assert.equal(runScript(root, "poster", fixtureScene).code, 0);
   assert.equal(runScript(root, "stub", fixtureScene).code, 0);

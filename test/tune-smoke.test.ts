@@ -64,4 +64,45 @@ describe("Tuner smoke test", { skip: browser ? false : "no Playwright browser in
     assert.deepEqual(lampLight.offset, { x: 104, y: 150 });
     assert.deepEqual(errors, []);
   });
+
+  test("the zoom control draws resampled stand-ins under a banner, and Save writes the zoomed Stage", async () => {
+    const root = tunerTree();
+    const url = await startTuner(root);
+    const page = await browser!.newPage({ viewport: { width: 1400, height: 800 } });
+    const errors: string[] = [];
+    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(url);
+    const canvas = page.locator("canvas");
+    await canvas.waitFor();
+    const banner = page.getByText("preview: resampled");
+    assert.equal(await banner.isVisible(), false);
+    const pixels = () => canvas.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(0, 0, 384, 240).data).join(","));
+    await page.waitForTimeout(500);
+    const before = await pixels();
+
+    const zoom = page.getByLabel("Zoom", { exact: true });
+    await zoom.fill("1.2");
+    await zoom.dispatchEvent("change");
+    await banner.waitFor({ state: "visible" });
+    await page.getByRole("status").filter({ hasText: /Zoom 1\.2x/ }).waitFor();
+    const deadline = Date.now() + 10_000;
+    while ((await pixels()) === before && Date.now() < deadline) await page.waitForTimeout(100);
+    assert.notEqual(await pixels(), before, "the canvas did not change at 1.2x");
+
+    const saved = page.waitForResponse((r) => r.url().endsWith("/save"), { timeout: 60_000 });
+    await page.getByRole("button", { name: "Save" }).click();
+    assert.equal((await saved).status(), 200);
+    await page.getByRole("status").filter({ hasText: /Saved at 1\.2x/ }).waitFor();
+    const plan = readJson(root, fixtureScene);
+    assert.equal(plan.stage.f, 180);
+    assert.equal(plan.status, "draft");
+
+    assert.equal(await page.getByRole("button", { name: "Save" }).isDisabled(), true, "Save stays on after a zoom Save, so a second Save zooms the plan again");
+    assert.equal(await zoom.isDisabled(), true, "the zoom control stays on after a zoom Save");
+    await page.getByRole("button", { name: "Add point Light" }).click();
+    assert.equal(await page.getByRole("button", { name: "Save" }).isDisabled(), true, "a re-render turns Save back on");
+    assert.equal(readJson(root, fixtureScene).stage.f, 180);
+    assert.deepEqual(errors, []);
+  });
 });

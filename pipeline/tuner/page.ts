@@ -20,11 +20,21 @@ import { pointOf } from "../../viewer/lighting.ts";
 import { startLoop } from "../../viewer/loop.ts";
 import { createPrimitives } from "../../viewer/primitives.ts";
 import { tuningOf, type PlanTuning } from "../lib/tuning.ts";
+import { ZOOM_MAX, ZOOM_MIN, ZOOM_STEP, zoomLights, type ZoomedPlacement } from "../lib/zoom.ts";
 
 type Point = { x: number; y: number };
 type PointLight = Extract<Light, { type: "point" }>;
 type BeamLight = Extract<Light, { type: "beam" }>;
 type Handle = { light: number; corner?: number };
+type Preview = {
+  zoom: number;
+  plan: ScenePlan;
+  elements: Map<string, ElementPixels>;
+  room?: Pixels;
+  features: Map<string, Pixels>;
+  outlines: ZoomedPlacement["box"][];
+  removed: Set<string>;
+};
 
 const HIT = 6;
 const STYLE = `
@@ -46,6 +56,8 @@ const STYLE = `
   .actions { position: sticky; bottom: -40px; background: #1c1726; padding: 8px 0 40px; border-top: 1px solid #3b2f52; }
   [role=status] { white-space: pre-wrap; margin-top: 8px; }
   .error { color: #ff8a80; }
+  #stage { position: relative; }
+  .banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: #f7d35c; color: #14101c; padding: 2px 10px; border-radius: 4px; font-weight: 600; }
 `;
 
 const getJson = (path: string) => fetchJson(new URL(path, location.href));
@@ -91,12 +103,18 @@ async function boot(): Promise<void> {
   const tuning: PlanTuning = structuredClone(tuningOf(plan));
   let selected = 0;
 
+  let zoom = 1;
+  let preview: Preview | undefined;
+  let zoomSaved = false;
+  let loading = 0;
+
   const canvas = el("canvas", { width: SCENE_WIDTH, height: SCENE_HEIGHT });
   const ctx = canvas.getContext("2d", { alpha: false })!;
   const panel = el("aside");
   const status = el("div");
   status.setAttribute("role", "status");
-  document.body.append(el("div", { id: "stage" }, canvas), panel);
+  const banner = el("div", { className: "banner", textContent: "preview: resampled", hidden: true });
+  document.body.append(el("div", { id: "stage" }, canvas, banner), panel);
 
   const fit = () => {
     const dpr = devicePixelRatio || 1;
@@ -108,7 +126,20 @@ async function boot(): Promise<void> {
   addEventListener("resize", fit);
   fit();
 
-  const tunedPlan = (): ScenePlan => ({ ...plan, dither: tuning.dither, variants: plan.variants.map((v, i) => ({ ...v, ...tuning.variants[i] })) });
+  const base = () => preview?.plan ?? plan;
+  const shownLights = (lights: Light[]): Light[] => (preview ? zoomLights(lights, plan.stage!.vanishingPoint, preview.zoom) : lights);
+  const kept = (light: Light) => !(light.type === "point" && light.anchor && preview?.removed.has(light.anchor));
+  const shownSize = (id: string) => (preview ? preview.elements : elements).get(id)?.still;
+  const tunedPlan = (): ScenePlan => ({
+    ...base(),
+    dither: tuning.dither,
+    variants: base().variants.map((v, i) => ({
+      ...v,
+      ...tuning.variants[i],
+      lights: shownLights(tuning.variants[i].lights).filter(kept),
+      emissiveOff: tuning.variants[i].emissiveOff.filter((id) => !preview?.removed.has(id)),
+    })),
+  });
   const variantTuning = () => tuning.variants[selected];
 
   let loop: AbortController | undefined;
@@ -126,16 +157,73 @@ async function boot(): Promise<void> {
       const shown = parsed.data;
       const variant = shown.variants[selected];
       const companion = variant.companionPalette ? companions.get(variant.companionPalette) : undefined;
-      const compositor = createCompositor({ plan: shown, elements, palette, variant, companion, room, features, primitives: createPrimitives({ plan: shown, elements, palette, features }) });
+      const drawn = preview ?? { elements, room, features, outlines: [] };
+      const compositor = createCompositor({
+        plan: shown, elements: drawn.elements, palette, variant, companion, room: drawn.room, features: drawn.features,
+        primitives: createPrimitives({ plan: shown, elements: drawn.elements, palette, features: drawn.features }),
+      });
       loop?.abort();
       loop = new AbortController();
       let image: ImageData | undefined;
       startLoop(compositor, (frame) => {
         image ??= new ImageData(frame, SCENE_WIDTH, SCENE_HEIGHT);
         ctx.putImageData(image, 0, 0);
+        ctx.strokeStyle = "#f7d35c";
+        for (const b of drawn.outlines) ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
       }, loop.signal);
     });
   };
+
+  // Each Placement gets its own stand-in Element, because one Element at two depths changes to two sizes.
+  async function loadPreview(z: number): Promise<Preview | undefined> {
+    if (z === 1) return undefined;
+    const q = `?zoom=${z}`;
+    const out = await getJson(`zoom.json${q}`);
+    const zoomed = scenePlanSchema.parse(out.plan);
+    const entries = new Map<string, ZoomedPlacement>(out.placements.map((p: ZoomedPlacement) => [p.placement, p]));
+    const standIns = new Map<string, ElementPixels>();
+    const shownFeatures = new Map<string, Pixels>();
+    const placements = allPlacements(zoomed).filter((p) => entries.has(p.id));
+    await Promise.all(placements.map(async (p) => {
+      const entry = entries.get(p.id)!;
+      const record = { ...records.get(p.element)!, width: entry.after.width, height: entry.after.height } as ElementRecord;
+      standIns.set(p.id, await elementPixelsOf(record, (suffix) => decode(`stand-in/${p.id}${suffix}${q}`)));
+      if (isProjected(p)) shownFeatures.set(p.id, await decode(`stand-in/features/${p.id}.png${q}`));
+    }));
+    const standInId = (pid: string) => `standin-${pid}-01`;
+    const previewPlan: ScenePlan = {
+      ...zoomed,
+      layers: zoomed.layers.map((l) => ("placements" in l
+        ? { ...l, placements: l.placements.filter((p) => entries.has(p.id)).map((p) => ({ ...p, element: standInId(p.id) })) }
+        : l)) as ScenePlan["layers"],
+    };
+    return {
+      zoom: z,
+      plan: previewPlan,
+      elements: new Map([...standIns].map(([pid, pixels]) => [standInId(pid), pixels])),
+      room: roomLayerOf(zoomed) ? await decode(`${ROOM_FILE}${q}`) : undefined,
+      features: shownFeatures,
+      outlines: out.placements.filter((p: ZoomedPlacement) => p.standIn === "resampled").map((p: ZoomedPlacement) => p.box),
+      removed: new Set(out.removed.placements),
+    };
+  }
+
+  async function setZoom(z: number): Promise<void> {
+    zoom = z;
+    const ticket = ++loading;
+    say(z === 1 ? "" : `Drawing stand-ins at ${z}x…`);
+    try {
+      const next = await loadPreview(z);
+      if (ticket !== loading) return;
+      preview = next;
+      banner.hidden = !preview;
+      const dropped = preview && preview.removed.size > 0 ? ` Off the canvas at this zoom: ${[...preview.removed].join(", ")}.` : "";
+      say(preview ? `Zoom ${z}x: service Elements and Backdrops are resampled stand-ins, outlined; Save reopens every one whose size changes.${dropped}` : "");
+      redraw();
+    } catch (e) {
+      if (ticket === loading) say(`Cannot preview ${z}x: ${(e as Error).message}`, true);
+    }
+  }
 
   const say = (text: string, error = false) => {
     status.textContent = text;
@@ -258,6 +346,15 @@ async function boot(): Promise<void> {
     return `${stem}-${n}`;
   };
 
+  function zoomControl(): HTMLLabelElement {
+    const range = el("input", { type: "range", min: String(ZOOM_MIN), max: String(ZOOM_MAX), step: String(ZOOM_STEP), value: String(zoom), disabled: zoomSaved });
+    const shown = el("output", { textContent: `${zoom}x` });
+    range.setAttribute("aria-label", "Zoom");
+    range.addEventListener("input", () => (shown.textContent = `${Number(range.value)}x`));
+    range.addEventListener("change", () => void setZoom(Number(Number(range.value).toFixed(2))));
+    return el("label", {}, "Zoom", range, shown);
+  }
+
   function render(): void {
     const v = variantTuning();
     const variantSwitch = choice("Variant", String(selected), plan.variants.map((pv, i) => ({ value: String(i), text: `${pv.title} (${pv.id})` })), (value) => (selected = Number(value)), true);
@@ -315,7 +412,7 @@ async function boot(): Promise<void> {
         v.emissiveOff = on ? v.emissiveOff.filter((id) => id !== p.id) : [...v.emissiveOff, p.id];
       }));
 
-    const saveButton = el("button", { type: "button", className: "save", textContent: "Save" });
+    const saveButton = el("button", { type: "button", className: "save", textContent: "Save", disabled: zoomSaved });
     saveButton.addEventListener("click", () => save(saveButton));
 
     panel.replaceChildren(
@@ -329,6 +426,7 @@ async function boot(): Promise<void> {
       ...(emissive.length ? emissive : [el("p", { textContent: "No Placement has Emissive colours." })]),
       el("h2", { textContent: "Scene" }),
       checkbox("Dither", tuning.dither, (on) => (tuning.dither = on)),
+      zoomControl(),
       el("div", { className: "actions" }, el("div", { className: "bar" }, saveButton), status),
     );
   }
@@ -337,16 +435,32 @@ async function boot(): Promise<void> {
     button.disabled = true;
     say("Saving, then running the preview checks…");
     try {
-      const response = await fetch("save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(tuning) });
+      const response = await fetch("save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(zoom === 1 ? tuning : { ...tuning, zoom }) });
       const out = await response.json();
       if (response.status !== 200) return say(`Not saved. ${out.error}`, true);
+      if (out.zoom !== undefined) {
+        zoomSaved = true;
+        panel.querySelector<HTMLInputElement>('input[aria-label="Zoom"]')!.disabled = true;
+        const lines = [
+          `Saved at ${out.zoom}x. The Scene is ${out.status}.`,
+          `Reopened: ${out.reopened.join(", ") || "none"}.`,
+          `Redrawn locally: ${out.redrawn.map((r: { placement: string }) => r.placement).join(", ") || "none"}.`,
+          `Removed, off the canvas: ${out.removed.placements.join(", ") || "none"}.`,
+          `Estimate: ${out.estimate.generations} PixelLab generations for first Attempts.`,
+          `Resume the Director: ${out.resume}`,
+          ...(out.error ? [`Problems: ${out.error}`] : []),
+          "Reload the page to tune the zoomed Scene.",
+        ];
+        return say(lines.join("\n"), !out.ok);
+      }
       const poster = out.error ? ` But ${out.error}.` : out.poster ? " Poster rendered again." : "";
       if (out.preview.ok) say(`Saved.${poster} Preview passed: the Scene is ${out.status} and ${out.preview.staged.length} files are staged.`, !out.ok);
       else say(`Saved.${poster} A preview check failed: ${out.preview.failed.join(", ") || out.preview.error}. The Scene is ${out.status}.\n${out.preview.problems.join("\n")}`, true);
     } catch (e) {
       say(`Not saved: ${(e as Error).message}`, true);
     } finally {
-      button.disabled = false;
+      // This page still holds the unzoomed plan and Lights; a second Save would zoom the Scene again.
+      button.disabled = zoomSaved;
     }
   }
 
@@ -358,8 +472,9 @@ async function boot(): Promise<void> {
   const handleAt = (p: Point): Handle | undefined => {
     let best: Handle | undefined;
     let nearest = HIT;
-    variantTuning().lights.forEach((light, i) => {
-      const points = light.type === "point" ? [pointOf(light, plan, sizeOf)] : light.corners;
+    shownLights(variantTuning().lights).forEach((light, i) => {
+      if (!kept(light)) return;
+      const points = light.type === "point" ? [pointOf(light, tunedPlan(), shownSize)] : light.corners;
       points.forEach((q, corner) => {
         const d = Math.hypot(q.x - p.x, q.y - p.y);
         if (d <= nearest) {
@@ -382,8 +497,8 @@ async function boot(): Promise<void> {
   canvas.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     const to = sceneAt(e);
-    const dx = to.x - dragging.from.x;
-    const dy = to.y - dragging.from.y;
+    const dx = Math.round((to.x - dragging.from.x) / zoom);
+    const dy = Math.round((to.y - dragging.from.y) / zoom);
     if (dx === 0 && dy === 0) return;
     const light = variantTuning().lights[dragging.handle.light];
     if (light.type === "beam") {
@@ -395,7 +510,7 @@ async function boot(): Promise<void> {
       position.x += dx;
       position.y += dy;
     }
-    dragging.from = to;
+    dragging.from = { x: dragging.from.x + dx * zoom, y: dragging.from.y + dy * zoom };
     redraw();
   });
   const drop = () => {

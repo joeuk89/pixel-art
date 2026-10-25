@@ -33,20 +33,26 @@ export function layerScale(sceneScale: number, layer: Layer): number {
   return layer.kind === "placements" && layer.scale !== undefined ? layer.scale : sceneScale;
 }
 
-const hundredths = (n: number) => Math.round(n * 100) / 100;
+export const hundredths = (n: number) => Math.round(n * 100) / 100;
 
-export function placementScale(plan: Pick<ScenePlan, "scale" | "stage">, layer: Layer, placement: Placement): number {
+type RealSize = { w: number; h: number };
+
+// realSize defaults to the generate block's; a resolved Placement passes its Element record's.
+export function placementScale(
+  plan: Pick<ScenePlan, "scale" | "stage">, layer: Layer, placement: Placement,
+  realSize: RealSize | undefined = placement.generate?.kind === "prop" ? placement.generate.realSize : undefined,
+): number {
   if (!plan.stage) return layerScale(plan.scale, layer);
   if (placement.foot) return hundredths(scaleAt(plan.stage, plan.scale, placement.foot.y));
-  if (isFeature(placement) && placement.generate?.kind === "prop") {
-    return hundredths(featureScale(plan.stage, plan.scale, placement, placement.generate.realSize));
-  }
+  if (isFeature(placement) && realSize) return hundredths(featureScale(plan.stage, plan.scale, placement, realSize));
   return layerScale(plan.scale, layer);
 }
 
+export const propCanvas = (scale: number, realSize: RealSize): Canvas => ({ width: propSide(scale, realSize.w), height: propSide(scale, realSize.h) });
+
 export function deriveCanvas(scale: number, generate: Generate): Canvas {
   if (generate.kind !== "prop") return { width: generate.size.w, height: generate.size.h };
-  return { width: propSide(scale, generate.realSize.w), height: propSide(scale, generate.realSize.h) };
+  return propCanvas(scale, generate.realSize);
 }
 
 export const fitsProFlash = (canvas: Canvas) => canvas.width <= PRO_FLASH_MAX_SIDE && canvas.height <= PRO_FLASH_MAX_SIDE;

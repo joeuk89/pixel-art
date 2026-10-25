@@ -5,6 +5,7 @@ const VARIANT_FIELDS = ["ambient", "lights", "emissiveOff"] as const;
 
 export const tuningSchema = z.strictObject({
   dither: z.boolean(),
+  zoom: z.number().optional(),
   variants: z.array(
     z.strictObject({ id: z.string(), ambient: z.unknown(), lights: z.array(z.unknown()), emissiveOff: z.array(z.unknown()) }),
   ),
