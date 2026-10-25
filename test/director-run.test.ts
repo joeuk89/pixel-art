@@ -218,6 +218,45 @@ test("a zoom Save in the Tuner resumes at the Plan gate for the Placements it re
   for (const id of Object.values(ids)) assert.equal(bytes(root, id).length, 2, `${id} stays in the library`);
 });
 
+test("preview prices each local Element's upgrade, and the upgrade writes a new service Element and leaves the local one for orphans", async () => {
+  const root = tree();
+  const { desk } = await generateAll(root);
+  const first = await finish(root);
+  assert.equal(first.ok, true);
+  assert.deepEqual(first.localElements, [{
+    placement: "desk", element: desk, canvas: { width: 64, height: 40 },
+    upgrade: { service: "pro-flash", generations: 5, usd: 0.024, command: `node pipeline/reopen.ts ${PLAN} --upgrade desk` },
+  }], "Pro Flash charges 5 generations, $0.024, up to 64 px");
+
+  const reopened = await step(root, "reopen", PLAN, "--upgrade", "desk");
+  assert.deepEqual(reopened.upgraded, ["desk"]);
+  const generate = placements(readJson(root, PLAN)).desk.generate;
+  assert.equal(generate.finish, undefined);
+  assert.equal(generate.generator, undefined);
+  assert.deepEqual(await unresolved(root), ["desk"]);
+  const upgraded = await element(root, "desk");
+  assert.equal(upgraded, "desk-oak-plain-02");
+  const second = await finish(root);
+  assert.equal(second.ok, true, JSON.stringify(second.checks));
+  assert.deepEqual(second.localElements, []);
+
+  assert.equal(placements(readJson(root, PLAN)).desk.element, upgraded);
+  const record = readJson(root, `library/elements/${upgraded}.json`);
+  assert.deepEqual([record.service, record.width, record.height], ["pixellab", 64, 40]);
+  assert.equal(readJson(root, `library/elements/${desk}.json`).service, "local");
+  const orphans = await step(root, "orphans");
+  assert.ok(orphans.elements.some((e: any) => e.id === desk), `${desk} is listed as an orphan`);
+  assert.ok(!orphans.elements.some((e: any) => e.id === upgraded));
+});
+
+test("reopen --upgrade refuses a Placement whose Element is not a local-Finish prop", async () => {
+  const root = tree();
+  await generateAll(root);
+  const run = await runScript(join(repo, "pipeline/reopen.ts"), [PLAN, "--upgrade", "lamp"], { cwd: root, env: server.env });
+  assert.notEqual(run.code, 0);
+  assert.match(run.stderr + run.stdout, /local Finish/);
+});
+
 test("after a rejection, preview no longer reports a strip fallback for a Placement that was reopened and regenerated", async () => {
   const root = tree();
   await step(root, "room-shell", PLAN);

@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAbandoned, type Abandoned } from "./lib/attempts.ts";
 import { main } from "./lib/cli.ts";
+import { proFlashPrice } from "./lib/canvas.ts";
 import { hardChecks } from "./lib/hard-checks.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
@@ -44,6 +45,17 @@ function elementsOf(plan: ScenePlan) {
     generated: placed.filter((id) => records.get(id)?.firstScene === plan.id),
     reused: placed.filter((id) => records.get(id)?.firstScene !== plan.id),
   };
+}
+
+// Priced like a paid retry: one first Attempt on Pro Flash at the Element's tier.
+function localElements(plan: ScenePlan, file: string) {
+  const records = new Map(readElements(root).map((e) => [e.id, e]));
+  return allPlacements(plan).flatMap((p) => {
+    const record = records.get(p.element);
+    if (!record || record.kind !== "prop" || record.service !== "local") return [];
+    const canvas = { width: record.width, height: record.height };
+    return [{ placement: p.id, element: p.element, canvas, upgrade: { service: "pro-flash", ...proFlashPrice(canvas), command: `node pipeline/reopen.ts ${file} --upgrade ${p.id}` } }];
+  });
 }
 
 function describe(a: Abandoned): string {
@@ -89,6 +101,7 @@ async function preview(file: string) {
     cost: plan.cost,
     ledger: ledger(plan),
     elements,
+    localElements: localElements(plan, relative(root, planPath)),
     abandoned,
     commitMessage: commitMessage(plan, elements, abandoned),
     checks: report.checks,
