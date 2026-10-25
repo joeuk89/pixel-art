@@ -450,6 +450,20 @@ test("style_image with all four style_options is sent only when the Style anchor
   assert.equal(validate(root).code, 0);
 });
 
+test("a prop standing on the floor is requested at the canvas the Scale at its foot gives", async () => {
+  server.requests.length = 0;
+  const root = tree((plan) => {
+    plan.stage = { back: { x: 0, y: 40, w: 384, h: 140 }, vanishingPoint: { x: 190, y: 100 }, f: 150 };
+    const cat = placementIn(plan, "cat");
+    delete cat.x;
+    delete cat.y;
+    cat.foot = { x: 190, y: 220 };
+  });
+  const cat = await run(root, "cat");
+  assert.equal(cat.code, 0, cat.stdout + cat.stderr);
+  assert.deepEqual(sentBodies()[0].image_size, { width: 36, height: 20 });
+});
+
 test("a prop with removeBackground false is sent with no_background false", async () => {
   server.requests.length = 0;
   const root = tree((plan) => { placementIn(plan, "cat").generate.removeBackground = false; });

@@ -78,6 +78,7 @@ async function boot(): Promise<void> {
       elements.set(id, await elementPixelsOf(record, (suffix) => decode(`library/elements/${id}${suffix}`)));
     }),
   );
+  const sizeOf = (id: string) => elements.get(id)?.still;
 
   const tuning: PlanTuning = structuredClone(tuningOf(plan));
   let selected = 0;
@@ -181,14 +182,14 @@ async function boot(): Promise<void> {
   const placementIds = allPlacements(plan).map((p) => p.id);
 
   function anchorPoint(anchor: string): Point {
-    return pointOf({ type: "point", id: "probe", anchor, offset: { x: 0, y: 0 }, radius: 1, strength: 0, tint: "warm" }, plan);
+    return pointOf({ type: "point", id: "probe", anchor, offset: { x: 0, y: 0 }, radius: 1, strength: 0, tint: "warm" }, plan, sizeOf);
   }
 
   function pointEditor(light: PointLight): Node[] {
     const where = light.anchor ?? "";
     const nodes: Node[] = [
       choice("Anchor", where, [{ value: "", text: "a canvas point" }, ...placementIds.map((id) => ({ value: id, text: id }))], (v) => {
-        const at = pointOf(light, plan);
+        const at = pointOf(light, plan, sizeOf);
         if (v === "") {
           delete light.anchor;
           delete light.offset;
@@ -350,7 +351,7 @@ async function boot(): Promise<void> {
     let best: Handle | undefined;
     let nearest = HIT;
     variantTuning().lights.forEach((light, i) => {
-      const points = light.type === "point" ? [pointOf(light, plan)] : light.corners;
+      const points = light.type === "point" ? [pointOf(light, plan, sizeOf)] : light.corners;
       points.forEach((q, corner) => {
         const d = Math.hypot(q.x - p.x, q.y - p.y);
         if (d <= nearest) {

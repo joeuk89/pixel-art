@@ -11,6 +11,7 @@
   "scale": 48,
   "dither": false,
   "styleAnchor": "window-wood-transparent-panes-01",
+  "stage": { "back": { "x": 48, "y": 26, "w": 288, "h": 190 }, "vanishingPoint": { "x": 190, "y": 118 }, "f": 150 },
   "layers": [
     { "name": "sky", "kind": "fill", "plane": "far", "colour": 1 },
     { "name": "stars", "kind": "placements", "plane": "far", "placements": [
@@ -19,9 +20,9 @@
       { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 64, "y": 40 } ] },
     { "name": "room", "kind": "placements", "plane": "mid", "placements": [
       { "id": "window", "element": "window-wood-transparent-panes-01", "x": 168, "y": 28 },
-      { "id": "cat", "element": "cat-tabby-asleep-01", "x": 280, "y": 200, "flipX": true,
+      { "id": "cat", "element": "cat-tabby-asleep-01", "foot": { "x": 292, "y": 216 }, "flipX": true,
         "animation": { "fps": 4, "order": "pingpong" } },
-      { "id": "cat-2", "element": "cat-tabby-asleep-01", "x": 40, "y": 200,
+      { "id": "cat-2", "element": "cat-tabby-asleep-01", "foot": { "x": 52, "y": 216 },
         "animation": { "order": [0, 1, 2, 1] } } ] }
   ],
   "primitives": [

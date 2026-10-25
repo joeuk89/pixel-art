@@ -109,6 +109,14 @@ test("a point Light anchored to a Placement sits at the Placement plus its offse
   assert.deepEqual([at(out, 60, 65), at(out, 50, 60)], [colour(4), colour(2)]);
 });
 
+test("a point Light anchored to a foot Placement sits at the Placement's drawn position plus its offset", () => {
+  const stage = { back: { x: 0, y: 40, w: 384, h: 140 }, vanishingPoint: { x: 190, y: 100 }, f: 150 };
+  const layers = [fill("floor", 2), placed("room", [{ id: "lamp", element: "lamp-test-light-01", foot: { x: 100, y: 200 } }])];
+  const p = plan(layers, [{ ambient: { level: 0 }, lights: [{ type: "point", id: "lamp", anchor: "lamp", offset: { x: 2, y: 1 }, radius: 4, strength: 2, tint: "warm" }] }], { stage });
+  const out = render(p, new Map([["lamp-test-light-01", { still: image(4, 6, () => null) }]]));
+  assert.deepEqual([at(out, 100, 195), at(out, 100, 201)], [colour(4), colour(2)], "drawn at 98,194; the Light at 100,195");
+});
+
 test("a beam lights the inside of its quad at full strength and steps down across its soft edge", () => {
   const corners = [{ x: 100, y: 50 }, { x: 200, y: 50 }, { x: 200, y: 150 }, { x: 100, y: 150 }];
   const out = lit([{ type: "beam", id: "sun", corners, strength: 3, tint: "warm", softness: 6 }], 0, [fill("floor", 1)]);

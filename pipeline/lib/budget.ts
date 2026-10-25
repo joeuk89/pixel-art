@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { allPlacements, isLocal, placementsOf, type ScenePlan } from "../../schema/index.ts";
 import { stillAttempts, stillAttemptsDir } from "./attempts.ts";
-import { deriveCanvas, firstAttemptGenerations, layerScale, type Canvas } from "./canvas.ts";
+import { deriveCanvas, firstAttemptGenerations, placementScale, type Canvas } from "./canvas.ts";
 import { readElements } from "./library.ts";
 
 export const ATTEMPTS_PER_STILL = 4;
@@ -42,7 +42,7 @@ export function budget(plan: ScenePlan) {
   for (const layer of plan.layers) {
     for (const p of placementsOf(layer)) {
       if (!p.generate) continue;
-      const canvas = deriveCanvas(layerScale(plan.scale, layer), p.generate);
+      const canvas = deriveCanvas(placementScale(plan, layer, p), p.generate);
       planned.set(`${p.id}/${p.element}`, { canvas, pixellabStrip: p.generate.kind === "prop" && p.generate.strip?.service === "pixellab", local: isLocal(p.generate) });
     }
   }

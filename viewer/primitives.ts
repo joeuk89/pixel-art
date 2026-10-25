@@ -1,5 +1,6 @@
 import { placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan } from "../schema/index.ts";
 import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
+import { positioned, type Positioned } from "./placement.ts";
 import { random } from "./random.ts";
 
 export const WEATHER_FPS = 24;
@@ -12,7 +13,7 @@ type Context = {
   seed: number;
   salt: number;
   colours: Colours;
-  anchor(id: string): { placement: Placement; pixels: Pixels; layer: number };
+  anchor(id: string): { placement: Positioned; pixels: Pixels; layer: number };
   top: number;
 };
 
@@ -51,7 +52,7 @@ function plotIn(out: Uint8ClampedArray, c: Colours, region: { x: number; y: numb
   paint(out, c, y * SCENE_WIDTH + x, colour);
 }
 
-function eachPlacedPixel(p: Placement, src: Pixels, visit: (pixel: number, source: number) => void): void {
+function eachPlacedPixel(p: Positioned, src: Pixels, visit: (pixel: number, source: number) => void): void {
   for (const x0 of placedXs(p, src.width)) {
     for (let sy = 0; sy < src.height; sy++) {
       const y = p.y + sy;
@@ -404,7 +405,7 @@ export function createPrimitives({ plan, elements, palette, seed = plan.seed }: 
         if (!found) throw new Error(`Primitive ${salt} (${primitive.type}): no Placement ${id} to anchor to`);
         const pixels = elements.get(found.placement.element);
         if (!pixels) throw new Error(`Primitive ${salt} (${primitive.type}): Element ${found.placement.element} has no pixels`);
-        return { ...found, pixels: pixels.still };
+        return { layer: found.layer, placement: positioned(found.placement, pixels.still), pixels: pixels.still };
       },
     };
     return { ...drawOf(primitive, ctx), emissive: primitive.emissive };

@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import sharp from "sharp";
 import { elementRecordSchema, isLocal, placementsOf, type ElementRecord, type Placement, type ScenePlan } from "../schema/index.ts";
 import { budget } from "./lib/budget.ts";
-import { anchorFits, deriveCanvas, layerScale } from "./lib/canvas.ts";
+import { anchorFits, deriveCanvas, placementScale } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { readElements, readScene } from "./lib/library.ts";
@@ -40,7 +40,7 @@ function findPlacement(plan: ScenePlan, id: string): Found {
   if (!layer) throw new Error(`no Placement ${id} in Scene ${plan.id}`);
   const placement = placementsOf(layer).find((p) => p.id === id)!;
   if (!placement.generate) throw new Error(`Placement ${id} has no generate block; its Element ${placement.element} is already in the library`);
-  return { placement, scale: layerScale(plan.scale, layer) };
+  return { placement, scale: placementScale(plan, layer, placement) };
 }
 
 function checkBudget(plan: ScenePlan, placement: Placement, service: ImageService): void {

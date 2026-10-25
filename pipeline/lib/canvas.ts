@@ -1,4 +1,5 @@
-import { isLocal, MAX_PROP_SIDE, MIN_PROP_SIDE, SIDE_STEP, type Layer, type Placement } from "../../schema/index.ts";
+import { isLocal, MAX_PROP_SIDE, MIN_PROP_SIDE, SIDE_STEP, type Layer, type Placement, type ScenePlan } from "../../schema/index.ts";
+import { scaleAt } from "./perspective.ts";
 
 export type Canvas = { width: number; height: number };
 type Generate = NonNullable<Placement["generate"]>;
@@ -26,6 +27,11 @@ function propSide(scale: number, metres: number): number {
 
 export function layerScale(sceneScale: number, layer: Layer): number {
   return layer.kind === "placements" && layer.scale !== undefined ? layer.scale : sceneScale;
+}
+
+export function placementScale(plan: Pick<ScenePlan, "scale" | "stage">, layer: Layer, placement: Placement): number {
+  if (!placement.foot || !plan.stage) return layerScale(plan.scale, layer);
+  return Math.round(scaleAt(plan.stage, plan.scale, placement.foot.y) * 100) / 100;
 }
 
 export function deriveCanvas(scale: number, generate: Generate): Canvas {

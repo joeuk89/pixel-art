@@ -1,6 +1,7 @@
 import { placementsOf, SCENE_HEIGHT, SCENE_WIDTH, type ElementRecord, type Palette, type Placement, type ScenePlan, type Variant } from "../schema/index.ts";
 import { FLICKER_FPS } from "./flicker.ts";
 import { createLighting, NONE, UNLIT, type LightField, type Planes } from "./lighting.ts";
+import { positioned, type Positioned } from "./placement.ts";
 
 export type Pixels = { width: number; height: number; data: Uint8Array | Uint8ClampedArray };
 export type FrameOrder = "cycle" | "pingpong" | number[];
@@ -46,7 +47,7 @@ export type Compositor = {
 
 type Rgba = readonly [number, number, number, number];
 type Source = { pixels: Pixels; index: Uint8Array; emissive?: Uint8Array };
-type Animated = { placement: Placement; layer: number; frames: Source[]; sequence: readonly number[]; fps: number; offset: number };
+type Animated = { placement: Positioned; layer: number; frames: Source[]; sequence: readonly number[]; fps: number; offset: number };
 type Op = { overlay: Planes } | { animated: Animated } | { primitive: PrimitiveDraw; layer: number };
 
 const PIXELS = SCENE_WIDTH * SCENE_HEIGHT;
@@ -94,7 +95,14 @@ function blit(planes: Planes, src: Source, x0: number, y0: number, flipX: boolea
   }
 }
 
-export function placedXs(p: Placement, width: number): number[] {
+// Foot Placements take the slots foot Placements hold, nearest last, so x, y Placements keep their place in the order.
+export function drawOrder(placements: readonly Placement[]): Placement[] {
+  const byFoot = placements.filter((p) => p.foot).sort((a, b) => a.foot!.y - b.foot!.y);
+  let next = 0;
+  return placements.map((p) => (p.foot ? byFoot[next++] : p));
+}
+
+export function placedXs(p: Positioned, width: number): number[] {
   if (!p.tileX) return [p.x];
   const phase = ((p.x % width) + width) % width;
   const xs: number[] = [];
@@ -102,7 +110,7 @@ export function placedXs(p: Placement, width: number): number[] {
   return xs;
 }
 
-function draw(planes: Planes, src: Source, p: Placement, layer: number): void {
+function draw(planes: Planes, src: Source, p: Positioned, layer: number): void {
   for (const x of placedXs(p, src.pixels.width)) blit(planes, src, x, p.y, p.flipX === true, layer);
 }
 
@@ -157,7 +165,7 @@ function hash(text: string): number {
   return mix(fnv1a(text));
 }
 
-function animatedOf(pixels: ElementPixels, p: Placement, seed: number, layer: number, source: (frame: Pixels) => Source): Animated | undefined {
+function animatedOf(pixels: ElementPixels, p: Positioned, seed: number, layer: number, source: (frame: Pixels) => Source): Animated | undefined {
   const { strip } = pixels;
   if (!strip || p.animation?.enabled === false) return undefined;
   const sequence = sequenceOf(p.animation?.order ?? strip.order, strip.frames);
@@ -229,9 +237,10 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
       fill(current, colours[layer.colour], layer.colour, li);
       drawn = true;
     }
-    for (const p of placementsOf(layer)) {
-      const pixels = elements.get(p.element);
-      if (!pixels) throw new Error(`Placement ${p.id}: Element ${p.element} has no pixels`);
+    for (const placement of drawOrder(placementsOf(layer))) {
+      const pixels = elements.get(placement.element);
+      if (!pixels) throw new Error(`Placement ${placement.id}: Element ${placement.element} has no pixels`);
+      const p = positioned(placement, pixels.still);
       const animated = animatedOf(pixels, p, seed, li, (frame) => sourceOf(pixels, frame, p));
       if (animated) push({ animated });
       else {
@@ -243,7 +252,7 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
   });
   if (drawn) ops.push({ overlay: current });
 
-  const lighting = createLighting({ plan, palette, variant, seed, companion });
+  const lighting = createLighting({ plan, palette, variant, seed, companion, sizeOf: (element) => elements.get(element)?.still });
   type Clock = { fps: number; state(timeMs: number): number };
   const clocks: Clock[] = ops.flatMap((op): Clock[] => {
     if ("animated" in op) return [{ fps: op.animated.fps, state: (t) => step(t, op.animated.fps) }];

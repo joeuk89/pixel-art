@@ -212,7 +212,7 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     await page.goto(`${site}scenes/${id}/`);
     const poster = page.getByRole("img", { name: title });
     await poster.waitFor();
-    assert.equal(await poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), 384);
+    assert.equal(await poster.evaluate(async (img: HTMLImageElement) => (await img.decode(), img.naturalWidth)), 384);
     assert.equal(await page.locator("canvas").count(), 0);
     await pause(300);
     assert.deepEqual(audioFetched, [], "audio loaded before the visuals");
@@ -350,7 +350,8 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     const { page, errors } = await open(`scenes/${id}/`);
     const canvas = page.locator("canvas");
     await canvas.waitFor();
-    const at = readJson(root, fixtureScene).layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === "cat");
+    const { foot } = readJson(root, fixtureScene).layers.flatMap((l: any) => l.placements ?? []).find((p: any) => p.id === "cat");
+    const at = { x: foot.x - 12, y: foot.y - 16 };
     const cat = () => canvas.evaluate((c: HTMLCanvasElement, p) => Array.from(c.getContext("2d")!.getImageData(p.x, p.y, 24, 16).data).join(","), at);
     const first = await cat();
     let changed = false;

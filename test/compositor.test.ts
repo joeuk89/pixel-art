@@ -283,3 +283,40 @@ test("the compositor bundles for a neutral platform and renders where no Node, D
   const out = sandbox.compositor.createCompositor({ plan: plan([fill("sky", 2)]), elements: new Map(), palette }).render(0);
   assert.deepEqual([...out.subarray(0, 4)], rgb(2));
 });
+
+const block = (colour: number) => image(4, 6, () => rgb(colour));
+const footScene = (placements: object[]) =>
+  createCompositor({
+    plan: plan([placed("room", placements)]),
+    elements: new Map([["block-red-near-01", { still: block(3) }], ["block-red-far-01", { still: block(4) }]]),
+    palette,
+  }).render(0);
+
+test("a foot Placement draws with its bottom centre at the foot", () => {
+  const out = footScene([{ id: "near", element: "block-red-near-01", foot: { x: 100, y: 200 } }]);
+  assert.deepEqual(at(out, 98, 194), rgb(3));
+  assert.deepEqual(at(out, 101, 199), rgb(3));
+  assert.deepEqual(at(out, 97, 199), rgb(0));
+  assert.deepEqual(at(out, 102, 199), rgb(0));
+  assert.deepEqual(at(out, 98, 193), rgb(0));
+  assert.deepEqual(at(out, 98, 200), rgb(0));
+});
+
+for (const order of ["near first", "far first"]) {
+  test(`a nearer foot Placement covers a further one whatever the Placement order (${order})`, () => {
+    const near = { id: "near", element: "block-red-near-01", foot: { x: 100, y: 202 } };
+    const far = { id: "far", element: "block-red-far-01", foot: { x: 101, y: 199 } };
+    const out = footScene(order === "near first" ? [near, far] : [far, near]);
+    assert.deepEqual(at(out, 100, 197), rgb(3));
+    assert.deepEqual(at(out, 101, 196), rgb(3));
+    assert.deepEqual(at(out, 102, 194), rgb(4));
+  });
+}
+
+test("x, y Placements keep their order around foot Placements", () => {
+  const out = footScene([
+    { id: "far", element: "block-red-far-01", foot: { x: 101, y: 205 } },
+    { id: "wall", element: "block-red-near-01", x: 99, y: 199 },
+  ]);
+  assert.deepEqual(at(out, 100, 200), rgb(3));
+});

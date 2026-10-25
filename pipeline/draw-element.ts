@@ -7,7 +7,7 @@ import {
   addMetered, attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, rawPlacement, sidecarOf, stillAttemptsDir,
   type StillAttempt,
 } from "./lib/attempts.ts";
-import { deriveCanvas, layerScale } from "./lib/canvas.ts";
+import { deriveCanvas, placementScale } from "./lib/canvas.ts";
 import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { drawLocal, generatorOf } from "./lib/kits/index.ts";
@@ -29,7 +29,7 @@ function findPlacement(plan: ScenePlan, id: string): Found {
   if (!isLocal(generate)) {
     throw new Error(`Placement ${id} asks for a ${generate.kind === "backdrop" ? "Backdrop, which is never local" : "service Finish"}; draw it with generate-element, or set finish: local with a generator and params`);
   }
-  return { placement, scale: layerScale(plan.scale, layer) };
+  return { placement, scale: placementScale(plan, layer, placement) };
 }
 
 function parseParams(pairs: string[]): Record<string, string> {

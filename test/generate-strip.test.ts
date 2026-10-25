@@ -436,6 +436,7 @@ test("a Placement with animation overrides on the accepted Element passes valida
   });
   const plan = scenePlanSchema.parse(readJson(root, fixtureScene));
   const cat = allPlacements(plan).find((p) => p.id === "cat")!;
+  const x = cat.foot!.x - CAT_WIDTH / 2, top = cat.foot!.y - 16;
   assert.deepEqual(cat.animation, { fps: 4, order: "pingpong" });
   const valid = validate(root);
   assert.equal(valid.code, 0, JSON.stringify(valid.report));
@@ -445,7 +446,7 @@ test("a Placement with animation overrides on the accepted Element passes valida
   for (let t = 0; t < 1500; t += 250) {
     const frame = compositor.render(t);
     const rows: number[] = [];
-    for (let y = cat.y; y < cat.y + 16; y++) rows.push(...frame.subarray((y * SCENE_WIDTH + cat.x) * 4, (y * SCENE_WIDTH + cat.x + CAT_WIDTH) * 4));
+    for (let y = top; y < top + 16; y++) rows.push(...frame.subarray((y * SCENE_WIDTH + x) * 4, (y * SCENE_WIDTH + x + CAT_WIDTH) * 4));
     seen.add(rows.join(","));
   }
   assert.equal(seen.size, 5, "a 5-frame pingpong strip shows all five frames over one cycle");

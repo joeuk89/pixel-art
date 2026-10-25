@@ -62,6 +62,42 @@ for (const [scale, w, h, width, height] of [
   });
 }
 
+const floorStage = { back: { x: 0, y: 40, w: 384, h: 140 }, vanishingPoint: { x: 190, y: 100 }, f: 150 };
+const standing = (id: string, w: number, h: number, footY: number) => {
+  const { x, y, ...rest } = prop(id, w, h);
+  return { ...rest, element: `chair-plain-${id}-01`, foot: { x: 190, y: footY } };
+};
+
+test("two identical props at different foot depths get canvases by the Scale at each foot", () => {
+  const root = treeWithExample((plan) => {
+    plan.styleAnchor = null;
+    plan.stage = floorStage;
+    plan.layers = [{ name: "room", kind: "placements", plane: "mid", placements: [standing("back", 1, 0.5, 180), standing("front", 1, 0.5, 220)] }];
+  });
+  const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+  assert.equal(code, 0, stderr);
+  const got = Object.fromEntries(out.placements.map((p: any) => [p.placement, [p.scale, p.canvas]]));
+  assert.deepEqual(got.back, [48, { width: 48, height: 24 }]);
+  assert.deepEqual(got.front, [72, { width: 72, height: 36 }]);
+});
+
+for (const [what, w, h, footY, width, height] of [
+  ["rounds each side up to a multiple of 4", 1, 0.5, 240, 84, 44],
+  ["clamps a large prop at the front to 256", 4, 3, 240, 256, 252],
+  ["clamps a small prop at the back to 16", 0.2, 0.1, 180, 16, 16],
+] as const) {
+  test(`derive-canvas by foot depth ${what}`, () => {
+    const root = treeWithExample((plan) => {
+      plan.styleAnchor = null;
+      plan.stage = floorStage;
+      plan.layers = [{ name: "room", kind: "placements", plane: "mid", placements: [standing("thing", w, h, footY)] }];
+    });
+    const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);
+    assert.equal(code, 0, stderr);
+    assert.deepEqual(out.placements[0].canvas, { width, height });
+  });
+}
+
 test("a Backdrop's canvas is the size its generate block names", () => {
   const root = treeWithExample((plan) => { plan.layers[2].placements[0].generate.size = { w: 264, h: 148 }; });
   const { code, out, stderr } = runScript(root, "derive-canvas", PLAN);

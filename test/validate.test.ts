@@ -274,6 +274,44 @@ function failsWith(result: ValidateResult, file: string, path: string, message: 
   assert.match(result.stderr, new RegExp(`${file.replace(/[.]/g, "\\.")}: ${path.replace(/[.[\]]/g, "\\$&") || "\\(root\\)"}: `));
 }
 
+test("a foot Placement in a Scene without a Stage fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { delete plan.stage; });
+  failsWith(validate(root), fixtureScene, "layers[3].placements[1].foot", /foot .*only with a Stage/);
+});
+
+test("a foot outside the floor polygon fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[1].foot = { x: 292, y: 150 }; });
+  failsWith(validate(root), fixtureScene, "layers[3].placements[1].foot", /foot 292,150 is outside the floor/);
+});
+
+test("a foot beside the floor, past the ray from the vanishing point, fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[2].foot = { x: 5, y: 190 }; });
+  failsWith(validate(root), fixtureScene, "layers[3].placements[2].foot", /outside the floor/);
+});
+
+test("a Stage whose vanishing point is outside the canvas fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => { plan.stage.vanishingPoint = { x: 400, y: 100 }; });
+  failsWith(validate(root), fixtureScene, "stage.vanishingPoint", /outside the 384x240 canvas/);
+});
+
+for (const [what, position] of [
+  ["both x, y and foot", { x: 10, y: 10, foot: { x: 292, y: 216 } }],
+  ["no position", {}],
+] as const) {
+  test(`a Placement with ${what} fails`, () => {
+    const root = makeTree();
+    editJson(root, fixtureScene, (plan) => {
+      const { x, y, foot, ...rest } = plan.layers[3].placements[1];
+      plan.layers[3].placements[1] = { ...rest, ...position };
+    });
+    failsWith(validate(root), fixtureScene, "layers[3].placements[1]", /exactly one position: x, y or foot/);
+  });
+}
+
 test("a Placement whose Element is not in the Element library fails", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].element = "lamp-brass-desk-01"; });
