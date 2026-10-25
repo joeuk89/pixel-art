@@ -169,10 +169,42 @@
     {
       "id": "snowy-night",
       "title": "Snowy night",
-      "ambient": { "level": -2, "layers": { "eaves": -1 } },
+      "ambient": {
+        "level": -2,
+        "layers": {
+          "eaves": -1
+        }
+      },
       "lights": [
-        { "type": "point", "id": "bankers-lamp-light", "anchor": "bankers-lamp", "offset": { "x": 14, "y": 13 }, "radius": 250, "strength": 2.5, "tint": "warm", "halo": { "colour": 8, "radius": 28, "strength": 0.4 } },
-        { "type": "point", "id": "window-spill", "at": { "x": 254, "y": 64 }, "radius": 56, "strength": 1, "tint": "cool" } ],
+        {
+          "type": "point",
+          "id": "bankers-lamp-light",
+          "anchor": "bankers-lamp",
+          "offset": {
+            "x": 14,
+            "y": 13
+          },
+          "radius": 250,
+          "strength": 2.5,
+          "tint": "warm",
+          "halo": {
+            "colour": 8,
+            "radius": 28,
+            "strength": 0.4
+          }
+        },
+        {
+          "type": "point",
+          "id": "window-spill",
+          "at": {
+            "x": 254,
+            "y": 64
+          },
+          "radius": 56,
+          "strength": 1,
+          "tint": "cool"
+        }
+      ],
       "emissiveOff": []
     }
   ],
@@ -205,7 +237,7 @@
         },
         "file": "freesound-clock-tick-212181.ogg",
         "distance": "mid",
-        "gain": 0.5
+        "gain": 0.25
       },
       {
         "source": {
@@ -216,7 +248,7 @@
         },
         "file": "winter-wind.ogg",
         "distance": "far",
-        "gain": 0.5
+        "gain": 2
       }
     ],
     "oneshots": [
