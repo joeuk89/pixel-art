@@ -1,3 +1,5 @@
+import { rmSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { makeTree, readJson, runScript, writeJson } from "./helpers.ts";
@@ -15,6 +17,24 @@ function treeWithCurtain(): string {
     brief: "heavy red velvet curtain",
     palette: "warm-dusk",
   });
+  return root;
+}
+
+// The Sound library grows with every Scene, so sound searches run against fixed records instead of the real one.
+function treeWithSounds(): string {
+  const root = makeTree();
+  rmSync(join(root, "library/ambient"), { recursive: true });
+  const sound = (id: string, kind: string, subject: string, tags: string[], distance: string[]) =>
+    writeJson(root, `library/ambient/${id}.json`, {
+      id, kind, distance, subject, tags,
+      source: "freesound", sourceId: 1, sourceUrl: "https://freesound.org/s/1/", sourceName: `${id}.wav`,
+      author: "fixture", licence: "CC0-1.0", licenceUrl: "http://creativecommons.org/publicdomain/zero/1.0/",
+      attribution: "fixture", file: `${id}.ogg`, durationSec: 10, sampleRate: 48000, channels: 2,
+      processing: { method: "cut" }, fetchedAt: "2026-10-25",
+    });
+  sound("night-interior-01", "loop", "night interior", ["night", "room"], ["mid"]);
+  sound("owl-tawny-01", "oneshot", "owl", ["owl", "night"], ["far"]);
+  sound("rain-window-01", "loop", "rain on glass", ["rain", "window"], ["near"]);
   return root;
 }
 
@@ -63,13 +83,11 @@ test("library-search prints an empty list when nothing matches", () => {
 });
 
 test("library-search --sounds searches the Sound library and prints kind and Distance", () => {
-  const { code, out, stderr } = runScript(makeTree(), "library-search", "--sounds", "night");
+  const { code, out, stderr } = runScript(treeWithSounds(), "library-search", "--sounds", "night");
   assert.equal(code, 0, stderr);
   assert.deepEqual(out.results, [
-    { id: "freesound-night-interior-613147", kind: "loop", subject: "night interior", tags: ["night", "room", "interior", "quiet", "bedroom", "bed"], distance: ["mid"], matched: ["subject", "tags"] },
-    { id: "freesound-crickets-night-167304", kind: "loop", subject: "crickets", tags: ["crickets", "insects", "night", "summer", "countryside", "garden", "bed"], distance: ["mid", "far"], matched: ["tags"] },
-    { id: "freesound-owl-tawny-454842", kind: "oneshot", subject: "owl", tags: ["owl", "tawny owl", "hoot", "night", "countryside"], distance: ["far"], matched: ["tags"] },
-    { id: "freesound-rain-window-242889", kind: "loop", subject: "rain on glass", tags: ["rain", "window", "glass", "indoors", "night", "weather", "bed"], distance: ["near", "mid"], matched: ["tags"] },
+    { id: "night-interior-01", kind: "loop", subject: "night interior", tags: ["night", "room"], distance: ["mid"], matched: ["subject", "tags"] },
+    { id: "owl-tawny-01", kind: "oneshot", subject: "owl", tags: ["owl", "night"], distance: ["far"], matched: ["tags"] },
   ]);
 });
 
