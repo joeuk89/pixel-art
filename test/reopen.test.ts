@@ -63,3 +63,24 @@ test("reopen drops the reopened Placements from the abandon log and keeps the re
     { placement: "piano", element: "piano-upright-01", attempts: 4, outcome: "dropped", droppedPrimitives: [] },
   ]);
 });
+
+test("reopen --size gives a reopened Backdrop the size it should cover", () => {
+  const root = makeTree();
+  const { code, stderr } = runScript(root, "reopen", fixtureScene, "skyline", "cat", "--size", "skyline=308x156");
+  assert.equal(code, 0, stderr);
+  assert.deepEqual(placementIn(readJson(root, fixtureScene), "skyline").generate.size, { w: 308, h: 156 });
+
+  const refused = runScript(makeTree(), "reopen", fixtureScene, "cat", "--size", "cat=20x20");
+  assert.equal(refused.code, 1);
+  assert.match(refused.out.error, /--size applies only to a Backdrop/);
+});
+
+test("reopen keeps a local Element's Finish, generator and params so it can be drawn again", () => {
+  const root = makeTree();
+  const record = readJson(root, "library/elements/window-wood-transparent-panes-01.json");
+  writeJson(root, "library/elements/window-wood-transparent-panes-01.json", { ...record, service: "local", model: "kit/rect", generator: "rect", params: { fill: 13, borderWidth: 1 } });
+  const { code, stderr } = runScript(root, "reopen", fixtureScene, "window");
+  assert.equal(code, 0, stderr);
+  const generate = placementIn(readJson(root, fixtureScene), "window").generate;
+  assert.deepEqual([generate.finish, generate.generator, generate.params], ["local", "rect", { fill: 13, borderWidth: 1 }]);
+});

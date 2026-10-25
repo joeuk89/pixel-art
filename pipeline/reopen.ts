@@ -1,16 +1,21 @@
+import { parseArgs } from "node:util";
 import { isPixelLabFrames, type ElementRecord } from "../schema/index.ts";
 import { forgetAbandoned } from "./lib/attempts.ts";
 import { main } from "./lib/cli.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
 
-function generateFrom(record: ElementRecord) {
-  if (record.kind === "backdrop") return { kind: "backdrop", brief: record.brief, tags: record.tags, size: { w: record.width, h: record.height } };
+type Size = { w: number; h: number };
+
+function generateFrom(record: ElementRecord, size?: Size) {
+  if (record.kind === "backdrop") return { kind: "backdrop", brief: record.brief, tags: record.tags, size: size ?? { w: record.width, h: record.height } };
+  if (size) throw new Error(`Element ${record.id} is a ${record.kind}; --size applies only to a Backdrop`);
   if (record.kind === "texture") throw new Error(`Element ${record.id} is a Seamless texture, which reopen does not regenerate`);
   const animation = record.animation;
   const keepFrames = animation && (animation.service !== "pixellab" || isPixelLabFrames(animation.frames));
   const strip = animation ? { service: animation.service, ...(keepFrames ? { frames: animation.frames } : {}) } : undefined;
-  return { kind: "prop", brief: record.brief, realSize: record.realSize, tags: record.tags, ...(strip ? { strip } : {}) };
+  const finish = record.service === "local" ? { finish: "local", generator: record.generator, params: record.params } : {};
+  return { kind: "prop", brief: record.brief, realSize: record.realSize, tags: record.tags, ...(strip ? { strip } : {}), ...finish };
 }
 
 // A fresh proposed id keeps the new Attempts and their budget apart from the Element being replaced.
@@ -23,8 +28,15 @@ function nextId(id: string, taken: Set<string>): string {
 }
 
 main(() => {
-  const [file, ...ids] = process.argv.slice(2);
-  if (!file || ids.length === 0) throw new Error("usage: reopen <scene.json> <placementId...>");
+  const { values, positionals } = parseArgs({ options: { size: { type: "string", multiple: true, default: [] } }, allowPositionals: true });
+  const [file, ...ids] = positionals;
+  if (!file || ids.length === 0) throw new Error("usage: reopen <scene.json> <placementId...> [--size <placementId>=<w>x<h>]...");
+  const sizes = new Map<string, Size>(values.size.map((pair) => {
+    const m = pair.match(/^([a-z0-9-]+)=(\d+)x(\d+)$/);
+    if (!m) throw new Error(`--size takes <placementId>=<w>x<h>, got ${pair}`);
+    if (!ids.includes(m[1])) throw new Error(`--size names ${m[1]}, which is not being reopened`);
+    return [m[1], { w: Number(m[2]), h: Number(m[3]) }];
+  }));
   const plan = readScene(file);
   const records = new Map(readElements().map((e) => [e.id, e]));
   const proposed = editPlan(file, (raw) => {
@@ -35,7 +47,7 @@ main(() => {
       if (target.generate) throw new Error(`Placement ${id} already has a generate block`);
       const record = records.get(target.element);
       if (!record) throw new Error(`Element ${target.element} is not in the Element library`);
-      target.generate = generateFrom(record);
+      target.generate = generateFrom(record, sizes.get(id));
       target.element = nextId(record.id, new Set(records.keys()));
     }
     raw.status = "draft";
