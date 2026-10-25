@@ -259,6 +259,10 @@ const RULES: [string, RegExp][] = [
   ["never local", /characterful or shaded props, Backdrops and pictorial Features/],
   ["the trade-off line", /"local: exact geometry, flat and plainer; service: richer detail and shading"/],
   ["the freedom rule", /freedom over templates/i],
+  ["Backdrop briefs describe only the view", /For a Backdrop, describe only the view/],
+  ["the first Variant", /The first Variant is the Concept's time and weather/],
+  ["side-wall width", /at least 12 px wide at the canvas edge/],
+  ["the near frame prop", /one large prop cut by a canvas edge/],
 ];
 
 for (const [rule, pattern] of RULES) {
@@ -273,6 +277,7 @@ test("no skill file plans a glow Primitive or a tiled Backdrop", () => {
   for (const { name, text } of skillFiles()) {
     assert.doesNotMatch(text, /\bglow\b/i, `${name} names glow`);
     assert.doesNotMatch(text, new RegExp(`${2 * 96}x${2 * 60}|${2 ** 7}x${2 ** 6}`), `${name} keeps a v1 size`);
+    if (name !== "primitives.md") assert.doesNotMatch(text, /tileX|tiled across/, `${name} tiles a Backdrop`);
   }
 });
 
