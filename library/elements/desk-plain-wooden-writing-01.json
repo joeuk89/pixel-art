@@ -1,0 +1,45 @@
+{
+  "id": "desk-plain-wooden-writing-01",
+  "subject": "desk",
+  "tags": [
+    "desk",
+    "wooden",
+    "plain",
+    "study",
+    "furniture"
+  ],
+  "brief": "plain wooden writing desk, straight square legs, one shallow drawer, worn warm brown wood, front view, warm light from above",
+  "prompt": "plain wooden writing desk, straight square legs, one shallow drawer, worn warm brown wood, front view, fills its whole canvas edge to edge, warm light from above",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 134951610,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T08:07:39.436Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 96,
+  "height": 80,
+  "realSize": {
+    "w": 0.9,
+    "h": 0.76
+  },
+  "transparent": true
+}

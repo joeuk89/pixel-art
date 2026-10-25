@@ -1,0 +1,52 @@
+{
+  "id": "roof-attic-sloping-rafters-01",
+  "subject": "roof",
+  "tags": [
+    "roof",
+    "attic",
+    "rafters",
+    "beams",
+    "wooden",
+    "plaster"
+  ],
+  "brief": "underside of a sloping attic roof, cream plaster between chunky dark wooden rafters, one straight diagonal edge from the top right corner to the bottom left corner, transparent below the diagonal, dim light from the right",
+  "prompt": "corner of an attic ceiling, solid filled triangle in the top left corner of the canvas, cream plaster between chunky dark wooden rafters, its long straight edge runs from the top right corner to the bottom left corner, the bottom right half of the canvas fully transparent, dim light from the right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 1007623341,
+  "palette": "attic-snow-night",
+  "styleAnchor": "desk-plain-wooden-writing-01",
+  "createdAt": "2026-10-25T08:11:11.640Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 128,
+  "height": 104,
+  "realSize": {
+    "w": 1.33,
+    "h": 1.08
+  },
+  "transparent": true
+}

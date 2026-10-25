@@ -1,0 +1,28 @@
+{
+  "name": "attic-snow-night",
+  "mood": "Snowy night in a lamplit attic: deep violet shadow, snow-blue glass, green lamp glass, warm wood and cream.",
+  "colours": [
+    "#120e1a", "#241c33", "#3b2f52", "#5d4e7f",
+    "#1f4a3a", "#2f5578", "#5e95bf", "#b7dcef",
+    "#f7d35c", "#e2883a", "#a9552d", "#5e2f22",
+    "#f6e8cc", "#c8a384", "#7d5a4b", "#4f8a4a"
+  ],
+  "ramps": [
+    { "dark": 0, "warm": 1, "cool": 1 },
+    { "dark": 0, "warm": 2, "cool": 2 },
+    { "dark": 1, "warm": 3, "cool": 3 },
+    { "dark": 2, "warm": 13, "cool": 13 },
+    { "dark": 0, "warm": 15, "cool": 15 },
+    { "dark": 1, "warm": 6, "cool": 6 },
+    { "dark": 5, "warm": 7, "cool": 7 },
+    { "dark": 6, "warm": 7, "cool": 7 },
+    { "dark": 9, "warm": 8, "cool": 8 },
+    { "dark": 10, "warm": 8, "cool": 8 },
+    { "dark": 11, "warm": 9, "cool": 9 },
+    { "dark": 0, "warm": 10, "cool": 10 },
+    { "dark": 13, "warm": 12, "cool": 12 },
+    { "dark": 14, "warm": 12, "cool": 12 },
+    { "dark": 1, "warm": 13, "cool": 13 },
+    { "dark": 4, "warm": 8, "cool": 6 }
+  ]
+}

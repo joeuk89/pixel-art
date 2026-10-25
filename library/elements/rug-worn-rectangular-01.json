@@ -1,0 +1,44 @@
+{
+  "id": "rug-worn-rectangular-01",
+  "subject": "rug",
+  "tags": [
+    "rug",
+    "worn",
+    "floor",
+    "textile"
+  ],
+  "brief": "worn rectangular rug, faded red with a cream border pattern, frayed ends, front view, flat on, warm light from the left",
+  "prompt": "worn rectangular rug, faded red with a cream border pattern, frayed ends, front view, flat on, long and wide, fills its whole canvas edge to edge, warm light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 734074327,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T08:11:11.508Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 188,
+  "height": 40,
+  "realSize": {
+    "w": 1.4,
+    "h": 0.3
+  },
+  "transparent": true
+}

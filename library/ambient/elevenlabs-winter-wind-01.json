@@ -1,0 +1,40 @@
+{
+  "id": "elevenlabs-winter-wind-01",
+  "kind": "loop",
+  "distance": [
+    "far"
+  ],
+  "subject": "winter wind",
+  "tags": [
+    "winter wind"
+  ],
+  "source": "fal",
+  "sourceId": "01a17218-7b02-7d12-bf0e-19938bfc5eba",
+  "sourceUrl": "https://v3b.fal.media/files/b/0aafc5a5/cIovdxmtuC_MOzhmEBLg1_sound_effect.ogg",
+  "sourceName": "ElevenLabs Sound Effects v2",
+  "author": "ElevenLabs via fal.ai",
+  "licence": "fal.ai Terms of Service, commercial use",
+  "licenceUrl": "https://fal.ai/terms",
+  "attribution": "Generated with ElevenLabs Sound Effects v2 via fal.ai",
+  "file": "elevenlabs-winter-wind-01.ogg",
+  "durationSec": 22,
+  "sampleRate": 48000,
+  "channels": 2,
+  "processing": {
+    "method": "generated",
+    "model": "fal-ai/elevenlabs/sound-effects/v2",
+    "params": {
+      "loop": true,
+      "duration_seconds": 22,
+      "output_format": "opus_48000_128"
+    },
+    "costUsd": 0.044,
+    "target": "-20 dBFS RMS",
+    "gainDb": 26,
+    "rmsDbfs": -20,
+    "peakDbfs": -4.7,
+    "limitedBy": null
+  },
+  "fetchedAt": "2026-10-25",
+  "brief": "soft winter wind around a house roof at night, low and muffled, gentle, steady, no gusts"
+}

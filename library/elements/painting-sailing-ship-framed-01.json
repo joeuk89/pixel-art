@@ -1,0 +1,45 @@
+{
+  "id": "painting-sailing-ship-framed-01",
+  "subject": "painting",
+  "tags": [
+    "painting",
+    "ship",
+    "sailing",
+    "frame",
+    "wall"
+  ],
+  "brief": "framed painting of a sailing ship on a dark sea, tall white sails, dark wooden frame, front view, flat on, warm light from the left",
+  "prompt": "framed painting of a sailing ship on a dark sea, tall white sails, dark wooden frame, front view, flat on, fills its whole canvas edge to edge, warm light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1450509787,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T08:11:11.380Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 48,
+  "height": 40,
+  "realSize": {
+    "w": 0.5,
+    "h": 0.4
+  },
+  "transparent": true
+}

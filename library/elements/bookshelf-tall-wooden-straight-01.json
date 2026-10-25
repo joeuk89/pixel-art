@@ -1,0 +1,45 @@
+{
+  "id": "bookshelf-tall-wooden-straight-01",
+  "subject": "bookshelf",
+  "tags": [
+    "bookshelf",
+    "books",
+    "wooden",
+    "tall",
+    "study"
+  ],
+  "brief": "tall wooden bookshelf, straight edges, four shelves of old books, dark brown wood, front view, warm light from the left",
+  "prompt": "tall wooden bookshelf, straight edges, four shelves of old books, dark brown wood, front view, fills its whole canvas edge to edge, warm light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1338210276,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T08:11:11.251Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 72,
+  "height": 184,
+  "realSize": {
+    "w": 0.7,
+    "h": 1.8
+  },
+  "transparent": true
+}

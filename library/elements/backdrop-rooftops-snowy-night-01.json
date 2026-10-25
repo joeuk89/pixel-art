@@ -1,0 +1,45 @@
+{
+  "id": "backdrop-rooftops-snowy-night-01",
+  "subject": "backdrop",
+  "tags": [
+    "rooftops",
+    "village",
+    "snow",
+    "night",
+    "winter"
+  ],
+  "brief": "snowy village rooftops at night, steep roofs and chimneys under deep snow, a few small warm yellow windows, dark violet sky, fills the whole canvas edge to edge",
+  "prompt": "snowy village rooftops at night, steep roofs and chimneys under deep snow, a few small warm yellow windows, dark violet sky, fills the whole canvas edge to edge",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": false
+  },
+  "seed": 913727948,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T08:09:09.586Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "opaque"
+    ],
+    "warnings": []
+  },
+  "emissive": [
+    8,
+    9
+  ],
+  "kind": "backdrop",
+  "width": 56,
+  "height": 68,
+  "transparent": false
+}

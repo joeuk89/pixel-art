@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 2,
+  "id": "attic-study-snowy-night-oxnx",
+  "title": "Attic Study, Snowy Night",
+  "prompt": "A small attic study late at night. A plain wooden desk sits under the sloping roof, with a tall straight-edged bookshelf beside it. A green banker's lamp on the desk throws a warm pool of light; the rest of the room is dim. A framed painting of a sailing ship hangs on the back wall, and a worn rectangular rug lies on the floorboards. One small window in the back wall looks out over snowy village rooftops with a few lit windows. Snow falls softly outside, and a clock ticks somewhere in the room. The walls are sloped like a real attic, with chunky wooden beams. Quiet, cosy, a little lonely.",
+  "description": "A small attic study late at night, tucked under chunky wooden rafters. A green banker's lamp throws a warm pool over a plain desk and a tall bookshelf, while snow falls past a small window over the village rooftops and a clock ticks in the quiet.",
+  "createdAt": "2026-10-25T08:01:41Z",
+  "seed": 34645457,
+  "status": "resolved",
+  "palette": "attic-snow-night",
+  "scale": 96,
+  "dither": true,
+  "styleAnchor": "desk-plain-wooden-writing-01",
+  "stage": {
+    "back": {
+      "x": 0,
+      "y": -70,
+      "w": 384,
+      "h": 250
+    },
+    "vanishingPoint": {
+      "x": 192,
+      "y": 55
+    },
+    "f": 120
+  },
+  "layers": [
+    {
+      "name": "night-sky",
+      "kind": "fill",
+      "plane": "far",
+      "colour": 1
+    },
+    {
+      "name": "view",
+      "kind": "placements",
+      "plane": "far",
+      "placements": [
+        {
+          "id": "rooftops-view",
+          "element": "backdrop-rooftops-snowy-night-01",
+          "x": 226,
+          "y": 30
+        }
+      ]
+    },
+    {
+      "name": "room",
+      "kind": "room",
+      "plane": "mid",
+      "surfaces": {
+        "back": {
+          "colour": 13,
+          "skirting": {
+            "height": 6,
+            "colour": 11
+          }
+        },
+        "floor": {
+          "colour": 14,
+          "lines": {
+            "pattern": "boards",
+            "spacing": 8
+          }
+        }
+      },
+      "openings": [
+        {
+          "id": "gable-window",
+          "surface": "back",
+          "along": 226,
+          "across": 100,
+          "w": 56,
+          "h": 68,
+          "frame": {
+            "width": 3,
+            "colour": 11,
+            "mullionsAcross": 1,
+            "mullionsDown": 1
+          }
+        }
+      ],
+      "placements": [
+        {
+          "id": "ship-painting",
+          "element": "painting-sailing-ship-framed-01",
+          "surface": "back",
+          "along": 312,
+          "across": 158
+        },
+        {
+          "id": "worn-rug",
+          "element": "rug-worn-rectangular-01",
+          "surface": "floor",
+          "along": 110,
+          "across": 4
+        }
+      ]
+    },
+    {
+      "name": "furniture",
+      "kind": "placements",
+      "plane": "mid",
+      "placements": [
+        {
+          "id": "desk",
+          "element": "desk-plain-wooden-writing-01",
+          "foot": {
+            "x": 92,
+            "y": 190
+          }
+        },
+        {
+          "id": "bookshelf",
+          "element": "bookshelf-tall-wooden-straight-01",
+          "foot": {
+            "x": 184,
+            "y": 186
+          }
+        },
+        {
+          "id": "bankers-lamp",
+          "element": "lamp-bankers-green-glass-01",
+          "x": 98,
+          "y": 97
+        }
+      ]
+    },
+    {
+      "name": "eaves",
+      "kind": "placements",
+      "plane": "near",
+      "placements": [
+        {
+          "id": "eave-left",
+          "element": "roof-attic-sloping-rafters-01",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "id": "eave-right",
+          "element": "roof-attic-sloping-rafters-01",
+          "x": 256,
+          "y": 0,
+          "flipX": true
+        }
+      ]
+    }
+  ],
+  "primitives": [
+    {
+      "type": "snow",
+      "anchor": "rooftops-view",
+      "region": {
+        "x": 226,
+        "y": 30,
+        "w": 56,
+        "h": 68
+      },
+      "colours": [
+        7,
+        6
+      ],
+      "drift": 1,
+      "wind": 0.2
+    }
+  ],
+  "variants": [
+    {
+      "id": "snowy-night",
+      "title": "Snowy night",
+      "ambient": {
+        "level": -2.5,
+        "layers": {
+          "eaves": 1
+        }
+      },
+      "lights": [
+        {
+          "type": "point",
+          "id": "bankers-lamp-light",
+          "anchor": "bankers-lamp",
+          "offset": {
+            "x": 14,
+            "y": 13
+          },
+          "radius": 250,
+          "strength": 2.5,
+          "tint": "warm",
+          "flicker": {
+            "depth": 0.1,
+            "rate": 0.8
+          },
+          "halo": {
+            "colour": 8,
+            "radius": 30,
+            "strength": 0.4
+          }
+        },
+        {
+          "type": "point",
+          "id": "window-spill",
+          "at": {
+            "x": 254,
+            "y": 64
+          },
+          "radius": 56,
+          "strength": 0.75,
+          "tint": "cool"
+        }
+      ],
+      "emissiveOff": []
+    }
+  ],
+  "soundtrack": {
+    "music": {
+      "brief": "slow solo felt piano, soft and sparse, warm and a little lonely, late at night",
+      "service": "stable-audio-3",
+      "file": "music.mp3",
+      "loopStart": 0,
+      "loopEnd": 112.35,
+      "seam": {
+        "seamJump": 0.0007,
+        "maxInnerJump": 0.104
+      },
+      "gain": 0.6
+    },
+    "ambient": [
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-night-interior-613147"
+        },
+        "file": "freesound-night-interior-613147.ogg",
+        "distance": "mid"
+      },
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-clock-tick-212181"
+        },
+        "file": "freesound-clock-tick-212181.ogg",
+        "distance": "mid",
+        "gain": 0.5
+      },
+      {
+        "source": {
+          "kind": "generated",
+          "service": "elevenlabs-fal",
+          "brief": "soft winter wind around a house roof at night, low and muffled, gentle, steady, no gusts",
+          "id": "elevenlabs-winter-wind-01"
+        },
+        "file": "winter-wind.ogg",
+        "distance": "far",
+        "gain": 0.5
+      }
+    ],
+    "oneshots": [
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-church-bell-846302"
+        },
+        "file": "freesound-church-bell-846302.ogg",
+        "distance": "far",
+        "gain": 0.4,
+        "every": [
+          120,
+          300
+        ]
+      }
+    ]
+  },
+  "cost": {
+    "pixellabGenerations": 94,
+    "meteredUsd": {
+      "stability": 0.08,
+      "fal": 0.044
+    },
+    "attemptsAbandoned": 0,
+    "approvedOverage": null
+  }
+}

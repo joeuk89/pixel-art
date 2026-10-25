@@ -1,0 +1,45 @@
+{
+  "id": "lamp-bankers-green-glass-01",
+  "subject": "lamp",
+  "tags": [
+    "lamp",
+    "bankers",
+    "green",
+    "brass",
+    "desk"
+  ],
+  "brief": "green banker's lamp, green glass shade, brass stem and round base, front view, soft warm light from inside the shade",
+  "prompt": "green banker's lamp, green glass shade, brass stem and round base, front view, soft warm light from inside the shade",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1832587239,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T08:09:09.458Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 28,
+  "height": 40,
+  "realSize": {
+    "w": 0.28,
+    "h": 0.38
+  },
+  "transparent": true
+}
