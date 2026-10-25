@@ -84,7 +84,8 @@ test("an Opening is cut transparent, with its frame and mullion drawn in the fra
   assert.deepEqual(at(190, 80), CLEAR, "right pane");
   assert.deepEqual(at(137, 80), opaque(8), "left frame");
   assert.deepEqual(at(150, 59), opaque(8), "top frame");
-  assert.deepEqual(at(150, 115), opaque(8), "bottom frame");
+  assert.deepEqual(at(150, 116), opaque(8), "bottom frame");
+  assert.deepEqual(at(150, 115), opaque(9), "the frame's inner edge, in its dark Ramp step");
   assert.deepEqual(at(176, 80), opaque(8), "mullion");
   assert.deepEqual(at(130, 80), opaque(2), "wall beside the Opening");
 });
@@ -101,6 +102,17 @@ test("a round Opening is cut as the circle inside its box, with a ring frame and
   assert.deepEqual(at(152, 88), opaque(8), "crossbar");
   assert.deepEqual(at(138, 60), opaque(2), "wall in the box's corner, outside the circle");
   assert.deepEqual(at(134, 88), opaque(2), "wall beside the Opening");
+});
+
+test("a frame's mullions can be thinner than its ring, which is shaded on its inner edge", async () => {
+  const window = { id: "oculus", surface: "back", shape: "round", along: 100, across: 40, w: 60, h: 60, frame: { width: 5, mullionWidth: 3, colour: 8, mullionsAcross: 1, mullionsDown: 1 } };
+  const { at } = await shell(sceneWithRoom({ openings: [window] }));
+  // Centred on (166, 88) with radius 30: the ring runs 5 px in, the upright mullion stands at x 164 to 166.
+  assert.deepEqual(at(137, 88), opaque(8), "outer ring");
+  assert.deepEqual(at(140, 88), opaque(9), "the ring's inner edge, in the frame colour's dark Ramp step");
+  assert.deepEqual(at(150, 74), CLEAR, "pane");
+  assert.deepEqual(at(164, 74), opaque(8), "mullion");
+  assert.deepEqual(at(163, 74), CLEAR, "pane beside the 3 px mullion");
 });
 
 test("two runs on the same plan write byte-identical room.png files", async () => {

@@ -17,23 +17,25 @@ function roundDistance(o: Opening, along: number, across: number, inset = 0): nu
   return dx * dx + dy * dy;
 }
 
-function inFrame(o: Opening, along: number, across: number): boolean {
-  if (!o.frame) return false;
+// The ring's innermost pixel is its rebate, shaded as the step back to the glass.
+function frameAt(o: Opening, along: number, across: number): "ring" | "rebate" | "bar" | null {
+  if (!o.frame) return null;
   const { width, mullionsAcross, mullionsDown } = o.frame;
+  const bar = o.frame.mullionWidth ?? width;
   const a = along - o.along, c = across - o.across;
-  const onEdge = o.shape === "round"
-    ? roundDistance(o, along, across, width) > 1
-    : a < width || a >= o.w - width || c < width || c >= o.h - width;
-  if (onEdge) return true;
+  const inRing = (inset: number) => o.shape === "round"
+    ? roundDistance(o, along, across, inset) > 1
+    : a < inset || a >= o.w - inset || c < inset || c >= o.h - inset;
+  if (inRing(width)) return inRing(width - 1) ? "ring" : "rebate";
   const onBar = (at: number, span: number, bars: number) => {
-    const pane = (span - 2 * width - bars * width) / (bars + 1);
+    const pane = (span - 2 * width - bars * bar) / (bars + 1);
     for (let i = 0; i < bars; i++) {
-      const start = width + (i + 1) * pane + i * width;
-      if (at >= start && at < start + width) return true;
+      const start = width + (i + 1) * pane + i * bar;
+      if (at >= start && at < start + bar) return true;
     }
     return false;
   };
-  return onBar(a, o.w, mullionsAcross) || onBar(c, o.h, mullionsDown);
+  return onBar(a, o.w, mullionsAcross) || onBar(c, o.h, mullionsDown) ? "bar" : null;
 }
 
 const inside = (o: Opening, along: number, across: number) =>
@@ -117,8 +119,9 @@ export function drawRoomShell(stage: Stage, room: RoomLayer, palette: Palette): 
       const p = y * SCENE_WIDTH + x;
       const opening = room.openings.find((o) => o.surface === at.surface && inside(o, at.along, at.across));
       if (opening) {
-        if (inFrame(opening, at.along, at.across)) {
-          paint(p, opening.frame!.colour);
+        const part = frameAt(opening, at.along, at.across);
+        if (part) {
+          paint(p, part === "rebate" ? darker(opening.frame!.colour) : opening.frame!.colour);
           kind[p] = TRIM;
         }
         continue;

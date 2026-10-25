@@ -157,7 +157,7 @@ const opening = z.strictObject({
   w: int.positive(),
   h: int.positive(),
   frame: z
-    .strictObject({ width: int.positive(), colour: colourIndex, mullionsAcross: int.min(0), mullionsDown: int.min(0) })
+    .strictObject({ width: int.positive(), mullionWidth: int.positive().optional(), colour: colourIndex, mullionsAcross: int.min(0), mullionsDown: int.min(0) })
     .optional(),
 });
 

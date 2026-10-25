@@ -22,7 +22,7 @@ Stage an interior as a `room` Layer or a doorway (a near wall Element with a tra
 
 The `room` Layer lists the Surfaces it draws; a Surface left out is not drawn. Take each Surface's colours and `lines` from the Concept's materials: `boards` for a wood floor, `coffers` or `grid` for a ceiling, no lines for plaster. Give walls skirting where the room would have it.
 
-Size Openings at real metre sizes: a door about 2 m tall, a floor-to-ceiling window the room's full height, converted with the back-wall `scale`. Openings are rectangles in their Surface's own coordinates (`along` and `across` in back-wall pixels from the Surface's corner), each with a frame and mullions where the window has them. Give a round window, such as an attic oculus, `shape: "round"`: the room cuts the circle inside its box and draws the frame as a ring, and its Backdrop still fills the whole box.
+Size Openings at real metre sizes: a door about 2 m tall, a floor-to-ceiling window the room's full height, converted with the back-wall `scale`. Openings are rectangles in their Surface's own coordinates (`along` and `across` in back-wall pixels from the Surface's corner), each with a frame and mullions where the window has them. Give a round window, such as an attic oculus, `shape: "round"`: the room cuts the circle inside its box and draws the frame as a ring, and its Backdrop still fills the whole box. A frame's `mullionWidth` makes glazing bars thinner than the frame itself, and the frame's inner edge is drawn in its colour's dark Ramp step.
 
 ## Backdrops and skylines
 
