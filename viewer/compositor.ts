@@ -36,6 +36,7 @@ export type CompositorInput = {
   primitives?: readonly PrimitiveDraw[];
   variant?: Variant;
   companion?: Palette;
+  room?: Pixels;
 };
 
 export type Compositor = {
@@ -207,7 +208,7 @@ function emissiveOf(pixels: Pixels, index: Uint8Array, colours: readonly number[
 
 export const step = (timeMs: number, fps: number) => Math.floor((timeMs * fps) / 1000);
 
-export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [], variant = plan.variants[0], companion }: CompositorInput): Compositor {
+export function createCompositor({ plan, elements, palette, seed = plan.seed, primitives = [], variant = plan.variants[0], companion, room }: CompositorInput): Compositor {
   const colours = paletteRgba(palette);
   const lookup = lookupOf(palette);
   const switchedOff = new Set(variant.emissiveOff);
@@ -235,6 +236,11 @@ export function createCompositor({ plan, elements, palette, seed = plan.seed, pr
     if (layer.kind === "fill") {
       ops = [];
       fill(current, colours[layer.colour], layer.colour, li);
+      drawn = true;
+    }
+    if (layer.kind === "room") {
+      if (!room) throw new Error(`room Layer ${layer.name}: room.png has no pixels`);
+      blit(current, { pixels: room, index: indexOf(room, lookup) }, 0, 0, false, li);
       drawn = true;
     }
     for (const placement of drawOrder(placementsOf(layer))) {

@@ -28,7 +28,7 @@ function repoTree(tests: "pass" | "fail" = "pass"): string {
   writeJson(root, `library/elements/${NEW_ELEMENT}.json`, { ...readJson(root, "library/elements/cat-tabby-asleep-01.json"), id: NEW_ELEMENT, firstScene: id });
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[3].placements[1].element = NEW_ELEMENT;
+    plan.layers[4].placements[1].element = NEW_ELEMENT;
   });
   assert.equal(runScript(root, "poster", fixtureScene).code, 0);
   assert.equal(runScript(root, "stub", fixtureScene).code, 0);
@@ -53,7 +53,7 @@ test("preview marks the Scene resolved, stages its files and prints the URL, cos
     `library/elements/${NEW_ELEMENT}.json`,
     `library/elements/${NEW_ELEMENT}.png`,
     `library/elements/${NEW_ELEMENT}.strip.png`,
-    ...["index.html", "music.mp3", "poster-og.png", "poster.png", "room.ogg", "scene.json", "thunder.ogg"].map((f) => `scenes/${id}/${f}`),
+    ...["index.html", "music.mp3", "poster-og.png", "poster.png", "room.ogg", "room.png", "scene.json", "thunder.ogg"].map((f) => `scenes/${id}/${f}`),
   ];
   assert.deepEqual(out.staged, expected);
   assert.deepEqual(staged(root), expected);
@@ -74,8 +74,8 @@ test("preview marks the Scene resolved, stages its files and prints the URL, cos
 test("the preview report says which Elements were substituted, dropped or left as stills", () => {
   const root = repoTree();
   editJson(root, fixtureScene, (plan) => {
-    plan.layers[3].placements[2].element = "cat-tabby-curled-01";
-    plan.layers[3].placements[2].generate = { kind: "prop", brief: "tabby cat curled up", realSize: { w: 0.5, h: 0.25 }, tags: ["cat"] };
+    plan.layers[4].placements[2].element = "cat-tabby-curled-01";
+    plan.layers[4].placements[2].generate = { kind: "prop", brief: "tabby cat curled up", realSize: { w: 0.5, h: 0.25 }, tags: ["cat"] };
   });
   const abandoned = runScript(root, "generate-element", fixtureScene, "cat-2", "--abandon", "--substitute", NEW_ELEMENT);
   assert.equal(abandoned.code, 0, abandoned.stderr);

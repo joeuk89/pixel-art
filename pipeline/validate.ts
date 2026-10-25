@@ -9,6 +9,7 @@ import {
   paletteSchema,
   placementsOf,
   POSTER_FILE,
+  ROOM_FILE,
   scenePlanSchema,
   sceneSounds,
   type AmbientLoopRecord,
@@ -18,7 +19,7 @@ import {
   type ScenePlan,
 } from "../schema/index.ts";
 import { generators, paramIssues } from "./lib/kits/index.ts";
-import { onFloor } from "./lib/perspective.ts";
+import { onFloor, surfaceExtent } from "./lib/perspective.ts";
 import { pngSize } from "./lib/png.ts";
 
 type Problem = { path: string; message: string };
@@ -229,6 +230,20 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
       }
     }),
   );
+
+  plan.layers.forEach((layer, li) => {
+    if (layer.kind !== "room") return;
+    if (!beside(ROOM_FILE)) pending.push({ path: `layers[${li}]`, message: `${ROOM_FILE} is missing beside the plan; run room-shell` });
+    if (!plan.stage) return;
+    layer.openings.forEach((o, oi) => {
+      const extent = surfaceExtent(plan.stage!, o.surface);
+      for (const [axis, start, size] of [["along", o.along, o.w], ["across", o.across, o.h]] as const) {
+        if (start + size > extent[axis]) {
+          problems.push({ path: `layers[${li}].openings[${oi}]`, message: `Opening ${o.id} runs outside the ${o.surface}: ${axis} ${start} to ${start + size} of ${Math.floor(extent[axis])}` });
+        }
+      }
+    });
+  });
 
   const placementIds = new Set(allPlacements(plan).map((p) => p.id));
   for (const { primitive, at } of scenePrimitives(plan)) {

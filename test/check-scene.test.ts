@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { editJson, fixtureScene, makeTree, runScript, writeJson } from "./helpers.ts";
 
-const NAMES = ["generate blocks resolved", "validate", "loop seam", "poster", "stub", "gallery", "tests"];
+const NAMES = ["generate blocks resolved", "validate", "loop seam", "room shell", "poster", "stub", "gallery", "tests"];
 
 export function sceneTree(tests: "pass" | "fail" = "pass"): string {
   const root = makeTree();
@@ -33,7 +33,7 @@ test("an unresolved generate block fails the run and names the Placement", () =>
   const root = sceneTree();
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[3].placements[0].generate = { kind: "prop", brief: "wooden window", realSize: { w: 1, h: 1 }, tags: ["window"] };
+    plan.layers[4].placements[0].generate = { kind: "prop", brief: "wooden window", realSize: { w: 1, h: 1 }, tags: ["window"] };
   });
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
@@ -53,11 +53,36 @@ test("an unmeasured loop seam fails", () => {
 
 test("a Poster that no longer matches the plan fails", () => {
   const root = sceneTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].x += 3; });
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[0].x += 3; });
   const { code, out } = runScript(root, "check-scene", fixtureScene);
   assert.equal(code, 1);
   assert.deepEqual(failed(out), ["poster"]);
   assert.match(problems(out, "poster")[0], /poster\.png differs from frame 0 of the plan in \d+ pixels; run poster/);
+});
+
+test("a room.png drawn before the room Layer changed fails, and passes once room-shell draws it again", () => {
+  const root = sceneTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].surfaces.back.colour = 4; });
+  assert.equal(runScript(root, "poster", fixtureScene).code, 0);
+  const stale = runScript(root, "check-scene", fixtureScene);
+  assert.equal(stale.code, 1);
+  assert.deepEqual(failed(stale.out), ["room shell"]);
+  assert.match(problems(stale.out, "room shell")[0], /^scenes\/fixture-rainy-desk-a1b2\/room\.png differs from a fresh room-shell render in \d+ pixels; run room-shell$/);
+
+  assert.equal(runScript(root, "room-shell", fixtureScene).code, 0);
+  assert.equal(runScript(root, "poster", fixtureScene).code, 0);
+  const fresh = runScript(root, "check-scene", fixtureScene);
+  assert.equal(fresh.code, 0, JSON.stringify(fresh.out));
+  assert.deepEqual(failed(fresh.out), []);
+});
+
+test("a missing room.png fails", () => {
+  const root = sceneTree();
+  rmSync(join(root, "scenes/fixture-rainy-desk-a1b2/room.png"));
+  const { code, out } = runScript(root, "check-scene", fixtureScene);
+  assert.equal(code, 1);
+  assert.ok(failed(out).includes("room shell"));
+  assert.deepEqual(problems(out, "room shell"), ["scenes/fixture-rainy-desk-a1b2/room.png is missing; run room-shell"]);
 });
 
 test("a stub and gallery written before a title change fail", () => {

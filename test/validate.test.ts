@@ -48,8 +48,8 @@ test("a Layer scale is allowed on a far placements Layer only", () => {
   editJson(ok, fixtureScene, (plan) => { plan.layers[2].scale = 8; });
   assert.equal(validate(ok).code, 0);
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].scale = 8; });
-  failsWith(validate(root), fixtureScene, "layers[3].scale", /only a far Layer/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].scale = 8; });
+  failsWith(validate(root), fixtureScene, "layers[4].scale", /only a far Layer/);
 });
 
 test("tileX on an Element that is not seamless fails", () => {
@@ -277,19 +277,19 @@ function failsWith(result: ValidateResult, file: string, path: string, message: 
 test("a foot Placement in a Scene without a Stage fails", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => { delete plan.stage; });
-  failsWith(validate(root), fixtureScene, "layers[3].placements[1].foot", /foot .*only with a Stage/);
+  failsWith(validate(root), fixtureScene, "layers[4].placements[1].foot", /foot .*only with a Stage/);
 });
 
 test("a foot outside the floor polygon fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[1].foot = { x: 292, y: 150 }; });
-  failsWith(validate(root), fixtureScene, "layers[3].placements[1].foot", /foot 292,150 is outside the floor/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[1].foot = { x: 292, y: 150 }; });
+  failsWith(validate(root), fixtureScene, "layers[4].placements[1].foot", /foot 292,150 is outside the floor/);
 });
 
 test("a foot beside the floor, past the ray from the vanishing point, fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[2].foot = { x: 5, y: 190 }; });
-  failsWith(validate(root), fixtureScene, "layers[3].placements[2].foot", /outside the floor/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[2].foot = { x: 5, y: 190 }; });
+  failsWith(validate(root), fixtureScene, "layers[4].placements[2].foot", /outside the floor/);
 });
 
 test("a Stage whose vanishing point is outside the canvas fails", () => {
@@ -305,17 +305,17 @@ for (const [what, position] of [
   test(`a Placement with ${what} fails`, () => {
     const root = makeTree();
     editJson(root, fixtureScene, (plan) => {
-      const { x, y, foot, ...rest } = plan.layers[3].placements[1];
-      plan.layers[3].placements[1] = { ...rest, ...position };
+      const { x, y, foot, ...rest } = plan.layers[4].placements[1];
+      plan.layers[4].placements[1] = { ...rest, ...position };
     });
-    failsWith(validate(root), fixtureScene, "layers[3].placements[1]", /exactly one position: x, y or foot/);
+    failsWith(validate(root), fixtureScene, "layers[4].placements[1]", /exactly one position: x, y or foot/);
   });
 }
 
 test("a Placement whose Element is not in the Element library fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].element = "lamp-brass-desk-01"; });
-  failsWith(validate(root), fixtureScene, "layers[3].placements[0].element", /lamp-brass-desk-01 is not in the Element library/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[0].element = "lamp-brass-desk-01"; });
+  failsWith(validate(root), fixtureScene, "layers[4].placements[0].element", /lamp-brass-desk-01 is not in the Element library/);
 });
 
 test("a Scene plan naming a Palette that does not exist fails", () => {
@@ -444,26 +444,26 @@ test("an Element PNG whose size does not match the record fails", () => {
 
 test("an animation override on a Placement whose Element has no Frame strip fails a resolved Scene", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[0].animation = { fps: 4 }; });
-  failsWith(validate(root), fixtureScene, "layers[3].placements[0].animation", /declared resolved but .*has no Frame strip/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[0].animation = { fps: 4 }; });
+  failsWith(validate(root), fixtureScene, "layers[4].placements[0].animation", /declared resolved but .*has no Frame strip/);
 });
 
 test("an animation override waiting on a Frame strip keeps a draft Scene pending", () => {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
-    plan.layers[3].placements[0].animation = { fps: 4 };
+    plan.layers[4].placements[0].animation = { fps: 4 };
   });
   const { code, report } = validate(root);
   assert.equal(code, 0, JSON.stringify(report.errors));
   assert.equal(report.scenes[0].status, "draft");
-  assert.match(report.scenes[0].pending.find((p: any) => p.path === "layers[3].placements[0].animation")?.message ?? "", /has no Frame strip/);
+  assert.match(report.scenes[0].pending.find((p: any) => p.path === "layers[4].placements[0].animation")?.message ?? "", /has no Frame strip/);
 });
 
 test("an explicit frame order past the end of the Frame strip fails", () => {
   const root = makeTree();
-  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[2].animation.order = [0, 1, 4]; });
-  failsWith(validate(root), fixtureScene, "layers[3].placements[2].animation.order[2]", /frame 4 is beyond the 4-frame strip/);
+  editJson(root, fixtureScene, (plan) => { plan.layers[4].placements[2].animation.order = [0, 1, 4]; });
+  failsWith(validate(root), fixtureScene, "layers[4].placements[2].animation.order[2]", /frame 4 is beyond the 4-frame strip/);
 });
 
 test("a record whose id does not match its file name fails", () => {
@@ -600,7 +600,7 @@ test("a resolved Scene whose Element PNG is missing fails on its own file when v
 const localRug = { kind: "prop", brief: "plain grey rug", realSize: { w: 1, h: 0.5 }, tags: ["rug"], finish: "local", generator: "rect", params: { fill: 3 } };
 const starsTexture = { kind: "texture", brief: "night sky with stars", tags: ["sky"], size: { w: 64, h: 32 }, generator: "stars", params: { sky: 1, stars: [7, 12] } };
 
-function withGenerate(generate: object, placement = 0, layer = 3): string {
+function withGenerate(generate: object, placement = 0, layer = 4): string {
   const root = makeTree();
   editJson(root, fixtureScene, (plan) => {
     plan.status = "draft";
@@ -618,19 +618,84 @@ test("a local prop and a texture naming generators the engine has validate as a 
 
 test("a local prop without a generator fails", () => {
   const { generator, ...noGenerator } = localRug;
-  failsWith(validate(withGenerate(noGenerator)), fixtureScene, "layers[3].placements[0].generate.generator", /local Finish needs a generator/);
+  failsWith(validate(withGenerate(noGenerator)), fixtureScene, "layers[4].placements[0].generate.generator", /local Finish needs a generator/);
 });
 
 test("a local generate naming a generator the engine lacks fails", () => {
-  failsWith(validate(withGenerate({ ...localRug, generator: "teapot" })), fixtureScene, "layers[3].placements[0].generate.generator",
+  failsWith(validate(withGenerate({ ...localRug, generator: "teapot" })), fixtureScene, "layers[4].placements[0].generate.generator",
     /no generator teapot in the local pixel engine/);
 });
 
 test("a local generate whose params the generator rejects fails", () => {
-  failsWith(validate(withGenerate({ ...localRug, params: { fill: "beige" } })), fixtureScene, "layers[3].placements[0].generate.params.fill", /./);
+  failsWith(validate(withGenerate({ ...localRug, params: { fill: "beige" } })), fixtureScene, "layers[4].placements[0].generate.params.fill", /./);
 });
 
 test("a texture generate block with finish service fails", () => {
   failsWith(validate(withGenerate({ ...starsTexture, finish: "service" }, 0, 1)), fixtureScene, "layers[1].placements[0].generate.finish",
     /Seamless texture is always local/);
+});
+
+const SHELL = { name: "shell", kind: "room", plane: "mid", surfaces: { back: { colour: 2 }, floor: { colour: 14 } }, openings: [], placements: [] };
+
+function withRoom(root: string, room: object = {}, also: (plan: any) => void = () => {}): void {
+  editJson(root, fixtureScene, (plan) => {
+    plan.layers = plan.layers.filter((l: any) => l.kind !== "room");
+    plan.layers.splice(3, 0, { ...SHELL, ...room });
+    also(plan);
+  });
+  writeFileSync(join(root, sceneDir, "room.png"), readFileSync(join(root, sceneDir, "poster.png")));
+}
+
+test("a Scene with two room Layers fails", () => {
+  const root = makeTree();
+  withRoom(root, {}, (plan) => plan.layers.splice(4, 0, { ...SHELL, name: "shell-2" }));
+  failsWith(validate(root), fixtureScene, "layers[4].kind", /at most one room Layer/);
+});
+
+test("a room Layer in a Scene without a Stage fails", () => {
+  const root = makeTree();
+  withRoom(root, {}, (plan) => { delete plan.stage; });
+  failsWith(validate(root), fixtureScene, "layers[3].kind", /room Layer is allowed only with a Stage/);
+});
+
+test("an Opening that runs past the edge of its Surface fails", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "window", surface: "back", along: 260, across: 10, w: 40, h: 40 }] });
+  failsWith(validate(root), fixtureScene, "layers[3].openings[0]", /Opening window runs outside the back: along 260 to 300 of 288/);
+});
+
+test("an Opening deeper than the floor the canvas shows fails", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "hatch", surface: "floor", along: 100, across: 20, w: 40, h: 20 }] });
+  failsWith(validate(root), fixtureScene, "layers[3].openings[0]", /Opening hatch runs outside the floor: across 20 to 40 of 29/);
+});
+
+test("an Opening on a Surface the room Layer does not draw fails", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "door", surface: "left", along: 4, across: 60, w: 20, h: 100 }] });
+  failsWith(validate(root), fixtureScene, "layers[3].openings[0].surface", /on the left, which this room Layer does not draw/);
+});
+
+test("skirting on the floor fails: skirting goes on walls only", () => {
+  const root = makeTree();
+  withRoom(root, { surfaces: { back: { colour: 2, skirting: { height: 4, colour: 0 } }, floor: { colour: 14, skirting: { height: 4, colour: 0 } } } });
+  failsWith(validate(root), fixtureScene, "layers[3].surfaces.floor.skirting", /skirting goes on walls only/);
+});
+
+test("a resolved Scene with a room Layer and no room.png fails, and a draft one lists it as pending", () => {
+  const root = makeTree();
+  withRoom(root);
+  rmSync(join(root, sceneDir, "room.png"));
+  failsWith(validate(root), fixtureScene, "layers[3]", /declared resolved but room\.png is missing beside the plan; run room-shell/);
+  editJson(root, fixtureScene, (plan) => { plan.status = "draft"; });
+  const { code, report } = validate(root);
+  assert.equal(code, 0);
+  assert.deepEqual(report.scenes[0].pending.map((p: any) => p.path), ["layers[3]"]);
+});
+
+test("a room Layer with its Openings inside their Surfaces and room.png in place validates", () => {
+  const root = makeTree();
+  withRoom(root, { openings: [{ id: "window", surface: "back", along: 116, across: 0, w: 60, h: 60, frame: { width: 2, colour: 1, mullionsAcross: 1, mullionsDown: 1 } }] });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
 });

@@ -2,6 +2,8 @@ import {
   allPlacements,
   elementRecordSchema,
   paletteSchema,
+  ROOM_FILE,
+  roomLayerOf,
   SCENE_HEIGHT,
   SCENE_WIDTH,
   scenePlanSchema,
@@ -78,6 +80,7 @@ async function boot(): Promise<void> {
       elements.set(id, await elementPixelsOf(record, (suffix) => decode(`library/elements/${id}${suffix}`)));
     }),
   );
+  const room = roomLayerOf(plan) ? await decode(ROOM_FILE) : undefined;
   const sizeOf = (id: string) => elements.get(id)?.still;
 
   const tuning: PlanTuning = structuredClone(tuningOf(plan));
@@ -118,7 +121,7 @@ async function boot(): Promise<void> {
       const shown = parsed.data;
       const variant = shown.variants[selected];
       const companion = variant.companionPalette ? companions.get(variant.companionPalette) : undefined;
-      const compositor = createCompositor({ plan: shown, elements, palette, variant, companion, primitives: createPrimitives({ plan: shown, elements, palette }) });
+      const compositor = createCompositor({ plan: shown, elements, palette, variant, companion, room, primitives: createPrimitives({ plan: shown, elements, palette }) });
       loop?.abort();
       loop = new AbortController();
       let image: ImageData | undefined;

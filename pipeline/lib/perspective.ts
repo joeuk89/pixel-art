@@ -1,6 +1,6 @@
-import { SCENE_HEIGHT, SCENE_WIDTH, type Stage } from "../../schema/index.ts";
+import { SCENE_HEIGHT, SCENE_WIDTH, type Stage, type Surface } from "../../schema/index.ts";
 
-export type Surface = "back" | "floor" | "ceiling" | "left" | "right";
+export type { Surface };
 export type Point = { x: number; y: number };
 // along and across are back-wall pixels from the Surface's corner at the back rectangle: across is depth on the
 // floor and ceiling, along is depth on the side walls.
@@ -78,4 +78,18 @@ export function onFloor(stage: Stage, foot: Point): boolean {
   if (y1 <= vy || foot.y < y1 || foot.y > SCENE_HEIGHT || foot.x < 0 || foot.x > SCENE_WIDTH) return false;
   const u = vx + ((foot.x - vx) * (y1 - vy)) / (foot.y - vy);
   return u >= x0 && u <= x1;
+}
+
+// How far each Surface coordinate runs on the canvas: the depth axis stops where the Surface leaves the canvas.
+export function surfaceExtent(stage: Stage, surface: Surface): { along: number; across: number } {
+  const { x0, y0, x1, y1, vx, vy, f } = box(stage);
+  const w = x1 - x0, h = y1 - y0;
+  const depthTo = (s: number) => (s > 1 ? depthOf(f, s) : 0);
+  switch (surface) {
+    case "back": return { along: w, across: h };
+    case "floor": return { along: w, across: y1 > vy ? depthTo((SCENE_HEIGHT - vy) / (y1 - vy)) : 0 };
+    case "ceiling": return { along: w, across: vy > y0 ? depthTo(vy / (vy - y0)) : 0 };
+    case "left": return { along: vx > x0 ? depthTo(vx / (vx - x0)) : 0, across: h };
+    case "right": return { along: x1 > vx ? depthTo((SCENE_WIDTH - vx) / (x1 - vx)) : 0, across: h };
+  }
 }

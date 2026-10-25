@@ -320,3 +320,38 @@ test("x, y Placements keep their order around foot Placements", () => {
   ]);
   assert.deepEqual(at(out, 100, 200), rgb(3));
 });
+
+const room = (name: string) => ({ name, kind: "room", plane: "mid", surfaces: { back: { colour: 4 } }, openings: [], placements: [] });
+const stage = { back: { x: 0, y: 0, w: 384, h: 240 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
+const shell = image(W, H, (x, y) => (x >= 100 && x < 140 && y >= 50 && y < 80 ? null : rgb(4)));
+
+test("room.png draws in the room Layer's place: over the Layers before it, under the Layers after it", () => {
+  const dot = image(1, 1, () => rgb(6));
+  const out = createCompositor({
+    plan: { ...plan([fill("sky", 2), room("shell"), placed("props", [{ id: "dot", element: "dot-red-small-01", x: 20, y: 20 }])]), stage },
+    elements: new Map([["dot-red-small-01", { still: dot }]]),
+    room: shell,
+    palette,
+  }).render(0);
+  assert.deepEqual(at(out, 0, 0), rgb(4));
+  assert.deepEqual(at(out, 383, 239), rgb(4));
+  assert.deepEqual(at(out, 20, 20), rgb(6));
+});
+
+test("a far Layer shows through an Opening in room.png", () => {
+  const sky = image(W, H, (x) => rgb(x < 124 ? 1 : 3));
+  const out = createCompositor({
+    plan: { ...plan([placed("city", [{ id: "city", element: "city-red-wide-01", x: 0, y: 0 }]), room("shell")]), stage },
+    elements: new Map([["city-red-wide-01", { still: sky }]]),
+    room: shell,
+    palette,
+  }).render(0);
+  assert.deepEqual(at(out, 100, 50), rgb(1));
+  assert.deepEqual(at(out, 139, 79), rgb(3));
+  assert.deepEqual(at(out, 99, 50), rgb(4));
+  assert.deepEqual(at(out, 140, 79), rgb(4));
+});
+
+test("a plan with a room Layer and no room.png pixels fails to compose", () => {
+  assert.throws(() => createCompositor({ plan: { ...plan([room("shell")]), stage }, elements: new Map(), palette }), /room Layer shell: room\.png has no pixels/);
+});

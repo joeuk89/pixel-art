@@ -69,6 +69,7 @@ You only need the keys for the services a Scene uses. To check the audio keys, r
 | `npm run bundle && npm run assemble` | Builds the publishable site into `dist/` |
 | `node pipeline/library-search.ts <words>` | Searches the Element library (`--sounds` for the Sound library) |
 | `node pipeline/draw-element.ts <scene.json> <placementId>` | Draws a local-Finish Element or Seamless texture with the local pixel engine, free, and gates it |
+| `node pipeline/room-shell.ts <scene.json>` | Draws the Scene's Room shell from its Stage and `room` Layer into `room.png` beside the plan, free |
 | `node pipeline/orphans.ts` | Lists library Elements and sounds no Scene uses |
 | `node pipeline/ledger.ts` | Shows this month's generation spend |
 | `node pipeline/tune.ts <scene.json>` | Opens the Tuner to set a Scene's lighting by hand; Save writes the plan, renders the Poster again and reruns the preview checks. It never spends and never commits |

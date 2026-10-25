@@ -18,6 +18,17 @@
       { "id": "stars", "element": "sky-stars-night-01", "x": 0, "y": 0, "tileX": true } ] },
     { "name": "city", "kind": "placements", "plane": "far", "placements": [
       { "id": "skyline", "element": "skyline-night-warm-windows-01", "x": 64, "y": 40 } ] },
+    { "name": "shell", "kind": "room", "plane": "mid",
+      "surfaces": {
+        "back": { "colour": 2 },
+        "floor": { "colour": 14, "lines": { "pattern": "boards", "spacing": 8 } },
+        "ceiling": { "colour": 1, "lines": { "pattern": "coffers", "spacing": 24 } },
+        "left": { "colour": 3, "skirting": { "height": 4, "colour": 1 } },
+        "right": { "colour": 3, "skirting": { "height": 4, "colour": 1 } } },
+      "openings": [
+        { "id": "picture-window", "surface": "back", "along": 16, "across": 14, "w": 256, "h": 128,
+          "frame": { "width": 2, "colour": 1, "mullionsAcross": 1, "mullionsDown": 0 } } ],
+      "placements": [] },
     { "name": "room", "kind": "placements", "plane": "mid", "placements": [
       { "id": "window", "element": "window-wood-transparent-panes-01", "x": 168, "y": 28 },
       { "id": "cat", "element": "cat-tabby-asleep-01", "foot": { "x": 292, "y": 216 }, "flipX": true,

@@ -3,6 +3,8 @@ import {
   elementRecordSchema,
   paletteSchema,
   POSTER_FILE,
+  ROOM_FILE,
+  roomLayerOf,
   SCENE_HEIGHT,
   SCENE_WIDTH,
   scenePlanSchema,
@@ -126,14 +128,14 @@ export async function renderScene(
     return startSound();
   }
 
-  const elements = await loadElements(root, plan);
+  const [elements, room] = await Promise.all([loadElements(root, plan), roomLayerOf(plan) ? decode(new URL(ROOM_FILE, base)) : undefined]);
   if (signal.aborted) return;
   const primitivesFor = (variant: Variant) => createPrimitives({ plan, elements, palette, variant });
   const compositorFor = async (variant: Variant) => {
     const companion = variant.companionPalette === undefined
       ? undefined
       : paletteSchema.parse(await fetchJson(new URL(`library/palettes/${variant.companionPalette}.json`, root)));
-    return createCompositor({ plan, elements, palette, variant, companion, primitives: primitivesFor(variant) });
+    return createCompositor({ plan, elements, palette, variant, companion, room, primitives: primitivesFor(variant) });
   };
   const compositor = await compositorFor(variants.current);
   if (signal.aborted) return;

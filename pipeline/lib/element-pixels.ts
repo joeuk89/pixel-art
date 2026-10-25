@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { allPlacements, elementRecordSchema, paletteSchema, type Palette, type ScenePlan } from "../../schema/index.ts";
+import { allPlacements, elementRecordSchema, paletteSchema, ROOM_FILE, roomLayerOf, type Palette, type ScenePlan } from "../../schema/index.ts";
 import { elementPixelsOf, type ElementPixels, type Pixels } from "../../viewer/compositor.ts";
 
 const ELEMENTS = "library/elements";
@@ -37,4 +37,8 @@ export async function loadElementPixels(root: string, plan: ScenePlan): Promise<
     loaded.set(id, await elementPixelsOf(record, (suffix) => decode(join(root, ELEMENTS, `${id}${suffix}`))));
   }
   return loaded;
+}
+
+export async function loadRoomPixels(sceneDir: string, plan: ScenePlan): Promise<Pixels | undefined> {
+  return roomLayerOf(plan) ? decode(join(sceneDir, ROOM_FILE)) : undefined;
 }
