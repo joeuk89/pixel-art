@@ -1,0 +1,45 @@
+{
+  "id": "trunk-steamer-leather-brass-01",
+  "subject": "trunk",
+  "tags": [
+    "trunk",
+    "steamer",
+    "leather",
+    "storage",
+    "attic"
+  ],
+  "brief": "old steamer trunk, worn brown leather with brass corners and clasps, lid closed, cool light from the left",
+  "prompt": "old steamer trunk, filling the whole canvas edge to edge, wide and boxy, worn brown leather with brass corners and clasps, lid closed, cool light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 696805248,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T14:56:21.715Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 92,
+  "height": 60,
+  "realSize": {
+    "w": 0.9,
+    "h": 0.55
+  },
+  "transparent": true
+}

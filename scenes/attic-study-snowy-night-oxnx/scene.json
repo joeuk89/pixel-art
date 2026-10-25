@@ -3,7 +3,7 @@
   "id": "attic-study-snowy-night-oxnx",
   "title": "Attic Study, Snowy Night",
   "prompt": "A small attic study late at night. A plain wooden desk sits under the sloping roof, with a tall straight-edged bookshelf beside it. A green banker's lamp on the desk throws a warm pool of light; the rest of the room is dim. A framed painting of a sailing ship hangs on the back wall, and a worn rectangular rug lies on the floorboards. One small window in the back wall looks out over snowy village rooftops with a few lit windows. Snow falls softly outside, and a clock ticks somewhere in the room. The walls are sloped like a real attic, with chunky wooden beams. Quiet, cosy, a little lonely.",
-  "description": "A small attic study late at night, tucked under chunky wooden rafters. A green banker's lamp throws a warm pool over a plain desk beneath a round gable window, where snow falls past the village rooftops, while a pendulum clock swings and ticks on the wall.",
+  "description": "A small attic study late at night, tucked under chunky wooden rafters among old boxes, a steamer trunk and a worn rocking horse. A green banker's lamp throws a warm pool over a desk beneath a round gable window, where snow falls past the village rooftops, while a pendulum clock swings and ticks on the wall.",
   "createdAt": "2026-10-25T08:01:41Z",
   "seed": 34645457,
   "status": "resolved",
@@ -73,10 +73,11 @@
           "w": 56,
           "h": 56,
           "frame": {
-            "width": 3,
+            "width": 6,
             "colour": 11,
             "mullionsAcross": 1,
-            "mullionsDown": 1
+            "mullionsDown": 1,
+            "mullionWidth": 3
           },
           "shape": "round"
         }
@@ -93,8 +94,8 @@
           "id": "ship-painting",
           "element": "painting-sailing-ship-framed-01",
           "surface": "back",
-          "along": 300,
-          "across": 170
+          "along": 290,
+          "across": 142
         },
         {
           "id": "worn-rug",
@@ -110,6 +111,14 @@
       "kind": "placements",
       "plane": "mid",
       "placements": [
+        {
+          "id": "trunk",
+          "element": "trunk-steamer-leather-brass-01",
+          "foot": {
+            "x": 330,
+            "y": 188
+          }
+        },
         {
           "id": "bookcase",
           "element": "bookcase-low-wooden-crammed-01",
@@ -131,6 +140,37 @@
           "element": "lamp-bankers-green-glass-01",
           "x": 152,
           "y": 97
+        },
+        {
+          "id": "chair",
+          "element": "chair-wooden-plain-back-01",
+          "foot": {
+            "x": 200,
+            "y": 193
+          }
+        }
+      ]
+    },
+    {
+      "name": "clutter",
+      "kind": "placements",
+      "plane": "near",
+      "placements": [
+        {
+          "id": "boxes",
+          "element": "boxes-cardboard-stacked-taped-01",
+          "foot": {
+            "x": 24,
+            "y": 238
+          }
+        },
+        {
+          "id": "rocking-horse",
+          "element": "rocking-horse-wooden-worn-01",
+          "foot": {
+            "x": 372,
+            "y": 236
+          }
         }
       ]
     },
@@ -192,18 +232,28 @@
       ],
       "length": 12,
       "bob": 2
+    },
+    {
+      "type": "dust",
+      "anchor": "bankers-lamp",
+      "region": {
+        "x": 128,
+        "y": 60,
+        "w": 104,
+        "h": 70
+      },
+      "colours": [
+        13,
+        12
+      ],
+      "count": 10
     }
   ],
   "variants": [
     {
       "id": "snowy-night",
       "title": "Snowy night",
-      "ambient": {
-        "level": -2,
-        "layers": {
-          "eaves": -1
-        }
-      },
+      "ambient": { "level": -2.75, "layers": { "eaves": -1, "clutter": 0.5 } },
       "lights": [
         {
           "type": "point",
@@ -297,12 +347,12 @@
     ]
   },
   "cost": {
-    "pixellabGenerations": 124,
+    "pixellabGenerations": 174,
     "meteredUsd": {
       "stability": 0.08,
       "fal": 0.044
     },
-    "attemptsAbandoned": 0,
+    "attemptsAbandoned": 2,
     "approvedOverage": null
   }
 }

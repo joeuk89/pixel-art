@@ -1,0 +1,44 @@
+{
+  "id": "chair-wooden-plain-back-01",
+  "subject": "chair",
+  "tags": [
+    "chair",
+    "wood",
+    "desk",
+    "study"
+  ],
+  "brief": "plain wooden chair, back view, simple slatted backrest, warm stained wood, warm light from the upper left",
+  "prompt": "plain wooden chair, back view, filling the whole canvas edge to edge, tall simple slatted backrest, warm stained wood, warm light from the upper left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1579329872,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T14:56:21.841Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 52,
+  "height": 100,
+  "realSize": {
+    "w": 0.45,
+    "h": 0.9
+  },
+  "transparent": true
+}

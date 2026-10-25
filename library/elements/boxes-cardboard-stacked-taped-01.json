@@ -1,0 +1,44 @@
+{
+  "id": "boxes-cardboard-stacked-taped-01",
+  "subject": "boxes",
+  "tags": [
+    "boxes",
+    "cardboard",
+    "storage",
+    "attic"
+  ],
+  "brief": "stack of old cardboard storage boxes, taped flaps, slightly crushed and dusty, warm light from the right",
+  "prompt": "tall stack of old cardboard storage boxes, filling the whole canvas edge to edge, taped flaps, slightly crushed and dusty, warm light from the right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1391128420,
+  "palette": "attic-snow-night",
+  "styleAnchor": null,
+  "createdAt": "2026-10-25T14:56:21.968Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 88,
+  "height": 116,
+  "realSize": {
+    "w": 0.6,
+    "h": 0.8
+  },
+  "transparent": true
+}

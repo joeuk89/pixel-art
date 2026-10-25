@@ -1,0 +1,53 @@
+{
+  "id": "rocking-horse-wooden-worn-01",
+  "subject": "rocking",
+  "tags": [
+    "rocking horse",
+    "toy",
+    "wood",
+    "attic",
+    "antique"
+  ],
+  "brief": "worn wooden rocking horse, faded painted dapples, wool mane, curved rockers, warm light from the left",
+  "prompt": "worn wooden rocking horse, faded painted dapples, wool mane, curved rockers, warm light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 662455928,
+  "palette": "attic-snow-night",
+  "styleAnchor": "desk-plain-wooden-writing-01",
+  "createdAt": "2026-10-25T14:54:37.710Z",
+  "firstScene": "attic-study-snowy-night-oxnx",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": [
+      "3 disconnected opaque islands"
+    ]
+  },
+  "kind": "prop",
+  "width": 128,
+  "height": 100,
+  "realSize": {
+    "w": 0.9,
+    "h": 0.7
+  },
+  "transparent": true
+}
