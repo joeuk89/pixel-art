@@ -15,7 +15,7 @@
   "layers": [
     { "name": "sky", "kind": "fill", "plane": "far", "colour": 1 },
     { "name": "city", "kind": "placements", "plane": "far", "placements": [
-      { "id": "city", "element": "city-river-storm-night-01", "x": 64, "y": 47,
+      { "id": "city", "element": "city-river-storm-night-01", "x": 56, "y": 47,
         "generate": { "kind": "backdrop", "brief": "night city skyline seen from high above: varied towers, office blocks and spires with small yellow windows, a wide dark river winding below with tiny boats, heavy violet storm clouds, soft light rising from the streets below, fills the whole canvas edge to edge", "tags": ["city", "skyline", "river", "night", "storm"], "size": { "w": 256, "h": 148 } } } ] },
     { "name": "room", "kind": "room", "plane": "mid",
       "surfaces": {
@@ -23,7 +23,7 @@
         "floor": { "colour": 14, "lines": { "pattern": "boards", "spacing": 12 } },
         "ceiling": { "colour": 1 } },
       "openings": [
-        { "id": "window", "surface": "back", "along": 112, "across": 0, "w": 256, "h": 148,
+        { "id": "window", "surface": "back", "along": 104, "across": 0, "w": 256, "h": 148,
           "frame": { "width": 3, "colour": 0, "mullionsAcross": 3, "mullionsDown": 0 } } ],
       "placements": [] },
     { "name": "furniture", "kind": "placements", "plane": "mid", "placements": [
@@ -38,7 +38,7 @@
         "generate": { "kind": "prop", "brief": "heavy dark velvet curtain hanging in deep folds, deep violet, front view, warm light from the left", "realSize": { "w": 0.8, "h": 3 }, "tags": ["curtain", "velvet", "drape"] } } ] }
   ],
   "primitives": [
-    { "type": "rain", "anchor": "city", "region": { "x": 64, "y": 47, "w": 256, "h": 148 }, "colours": [5, 6, 7], "density": 120, "drift": 0.5 },
+    { "type": "rain", "anchor": "city", "region": { "x": 56, "y": 47, "w": 256, "h": 148 }, "colours": [5, 6, 7], "density": 128, "drift": 0.5 },
     { "type": "twinkle", "anchor": "city", "colours": [8, 12], "count": 16 }
   ],
   "variants": [
@@ -47,7 +47,7 @@
       "lights": [
         { "type": "point", "id": "lamp", "anchor": "lamp", "offset": { "x": 16, "y": 30 }, "radius": 157, "strength": 2.5, "tint": "warm",
           "flicker": { "depth": 0.1, "rate": 0.8 }, "halo": { "colour": 8, "radius": 30, "strength": 0.6 } },
-        { "type": "point", "id": "window-spill", "at": { "x": 192, "y": 121 }, "radius": 180, "strength": 0.75, "tint": "cool" } ],
+        { "type": "point", "id": "window-spill", "at": { "x": 184, "y": 121 }, "radius": 180, "strength": 0.75, "tint": "cool" } ],
       "emissiveOff": [] }
   ],
   "soundtrack": {

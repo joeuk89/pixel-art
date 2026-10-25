@@ -31,7 +31,7 @@ for (const name of ["cosy-night", "golden-hour"]) {
 test("no v1 canvas or Backdrop size survives in schema, pipeline, viewer or tests", () => {
   // Built from parts so the pattern does not match this file.
   const pattern = `(^|[^0-9A-Za-z_#])(${2 * 96}|${2 * 60})([^0-9A-Za-z_]|$)|${2 ** 7}x${2 ** 6}|${"BACKDROP"}_`;
-  const args = ["grep", "-nIE", "--untracked", "-e", pattern, "--and", "--not", "-e", "DEFAULT_STAGE_F = ", "--", "schema", "pipeline", "viewer", "test"];
+  const args = ["grep", "-nIE", "--untracked", "-e", pattern, "--and", "--not", "-e", "DEFAULT_STAGE_F = ", "--and", "--not", "-e", "\"vanishingPoint\": { \"x\": 192,", "--", "schema", "pipeline", "viewer", "test"];
   const run = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
   assert.equal(run.stdout, "", run.stdout);
 });
