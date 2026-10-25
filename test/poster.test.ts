@@ -24,7 +24,7 @@ async function fixtureFrameZero(root: string, variant = 0): Promise<Uint8Clamped
   const plan = scenePlanSchema.parse(readJson(root, fixtureScene));
   const palette = readJson(root, `library/palettes/${plan.palette}.json`);
   const elements = new Map<string, ElementPixels>();
-  for (const id of ["sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"]) {
+  for (const id of ["sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01", "painting-harbour-night-01", "rug-wool-stripe-01"]) {
     const record = readJson(root, `library/elements/${id}.json`);
     const still = await rgba(join(root, `library/elements/${id}.png`));
     const strip = record.animation && {
@@ -37,7 +37,8 @@ async function fixtureFrameZero(root: string, variant = 0): Promise<Uint8Clamped
     elements.set(id, { still, ...(strip && { strip }), ...(record.emissive && { emissive: record.emissive }), ...(mask && { mask }) });
   }
   const room = await rgba(join(root, sceneDir, "room.png"));
-  return createCompositor({ plan, elements, palette, variant: plan.variants[variant], room }).render(0);
+  const features = new Map([["painting", await rgba(join(root, sceneDir, "features/painting.png"))], ["rug", await rgba(join(root, sceneDir, "features/rug.png"))]]);
+  return createCompositor({ plan, elements, palette, variant: plan.variants[variant], room, features }).render(0);
 }
 
 test("poster run against the fixture Scene prints one JSON object, exits 0 and writes both PNGs beside the plan", async () => {

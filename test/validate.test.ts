@@ -2,14 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { copyFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ambientRecordCount, paletteCount, editJson, fixtureScene, fixtures, makeTree, readJson, validate, writeJson, type ValidateResult } from "./helpers.ts";
+import { ambientRecordCount, fixtureElementCount, paletteCount, editJson, fixtureScene, fixtures, makeTree, readJson, validate, writeJson, type ValidateResult } from "./helpers.ts";
 
 test("a resolved fixture Scene validates and is reported resolved", () => {
   const { code, report } = validate(makeTree());
   assert.equal(code, 0);
   assert.equal(report.ok, true);
   assert.deepEqual(report.errors, []);
-  assert.deepEqual(report.checked, { scenes: 1, elements: 4, palettes: paletteCount, ambient: ambientRecordCount });
+  assert.deepEqual(report.checked, { scenes: 1, elements: fixtureElementCount, palettes: paletteCount, ambient: ambientRecordCount });
   assert.deepEqual(report.scenes, [
     { id: "fixture-rainy-desk-a1b2", file: fixtureScene, declared: "resolved", status: "resolved", pending: [] },
   ]);
@@ -301,6 +301,8 @@ test("a Stage whose vanishing point is outside the canvas fails", () => {
 for (const [what, position] of [
   ["both x, y and foot", { x: 10, y: 10, foot: { x: 292, y: 216 } }],
   ["no position", {}],
+  ["foot and a surface position", { foot: { x: 292, y: 216 }, surface: "floor", along: 10, across: 2 }],
+  ["a surface without across", { surface: "floor", along: 10 }],
 ] as const) {
   test(`a Placement with ${what} fails`, () => {
     const root = makeTree();
@@ -308,7 +310,7 @@ for (const [what, position] of [
       const { x, y, foot, ...rest } = plan.layers[4].placements[1];
       plan.layers[4].placements[1] = { ...rest, ...position };
     });
-    failsWith(validate(root), fixtureScene, "layers[4].placements[1]", /exactly one position: x, y or foot/);
+    failsWith(validate(root), fixtureScene, "layers[4].placements[1]", /exactly one position: x, y; foot; or surface, along, across/);
   });
 }
 
@@ -696,6 +698,108 @@ test("a resolved Scene with a room Layer and no room.png fails, and a draft one 
 test("a room Layer with its Openings inside their Surfaces and room.png in place validates", () => {
   const root = makeTree();
   withRoom(root, { openings: [{ id: "window", surface: "back", along: 116, across: 0, w: 60, h: 60, frame: { width: 2, colour: 1, mullionsAcross: 1, mullionsDown: 1 } }] });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+const ROOM = 3;
+const editFeature = (root: string, index: number, edit: (feature: any, plan: any) => void) =>
+  editJson(root, fixtureScene, (plan) => edit(plan.layers[ROOM].placements[index], plan));
+
+test("the fixture Scene with a left-wall and a floor Feature and their projected files validates", () => {
+  const { code, report, stderr } = validate(makeTree());
+  assert.equal(code, 0, stderr);
+  assert.equal(report.scenes[0].status, "resolved");
+});
+
+test("a surface position outside the room Layer fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    const { x, y, ...rest } = plan.layers[4].placements[0];
+    plan.layers[4].placements[0] = { ...rest, surface: "back", along: 10, across: 10 };
+  });
+  failsWith(validate(root), fixtureScene, "layers[4].placements[0].surface", /surface position is allowed only in the room Layer; Layer room is placements/);
+});
+
+test("an x, y Placement in the room Layer fails: every Placement there is a Feature", () => {
+  const root = makeTree();
+  editFeature(root, 0, (f) => { delete f.surface; delete f.along; delete f.across; f.x = 10; f.y = 60; });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[0]`, /Placement painting in the room Layer is a Feature and takes a surface position/);
+});
+
+test("a Feature on a Surface the room Layer does not draw fails", () => {
+  const root = makeTree();
+  editFeature(root, 0, (_, plan) => { delete plan.layers[ROOM].surfaces.left; });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[0].surface`, /Feature painting is on the left, which this room Layer does not draw/);
+});
+
+test("a side-wall Feature whose box runs past the depth the canvas shows fails", () => {
+  const root = makeTree();
+  editFeature(root, 0, (f) => { f.along = 30; });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[0]`, /Feature painting runs outside the left: along 30 to 51\.1 of 37/);
+});
+
+test("a floor Feature whose box runs past the front of the canvas fails", () => {
+  const root = makeTree();
+  editFeature(root, 1, (f) => { f.across = 20; });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1]`, /Feature rug runs outside the floor: across 20 to 37\.9 of 29/);
+});
+
+test("a back-wall Feature past the back wall's edge fails", () => {
+  const root = makeTree();
+  editFeature(root, 0, (f) => { Object.assign(f, { surface: "back", along: 270, across: 10 }); });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[0]`, /Feature painting runs outside the back: along 270 to 302 of 288/);
+});
+
+// A 0.4 m deep rug at across 12 derives a 28 px tall canvas, 21.7 px deep on the floor; the 24 px library PNG would be 19.
+test("an unresolved Feature is checked at its derived canvas, not the Element it replaces", () => {
+  const root = makeTree();
+  editFeature(root, 1, (f, plan) => {
+    plan.status = "draft";
+    f.across = 12;
+    f.generate = { kind: "prop", brief: "striped rug, front view, flat on", realSize: { w: 1.5, h: 0.4 }, tags: ["rug"] };
+  });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1]`, /Feature rug runs outside the floor: across 12 to 33\.7 of 29/);
+});
+
+test("an unresolved Feature that reaches past the viewing distance is a problem in the report, not a crash", () => {
+  const root = makeTree();
+  editFeature(root, 1, (f, plan) => {
+    plan.status = "draft";
+    f.across = 20;
+    f.generate = { kind: "prop", brief: "long runner rug, front view, flat on", realSize: { w: 1, h: 3 }, tags: ["rug"] };
+  });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1]`, /Feature rug reaches \d+ px deep on the floor, past the viewing distance of 150/);
+});
+
+test("a resolved Scene missing a projected Feature's file fails, and a draft one lists it as pending", () => {
+  const root = makeTree();
+  rmSync(join(root, sceneDir, "features/rug.png"));
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1]`, /declared resolved but features\/rug\.png is missing beside the plan; run project-features/);
+  editJson(root, fixtureScene, (plan) => { plan.status = "draft"; });
+  const { code, report } = validate(root);
+  assert.equal(code, 0);
+  assert.deepEqual(report.scenes[0].pending.map((p: any) => p.path), [`layers[${ROOM}].placements[1]`]);
+});
+
+test("a back-wall Feature needs no projected file", () => {
+  const root = makeTree();
+  editFeature(root, 0, (f) => { Object.assign(f, { surface: "back", along: 4, across: 150 }); });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("tileX on a Feature fails", () => {
+  const root = makeTree();
+  editFeature(root, 1, (f) => { f.tileX = true; });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1].tileX`, /tileX does not apply to a Feature/);
+});
+
+test("a framed window in a side wall validates, so far Layers can show through a side wall", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.layers[ROOM].openings.push({ id: "side-window", surface: "right", along: 4, across: 30, w: 24, h: 60, frame: { width: 2, colour: 1, mullionsAcross: 0, mullionsDown: 1 } });
+  });
   const { code, stderr } = validate(root);
   assert.equal(code, 0, stderr);
 });

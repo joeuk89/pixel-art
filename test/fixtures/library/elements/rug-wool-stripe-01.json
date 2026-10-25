@@ -1,0 +1,42 @@
+{
+  "id": "rug-wool-stripe-01",
+  "kind": "prop",
+  "width": 88,
+  "height": 24,
+  "realSize": {
+    "w": 1.5,
+    "h": 0.4
+  },
+  "transparent": true,
+  "subject": "rug",
+  "tags": [
+    "rug",
+    "wool",
+    "stripes"
+  ],
+  "brief": "striped wool runner rug, front view, flat on",
+  "prompt": "striped wool runner rug, front view, flat on",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1301,
+  "palette": "fixture-night-v2",
+  "styleAnchor": null,
+  "createdAt": "2026-10-24T20:01:00Z",
+  "firstScene": "fixture-rainy-desk-a1b2",
+  "cost": {
+    "pixellabGenerations": 1,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette"
+    ],
+    "warnings": []
+  }
+}

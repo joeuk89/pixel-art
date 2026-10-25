@@ -2,6 +2,8 @@ import {
   allPlacements,
   elementRecordSchema,
   paletteSchema,
+  featureFile,
+  isProjected,
   ROOM_FILE,
   roomLayerOf,
   SCENE_HEIGHT,
@@ -81,6 +83,9 @@ async function boot(): Promise<void> {
     }),
   );
   const room = roomLayerOf(plan) ? await decode(ROOM_FILE) : undefined;
+  const features = new Map<string, Pixels>(
+    await Promise.all(allPlacements(plan).filter(isProjected).map(async (p): Promise<[string, Pixels]> => [p.id, await decode(featureFile(p.id))])),
+  );
   const sizeOf = (id: string) => elements.get(id)?.still;
 
   const tuning: PlanTuning = structuredClone(tuningOf(plan));
@@ -121,7 +126,7 @@ async function boot(): Promise<void> {
       const shown = parsed.data;
       const variant = shown.variants[selected];
       const companion = variant.companionPalette ? companions.get(variant.companionPalette) : undefined;
-      const compositor = createCompositor({ plan: shown, elements, palette, variant, companion, room, primitives: createPrimitives({ plan: shown, elements, palette }) });
+      const compositor = createCompositor({ plan: shown, elements, palette, variant, companion, room, features, primitives: createPrimitives({ plan: shown, elements, palette, features }) });
       loop?.abort();
       loop = new AbortController();
       let image: ImageData | undefined;

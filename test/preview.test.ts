@@ -18,7 +18,7 @@ const git = (root: string, ...args: string[]) => {
 function repoTree(tests: "pass" | "fail" = "pass"): string {
   const root = makeTree();
   writeJson(root, "package.json", { private: true, scripts: { test: `node -e "process.exit(${tests === "pass" ? 0 : 1})"` } });
-  for (const name of ["cat-tabby-asleep-01", "sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01"]) {
+  for (const name of ["cat-tabby-asleep-01", "sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "painting-harbour-night-01", "rug-wool-stripe-01"]) {
     editJson(root, `library/elements/${name}.json`, (record) => { record.firstScene = "older-scene-x1y2"; });
   }
   git(root, "init", "-q");
@@ -53,7 +53,8 @@ test("preview marks the Scene resolved, stages its files and prints the URL, cos
     `library/elements/${NEW_ELEMENT}.json`,
     `library/elements/${NEW_ELEMENT}.png`,
     `library/elements/${NEW_ELEMENT}.strip.png`,
-    ...["index.html", "music.mp3", "poster-og.png", "poster.png", "room.ogg", "room.png", "scene.json", "thunder.ogg"].map((f) => `scenes/${id}/${f}`),
+    ...["features/painting.png", "features/rug.png", "index.html", "music.mp3", "poster-og.png", "poster.png", "room.ogg", "room.png", "scene.json", "thunder.ogg"]
+      .map((f) => `scenes/${id}/${f}`),
   ];
   assert.deepEqual(out.staged, expected);
   assert.deepEqual(staged(root), expected);
@@ -64,7 +65,7 @@ test("preview marks the Scene resolved, stages its files and prints the URL, cos
   assert.equal(out.ledger.metered.ceilingGbp, 50);
   assert.deepEqual(out.ledger.afterCommit, { pixellabGenerations: 4, meteredUsd: 0.2 });
   assert.deepEqual(out.abandoned, []);
-  assert.deepEqual(out.elements, { generated: [NEW_ELEMENT], reused: ["sky-stars-night-01", "skyline-night-warm-windows-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"] });
+  assert.deepEqual(out.elements, { generated: [NEW_ELEMENT], reused: ["sky-stars-night-01", "skyline-night-warm-windows-01", "painting-harbour-night-01", "rug-wool-stripe-01", "window-wood-transparent-panes-01", "cat-tabby-asleep-01"] });
   assert.match(out.commitMessage, /^Add the Scene "Fixture rainy desk"\n\n/);
   assert.match(out.commitMessage, new RegExp(`Scene id: ${id}`));
   assert.match(out.commitMessage, new RegExp(`Generated: ${NEW_ELEMENT}`));

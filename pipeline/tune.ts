@@ -140,6 +140,9 @@ async function main() {
       if (path === "/tuner.js") return send(res, 200, readFileSync(join(bundleDir, "tuner.js")), TYPES[".js"]);
       if (path === "/scene.json") return send(res, 200, readFileSync(planPath), TYPES[".json"]);
       if (path === `/${ROOM_FILE}` && existsSync(roomPath)) return send(res, 200, readFileSync(roomPath), TYPES[".png"]);
+      const feature = path.match(/^\/features\/([a-z0-9-]+\.png)$/);
+      const featurePath = feature && join(dirname(planPath), "features", feature[1]);
+      if (featurePath && existsSync(featurePath)) return send(res, 200, readFileSync(featurePath), TYPES[".png"]);
       if (path.startsWith("/library/")) {
         const target = resolve(root, `.${path}`);
         const library = join(root, "library") + sep;

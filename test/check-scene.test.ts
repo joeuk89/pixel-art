@@ -4,7 +4,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { editJson, fixtureScene, makeTree, runScript, writeJson } from "./helpers.ts";
 
-const NAMES = ["generate blocks resolved", "validate", "loop seam", "room shell", "poster", "stub", "gallery", "tests"];
+const NAMES = ["generate blocks resolved", "validate", "loop seam", "room shell", "features", "poster", "stub", "gallery", "tests"];
 
 export function sceneTree(tests: "pass" | "fail" = "pass"): string {
   const root = makeTree();
@@ -83,6 +83,30 @@ test("a missing room.png fails", () => {
   assert.equal(code, 1);
   assert.ok(failed(out).includes("room shell"));
   assert.deepEqual(problems(out, "room shell"), ["scenes/fixture-rainy-desk-a1b2/room.png is missing; run room-shell"]);
+});
+
+test("a projected Feature file drawn before its Feature moved fails, and passes once project-features draws it again", () => {
+  const root = sceneTree();
+  editJson(root, fixtureScene, (plan) => { plan.layers[3].placements[1].along += 6; });
+  assert.equal(runScript(root, "poster", fixtureScene).code, 0);
+  const stale = runScript(root, "check-scene", fixtureScene);
+  assert.equal(stale.code, 1);
+  assert.deepEqual(failed(stale.out), ["features"]);
+  assert.match(problems(stale.out, "features")[0], /^scenes\/fixture-rainy-desk-a1b2\/features\/rug\.png differs from a fresh projection in \d+ pixels; run project-features$/);
+
+  assert.equal(runScript(root, "project-features", fixtureScene).code, 0);
+  assert.equal(runScript(root, "poster", fixtureScene).code, 0);
+  const fresh = runScript(root, "check-scene", fixtureScene);
+  assert.equal(fresh.code, 0, JSON.stringify(fresh.out));
+});
+
+test("a missing projected Feature file fails", () => {
+  const root = sceneTree();
+  rmSync(join(root, "scenes/fixture-rainy-desk-a1b2/features/painting.png"));
+  const { code, out } = runScript(root, "check-scene", fixtureScene);
+  assert.equal(code, 1);
+  assert.ok(failed(out).includes("features"));
+  assert.deepEqual(problems(out, "features"), ["scenes/fixture-rainy-desk-a1b2/features/painting.png is missing; run project-features"]);
 });
 
 test("a stub and gallery written before a title change fail", () => {

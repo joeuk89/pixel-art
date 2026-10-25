@@ -6,7 +6,7 @@ import { random } from "./random.ts";
 export const WEATHER_FPS = 24;
 export const PROP_FPS = 10;
 
-export type PrimitivesInput = { plan: ScenePlan; elements: ReadonlyMap<string, ElementPixels>; palette: Palette; seed?: number; variant?: Variant };
+export type PrimitivesInput = { plan: ScenePlan; elements: ReadonlyMap<string, ElementPixels>; palette: Palette; seed?: number; variant?: Variant; features?: ReadonlyMap<string, Pixels> };
 
 type Of<T extends Primitive["type"]> = Extract<Primitive, { type: T }>;
 type Context = {
@@ -389,7 +389,7 @@ function birds(p: Of<"birds">, ctx: Context): PrimitiveDraw {
   };
 }
 
-export function createPrimitives({ plan, elements, palette, seed = plan.seed, variant = plan.variants[0] }: PrimitivesInput): PrimitiveDraw[] {
+export function createPrimitives({ plan, elements, palette, seed = plan.seed, variant = plan.variants[0], features = new Map() }: PrimitivesInput): PrimitiveDraw[] {
   const colours = coloursOf(palette);
   const placements = new Map<string, { placement: Placement; layer: number }>();
   plan.layers.forEach((layer, li) => placementsOf(layer).forEach((placement) => placements.set(placement.id, { placement, layer: li })));
@@ -405,7 +405,8 @@ export function createPrimitives({ plan, elements, palette, seed = plan.seed, va
         if (!found) throw new Error(`Primitive ${salt} (${primitive.type}): no Placement ${id} to anchor to`);
         const pixels = elements.get(found.placement.element);
         if (!pixels) throw new Error(`Primitive ${salt} (${primitive.type}): Element ${found.placement.element} has no pixels`);
-        return { layer: found.layer, placement: positioned(found.placement, pixels.still), pixels: pixels.still };
+        const placement = positioned(found.placement, pixels.still, plan.stage);
+        return { layer: found.layer, placement, pixels: features.get(id) ?? pixels.still };
       },
     };
     return { ...drawOf(primitive, ctx), emissive: primitive.emissive };

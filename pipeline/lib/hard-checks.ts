@@ -2,8 +2,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import sharp from "sharp";
-import { allPlacements, POSTER_FILE, POSTER_OG_FILE, ROOM_FILE, roomLayerOf, SCENE_HEIGHT, SCENE_WIDTH, type ScenePlan } from "../../schema/index.ts";
-import { loadPalette } from "./element-pixels.ts";
+import { allPlacements, featureFile, POSTER_FILE, POSTER_OG_FILE, ROOM_FILE, roomLayerOf, SCENE_HEIGHT, SCENE_WIDTH, type ScenePlan } from "../../schema/index.ts";
+import { decodePng, loadPalette } from "./element-pixels.ts";
+import { freshProjection, projectedFeatures } from "./features.ts";
 import { posterFrame } from "./poster.ts";
 import { roomShellOf } from "./room-shell.ts";
 import { galleryJson, stub } from "./stub.ts";
@@ -72,6 +73,39 @@ async function roomShell(root: string, file: string, plan: ScenePlan): Promise<s
   return differ === 0 ? [] : [`${shown} differs from a fresh room-shell render in ${differ} pixels; run room-shell`];
 }
 
+async function features(root: string, file: string, plan: ScenePlan): Promise<string[]> {
+  const dir = dirname(resolve(root, file));
+  const palette = loadPalette(root, plan.palette);
+  const problems: string[] = [];
+  for (const feature of projectedFeatures(plan)) {
+    const path = join(dir, featureFile(feature.id));
+    const shown = relative(root, path);
+    if (!existsSync(path)) {
+      problems.push(`${shown} is missing; run project-features`);
+      continue;
+    }
+    let expected;
+    try {
+      expected = (await freshProjection(root, plan, feature, palette)).pixels;
+    } catch (e) {
+      problems.push(`cannot project Feature ${feature.id}: ${(e as Error).message}`);
+      continue;
+    }
+    const actual = await decodePng(path);
+    if (actual.width !== expected.width || actual.height !== expected.height) {
+      problems.push(`${shown} is ${actual.width}x${actual.height}, a fresh projection is ${expected.width}x${expected.height}; run project-features`);
+      continue;
+    }
+    let differ = 0;
+    for (let p = 0; p < expected.data.length; p += 4) {
+      const transparent = actual.data[p + 3] === 0 && expected.data[p + 3] === 0;
+      if (!transparent && [0, 1, 2, 3].some((k) => actual.data[p + k] !== expected.data[p + k])) differ++;
+    }
+    if (differ > 0) problems.push(`${shown} differs from a fresh projection in ${differ} pixels; run project-features`);
+  }
+  return problems;
+}
+
 function sameFile(path: string, expected: string, shown: string): string[] {
   if (!existsSync(path)) return [`${shown} is missing; run stub`];
   return readFileSync(path, "utf8") === expected ? [] : [`${shown} is not what stub writes; run stub`];
@@ -91,6 +125,7 @@ export async function hardChecks(root: string, file: string, plan: ScenePlan): P
     check("validate", validation(root, file)),
     check("loop seam", seam(plan)),
     check("room shell", await roomShell(root, file, plan)),
+    check("features", await features(root, file, plan)),
     check("poster", await poster(root, file, plan)),
     check("stub", sameFile(stubPath, stub(plan), relative(root, stubPath))),
     check("gallery", sameFile(join(root, "gallery.json"), galleryJson(root), "gallery.json")),

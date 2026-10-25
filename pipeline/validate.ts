@@ -6,6 +6,9 @@ import {
   ambientLoopRecordSchema,
   isLocal,
   elementRecordSchema,
+  featureFile,
+  isFeature,
+  isProjected,
   paletteSchema,
   placementsOf,
   POSTER_FILE,
@@ -17,9 +20,12 @@ import {
   type Palette,
   type Primitive,
   type ScenePlan,
+  type Stage,
+  type Surface,
 } from "../schema/index.ts";
 import { generators, paramIssues } from "./lib/kits/index.ts";
-import { onFloor, surfaceExtent } from "./lib/perspective.ts";
+import { deriveCanvas, placementScale } from "./lib/canvas.ts";
+import { featureSpan, onFloor, surfaceExtent, type Size, type Span } from "./lib/perspective.ts";
 import { pngSize } from "./lib/png.ts";
 
 type Problem = { path: string; message: string };
@@ -162,6 +168,14 @@ for (const file of jsonFiles(AMBIENT)) {
   if (!existsSync(join(root, AMBIENT, value.file))) errors.push({ file, path: "file", message: `${value.file} is missing beside the record` });
 }
 
+const tenths = (n: number) => Math.round(n * 10) / 10;
+
+function outside(stage: Stage, what: string, surface: Surface, span: Span): string[] {
+  const extent = surfaceExtent(stage, surface);
+  return ([["along", span.along, span.w], ["across", span.across, span.h]] as const).flatMap(([axis, start, size]) =>
+    start + size > extent[axis] + 1e-9 ? [`${what} runs outside the ${surface}: ${axis} ${start} to ${tenths(start + size)} of ${Math.floor(extent[axis])}`] : []);
+}
+
 function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pending: Problem[] } {
   const problems: Problem[] = [];
   const pending: Problem[] = [];
@@ -209,6 +223,19 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
           }
         }
       }
+      if (isFeature(p) && plan.stage && layer.kind === "room" && layer.surfaces[p.surface]) {
+        let span: Span | undefined;
+        try {
+          const size: Size | undefined = p.generate ? deriveCanvas(placementScale(plan, layer, p), p.generate) : element;
+          span = size && featureSpan(plan.stage, p, size);
+        } catch (e) {
+          problems.push({ path: at, message: (e as Error).message });
+        }
+        if (span) problems.push(...outside(plan.stage, `Feature ${p.id}`, p.surface, span).map((message) => ({ path: at, message })));
+        if (isProjected(p) && !p.generate && element && !beside(featureFile(p.id))) {
+          pending.push({ path: at, message: `${featureFile(p.id)} is missing beside the plan; run project-features` });
+        }
+      }
       if (p.foot && plan.stage && !onFloor(plan.stage, p.foot)) {
         problems.push({ path: `${at}.foot`, message: `foot ${p.foot.x},${p.foot.y} is outside the floor polygon of the Stage` });
       }
@@ -236,12 +263,7 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
     if (!beside(ROOM_FILE)) pending.push({ path: `layers[${li}]`, message: `${ROOM_FILE} is missing beside the plan; run room-shell` });
     if (!plan.stage) return;
     layer.openings.forEach((o, oi) => {
-      const extent = surfaceExtent(plan.stage!, o.surface);
-      for (const [axis, start, size] of [["along", o.along, o.w], ["across", o.across, o.h]] as const) {
-        if (start + size > extent[axis]) {
-          problems.push({ path: `layers[${li}].openings[${oi}]`, message: `Opening ${o.id} runs outside the ${o.surface}: ${axis} ${start} to ${start + size} of ${Math.floor(extent[axis])}` });
-        }
-      }
+      for (const message of outside(plan.stage!, `Opening ${o.id}`, o.surface, o)) problems.push({ path: `layers[${li}].openings[${oi}]`, message });
     });
   });
 

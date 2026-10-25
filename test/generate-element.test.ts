@@ -772,3 +772,44 @@ for (const [what, generate] of [
     assert.equal(server.requests.length, 0);
   });
 }
+
+const roomStage = { back: { x: 48, y: 26, w: 288, h: 190 }, vanishingPoint: { x: 190, y: 118 }, f: 150 };
+const featureGenerate = (brief: string, w: number, h: number) => ({ kind: "prop", brief, realSize: { w, h }, tags: [brief.split(" ")[0]] });
+
+function roomTree(): string {
+  return tree((plan) => {
+    plan.styleAnchor = null;
+    plan.stage = roomStage;
+    plan.layers.splice(3, 0, { name: "shell", kind: "room", plane: "mid", surfaces: { back: { colour: 2 }, left: { colour: 3 } }, openings: [], placements: [
+      { id: "painting", element: "painting-plain-small-01", surface: "left", along: 4, across: 40, generate: featureGenerate("painting of a harbour, front view, flat on", 0.5, 0.6) },
+      { id: "clock", element: "clock-plain-round-01", surface: "back", along: 100, across: 20, generate: featureGenerate("clock, front view, flat on", 0.5, 0.5) },
+    ] });
+  });
+}
+
+test("--accept on a side-wall Feature writes its projected file into the Scene folder", async () => {
+  const root = roomTree();
+  const library = readdirSync(join(root, "library/elements"));
+  const first = await run(root, "painting");
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  assert.deepEqual(first.json.canvas, { width: 32, height: 36 });
+  const accepted = await run(root, "painting", "--accept", first.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal(accepted.json.projected.file, "scenes/rainy-desk-night-k7f2/features/painting.png");
+  assert.deepEqual(accepted.json.projected.box, { x: 12, y: 53, w: 33, h: 42 });
+  assert.equal(typeof accepted.json.projected.orphans, "number");
+  const png = await sharp(join(root, accepted.json.projected.file)).metadata();
+  assert.deepEqual([png.width, png.height], [33, 42]);
+  assert.deepEqual(readdirSync(join(root, "library/elements")).filter((n) => !library.includes(n)), ["painting-plain-small-01.json", "painting-plain-small-01.png"]);
+});
+
+test("--accept on a back-wall Feature writes no projected file", async () => {
+  const root = roomTree();
+  const first = await run(root, "clock");
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  assert.deepEqual(first.json.canvas, { width: 24, height: 24 });
+  const accepted = await run(root, "clock", "--accept", first.json.scratch.png);
+  assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+  assert.equal("projected" in accepted.json, false);
+  assert.equal(existsSync(join(root, "scenes/rainy-desk-night-k7f2/features")), false);
+});

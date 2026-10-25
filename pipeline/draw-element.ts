@@ -12,6 +12,7 @@ import { main } from "./lib/cli.ts";
 import { loadPalette } from "./lib/element-pixels.ts";
 import { drawLocal, generatorOf } from "./lib/kits/index.ts";
 import { readScene } from "./lib/library.ts";
+import { projectAccepted } from "./lib/features.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
@@ -97,7 +98,7 @@ async function attempt(plan: ScenePlan, { placement, scale }: Found, opts: { gen
   };
 }
 
-function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string) {
+async function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string) {
   const sidecarPath = sidecarOf(attemptPath);
   const attempt = existsSync(attemptPath) && existsSync(sidecarPath) ? (JSON.parse(readFileSync(sidecarPath, "utf8")) as StillAttempt) : null;
   if (!attempt || attempt.service !== "local" || attempt.generator === undefined) throw new Error(`${attemptPath} is not an Attempt written by draw-element`);
@@ -144,6 +145,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   copyFileSync(attemptPath, join(ELEMENTS, `${id}.png`));
   writeFileSync(join(ELEMENTS, `${id}.json`), JSON.stringify(record, null, 2) + "\n");
   charge.commit();
+  const projection = await projectAccepted(process.cwd(), file, placement.id, loadPalette(process.cwd(), plan.palette));
 
   return {
     scene: plan.id,
@@ -154,6 +156,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     record: `${ELEMENTS}/${id}.json`,
     plan: file,
     generationsAdded: charge.generations,
+    ...projection,
   };
 }
 

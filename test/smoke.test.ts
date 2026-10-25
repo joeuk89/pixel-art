@@ -8,6 +8,7 @@ import { extname, join, normalize } from "node:path";
 import sharp from "sharp";
 import { build } from "esbuild";
 import { chromium, devices, type Browser, type BrowserContextOptions, type Page } from "playwright";
+import { posterFrame } from "../pipeline/lib/poster.ts";
 import { SITE_URL } from "../pipeline/lib/site.ts";
 import { editJson, fixturePalette, fixtureScene, makeTree, readJson, repo, runScript, writeJson } from "./helpers.ts";
 
@@ -172,6 +173,28 @@ describe("Viewer smoke test", { skip: browser ? false : "no Playwright browser i
     assert.deepEqual([pixels.width, pixels.height], [384, 240]);
     assert.deepEqual(pixels.first, rgb(palette[1]), "the left wall's colour 3 is two dark steps down under the rainy night");
     assert.ok(pixels.colours > 4, `canvas shows only ${pixels.colours} colours`);
+    assert.deepEqual(errors, []);
+  });
+
+  test("the left-wall painting and the floor rug draw at their projected boxes, as the lit Poster shows them", async () => {
+    const { page, errors } = await open(`scenes/${id}/`);
+    const canvas = page.locator("canvas");
+    await canvas.waitFor();
+    const plan = readJson(root, fixtureScene);
+    const bare = await posterFrame(root, join(root, `scenes/${id}`), { ...plan, layers: plan.layers.map((l: any) => (l.kind === "room" ? { ...l, placements: [] } : l)) });
+    for (const box of [{ x: 12, y: 53, w: 33, h: 42 }, { x: 139, y: 218, w: 89, h: 17 }]) {
+      const drawn = await canvas.evaluate((c: HTMLCanvasElement, r) => Array.from(c.getContext("2d")!.getImageData(r.x, r.y, r.w, r.h).data), box);
+      const poster = await sharp(join(root, `scenes/${id}/poster.png`)).extract({ left: box.x, top: box.y, width: box.w, height: box.h }).raw().toBuffer();
+      assert.deepEqual(drawn, Array.from(poster), `the Feature at ${box.x},${box.y} differs from the lit Poster`);
+      let changed = 0;
+      for (let y = 0; y < box.h; y++) {
+        for (let x = 0; x < box.w; x++) {
+          const d = (y * box.w + x) * 4, b = ((box.y + y) * 384 + box.x + x) * 4;
+          if (drawn[d] !== bare[b] || drawn[d + 1] !== bare[b + 1] || drawn[d + 2] !== bare[b + 2]) changed++;
+        }
+      }
+      assert.ok(changed > (box.w * box.h) / 2, `only ${changed} pixels at ${box.x},${box.y} differ from the Scene drawn without Features`);
+    }
     assert.deepEqual(errors, []);
   });
 
@@ -897,7 +920,7 @@ function rgb(hex: string): number[] {
 }
 
 const FRAME_TIME = `
-import { elementRecordSchema, paletteSchema, scenePlanSchema, allPlacements, roomLayerOf, SCENE_WIDTH, SCENE_HEIGHT } from "./schema/index.ts";
+import { elementRecordSchema, paletteSchema, scenePlanSchema, allPlacements, featureFile, isProjected, roomLayerOf, SCENE_WIDTH, SCENE_HEIGHT } from "./schema/index.ts";
 import { createCompositor, elementPixelsOf } from "./viewer/compositor.ts";
 import { createPrimitives } from "./viewer/primitives.ts";
 
@@ -919,7 +942,9 @@ export async function frameTime(id) {
     elements.set(element, await elementPixelsOf(record, (suffix) => decode("/library/elements/" + element + suffix)));
   }
   const room = roomLayerOf(plan) ? await decode("/scenes/" + id + "/room.png") : undefined;
-  const compositor = createCompositor({ plan, elements, palette, room, primitives: createPrimitives({ plan, elements, palette }) });
+  const features = new Map();
+  for (const p of allPlacements(plan).filter(isProjected)) features.set(p.id, await decode("/scenes/" + id + "/" + featureFile(p.id)));
+  const compositor = createCompositor({ plan, elements, palette, room, features, primitives: createPrimitives({ plan, elements, palette, features }) });
   const ctx = new OffscreenCanvas(SCENE_WIDTH, SCENE_HEIGHT).getContext("2d");
   const draw = (t) => ctx.putImageData(new ImageData(compositor.render(t), SCENE_WIDTH, SCENE_HEIGHT), 0, 0);
   for (let k = 0; k < 6; k++) draw(k * 1000 / 24);

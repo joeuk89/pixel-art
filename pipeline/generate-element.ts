@@ -14,6 +14,7 @@ import {
   addMetered, attemptNumbers, attemptStem, attemptTaken, chargeStillAttempts, claimAttempt, freeElementId, logAbandoned, rawPlacement, sidecarOf, stillAttemptsDir,
   type Abandoned, type StillAttempt,
 } from "./lib/attempts.ts";
+import { projectAccepted } from "./lib/features.ts";
 import { editPlan } from "./lib/plan-file.ts";
 import { gateStill, upscaleFactor } from "./lib/quality-gate.ts";
 
@@ -134,7 +135,7 @@ function checkAnchor(placement: Placement, canvas: { width: number; height: numb
   }
 }
 
-function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean) {
+async function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath: string, asAnchor: boolean) {
   if (!existsSync(attemptPath) || !existsSync(sidecarOf(attemptPath))) throw new Error(`${attemptPath} is not an Attempt written by generate-element`);
   const attempt = JSON.parse(readFileSync(sidecarOf(attemptPath), "utf8")) as StillAttempt;
   if (attempt.service === "local") throw new Error(`${attemptPath} was drawn by draw-element; accept it with draw-element`);
@@ -185,6 +186,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
   copyFileSync(attemptPath, join(ELEMENTS, `${id}.png`));
   writeFileSync(join(ELEMENTS, `${id}.json`), JSON.stringify(record, null, 2) + "\n");
   charge.commit();
+  const projection = await projectAccepted(process.cwd(), file, placement.id, loadPalette(process.cwd(), plan.palette));
 
   return {
     scene: plan.id,
@@ -197,6 +199,7 @@ function accept(file: string, plan: ScenePlan, placement: Placement, attemptPath
     generationsAdded: charge.generations,
     ...(asAnchor ? { styleAnchor: id } : {}),
     ...(generate.kind === "prop" && generate.strip ? { stripRequested: generate.strip } : {}),
+    ...projection,
   };
 }
 
