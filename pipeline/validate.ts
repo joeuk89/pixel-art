@@ -224,9 +224,9 @@ function checkScene(file: string, plan: ScenePlan): { problems: Problem[]; pendi
         }
       }
       if (isFeature(p) && plan.stage && layer.kind === "room" && layer.surfaces[p.surface]) {
-        const size: Size | undefined = p.generate ? deriveCanvas(placementScale(plan, layer, p), p.generate) : element;
         let span: Span | undefined;
         try {
+          const size: Size | undefined = p.generate ? deriveCanvas(placementScale(plan, layer, p), p.generate) : element;
           span = size && featureSpan(plan.stage, p, size);
         } catch (e) {
           problems.push({ path: at, message: (e as Error).message });

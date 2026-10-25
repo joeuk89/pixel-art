@@ -762,6 +762,16 @@ test("an unresolved Feature is checked at its derived canvas, not the Element it
   failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1]`, /Feature rug runs outside the floor: across 12 to 33\.7 of 29/);
 });
 
+test("an unresolved Feature that reaches past the viewing distance is a problem in the report, not a crash", () => {
+  const root = makeTree();
+  editFeature(root, 1, (f, plan) => {
+    plan.status = "draft";
+    f.across = 20;
+    f.generate = { kind: "prop", brief: "long runner rug, front view, flat on", realSize: { w: 1, h: 3 }, tags: ["rug"] };
+  });
+  failsWith(validate(root), fixtureScene, `layers[${ROOM}].placements[1]`, /Feature rug reaches \d+ px deep on the floor, past the viewing distance of 150/);
+});
+
 test("a resolved Scene missing a projected Feature's file fails, and a draft one lists it as pending", () => {
   const root = makeTree();
   rmSync(join(root, sceneDir, "features/rug.png"));
