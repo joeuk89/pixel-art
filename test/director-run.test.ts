@@ -39,7 +39,7 @@ const draft = {
         { id: "painting", element: "painting-harbour-dusk-01", surface: "left", along: 4, across: 40,
           generate: { kind: "prop", brief: "framed painting of a harbour at dusk, front view, flat on", realSize: { w: 0.6, h: 0.7 }, tags: ["painting"] } }] },
     { name: "room", kind: "placements", plane: "mid", placements: [
-      { id: "lamp", element: "lamp-brass-floor-01", foot: { x: 120, y: 230 },
+      { id: "lamp", element: "lamp-brass-floor-01", foot: { x: 124, y: 230 },
         generate: { kind: "prop", brief: "brass floor lamp with a linen shade", realSize: { w: 0.5, h: 1.4 }, tags: ["lamp"] } },
       { id: "desk", element: "desk-oak-plain-01", foot: { x: 200, y: 224 },
         generate: { kind: "prop", brief: "plain oak desk with two drawers, front view", realSize: { w: 1.2, h: 0.75 }, tags: ["desk"], finish: "local", generator: "box", params: { fill: 13, top: 12, drawers: 2 } } },
