@@ -150,14 +150,14 @@ test("poster fails with a JSON error when the Scene plan does not parse", () => 
   assert.equal(JSON.parse(stdout).ok, false);
 });
 
-test("adding all eight Primitives to the plan leaves the Poster and its Open Graph copy byte-identical", () => {
+test("adding all nine Primitives to the plan leaves the Poster and its Open Graph copy byte-identical", () => {
   const root = makeTree();
   const files = () => [readFileSync(join(root, sceneDir, "poster.png")), readFileSync(join(root, sceneDir, "poster-og.png"))];
   editJson(root, fixtureScene, (plan) => { plan.primitives = []; });
   assert.equal(poster(root, fixtureScene).code, 0);
   const without = files();
   editJson(root, fixtureScene, (plan) => { plan.primitives = readJson(join(fixtures, "primitives"), "scene.json").primitives; });
-  assert.equal(readJson(root, fixtureScene).primitives.length, 8);
+  assert.equal(readJson(root, fixtureScene).primitives.length, 9);
   assert.equal(poster(root, fixtureScene).code, 0);
   assert.deepEqual(files(), without);
 });

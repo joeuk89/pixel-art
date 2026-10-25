@@ -389,6 +389,37 @@ function birds(p: Of<"birds">, ctx: Context): PrimitiveDraw {
   };
 }
 
+function pendulum(p: Of<"pendulum">, ctx: Context): PrimitiveDraw {
+  const { seed, salt, colours: c } = ctx;
+  const { region, pivot, length, bob, period } = p;
+  const [rod, weight, highlight] = p.colours;
+  const amplitude = (p.amplitude * Math.PI) / 180;
+  const phase = random(seed, salt, 0, 0, 0);
+  const bobAt = (timeMs: number) => {
+    const angle = amplitude * Math.sin(2 * Math.PI * (step(timeMs, PROP_FPS) / PROP_FPS / period + phase));
+    return { x: Math.round(length * Math.sin(angle)), y: Math.round(length * Math.cos(angle)) };
+  };
+  return {
+    after: ctx.anchor(p.anchor).layer,
+    fps: PROP_FPS,
+    state(timeMs) {
+      const { x, y } = bobAt(timeMs);
+      return 1 + (x + 256) + ((y + 256) << 10);
+    },
+    draw(out, timeMs) {
+      const { x: bx, y: by } = bobAt(timeMs);
+      for (let dy = 0; dy <= by; dy++) plotIn(out, c, region, pivot.x + Math.round((dy * bx) / by), pivot.y + dy, rod);
+      for (let dy = -bob; dy <= bob; dy++) {
+        for (let dx = -bob; dx <= bob; dx++) {
+          if (dx * dx + dy * dy > bob * bob + bob * 0.5) continue;
+          plotIn(out, c, region, pivot.x + bx + dx, pivot.y + by + dy, weight);
+        }
+      }
+      if (highlight !== undefined && bob >= 2) plotIn(out, c, region, pivot.x + bx - 1, pivot.y + by - 1, highlight);
+    },
+  };
+}
+
 export function createPrimitives({ plan, elements, palette, seed = plan.seed, variant = plan.variants[0], features = new Map() }: PrimitivesInput): PrimitiveDraw[] {
   const colours = coloursOf(palette);
   const placements = new Map<string, { placement: Placement; layer: number }>();
@@ -423,5 +454,6 @@ function drawOf(primitive: Primitive, ctx: Context): PrimitiveDraw {
     case "dust": return dust(primitive, ctx);
     case "sway": return sway(primitive, ctx);
     case "birds": return birds(primitive, ctx);
+    case "pendulum": return pendulum(primitive, ctx);
   }
 }

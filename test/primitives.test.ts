@@ -13,7 +13,7 @@ const palette = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixtu
 const paletteRgb = new Set<number>(palette.colours.map((hex: string) => parseInt(hex.slice(1), 16)));
 const catalogue: ScenePlan = scenePlanSchema.parse(JSON.parse(readFileSync(join(fixtures, "primitives/scene.json"), "utf8")));
 const elements = await loadElementPixels(fixtures, catalogue);
-const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds"] as const;
+const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum"] as const;
 const TIMES = Array.from({ length: 60 }, (_, k) => k * 137);
 
 function only(type: string): Primitive[] {
@@ -139,8 +139,9 @@ for (const [type, fps, idles] of [["sway", PROP_FPS, false], ["birds", WEATHER_F
 }
 
 const windowAt = allPlacements(catalogue).find((p) => p.id === "window")!;
-const [twinkleOf, blinkOf] = [only("twinkle")[0], only("blink")[0]];
+const [twinkleOf, blinkOf, pendulumOf] = [only("twinkle")[0], only("blink")[0], only("pendulum")[0]];
 const exactCases: [string, Primitive, boolean][] = [
+  ["pendulum", pendulumOf, true],
   ["blink", blinkOf, true],
   ["twinkle", twinkleOf, true],
   ["twinkle with one light at a time", { ...twinkleOf, count: 1 } as Primitive, true],
@@ -289,6 +290,40 @@ test("birds draw nothing at time 0, fly inside their region, and cross it now an
   assert.ok(present > 0 && present < times.length, `birds were present at ${present} of ${times.length} times`);
 });
 
+test("pendulum swings a straight rod and its bob about the pivot, inside its region, in its colours, once per period", () => {
+  const pendulum = pendulumOf as Extract<Primitive, { type: "pendulum" }>;
+  const [rod, ...bob] = pendulum.colours.map((i) => palette.colours[i]);
+  const { pivot, length, amplitude, period } = pendulum;
+  const reach = length * Math.sin((amplitude * Math.PI) / 180);
+  const c = stillScene([pendulum]);
+  const times = Array.from({ length: period * PROP_FPS }, (_, k) => k * 100);
+  const leans: number[] = [];
+  for (const t of times) {
+    const out = c.render(t);
+    const rods: number[] = [], bobs: number[] = [];
+    for (const pixel of changedPixels([pendulum], [t])) {
+      assert.ok(inRegion(pixel, pendulum.region), `pendulum at ${pixel % W},${Math.floor(pixel / W)} is outside its region`);
+      const hex = hexAt(out, pixel);
+      assert.ok(hex === rod || bob.includes(hex), `pendulum painted ${hex}, not one of its colours`);
+      (hex === rod ? rods : bobs).push(pixel);
+    }
+    assert.ok(rods.length > 0 && bobs.length > 0, `no rod or bob at ${t} ms`);
+    const bx = bobs.reduce((a, p) => a + (p % W), 0) / bobs.length;
+    const by = bobs.reduce((a, p) => a + Math.floor(p / W), 0) / bobs.length;
+    assert.ok(Math.abs(Math.hypot(bx - pivot.x, by - pivot.y) - length) <= 1.5, `bob at ${bx},${by} is not ${length} px from the pivot`);
+    for (const pixel of rods) {
+      const x = pixel % W, y = Math.floor(pixel / W);
+      const along = ((x - pivot.x) * (bx - pivot.x) + (y - pivot.y) * (by - pivot.y)) / (length * length);
+      const off = Math.abs((x - pivot.x) * (by - pivot.y) - (y - pivot.y) * (bx - pivot.x)) / Math.hypot(bx - pivot.x, by - pivot.y);
+      assert.ok(along >= -0.05 && along <= 1.05 && off <= 1, `rod pixel ${x},${y} bends off the line from the pivot to the bob`);
+    }
+    leans.push(bx - pivot.x);
+    assert.ok(Buffer.from(out).equals(Buffer.from(c.render(t + period * 1000))), `the swing does not repeat after ${period} s`);
+  }
+  assert.ok(Math.min(...leans) <= -reach + 1 && Math.max(...leans) >= reach - 1, `bob leaned only ${Math.min(...leans)} to ${Math.max(...leans)} px`);
+  assert.ok(leans.every((lean) => Math.abs(lean) <= reach + 1), "bob swung past its amplitude");
+});
+
 test("a Primitive anchored to a missing Placement fails with its index and anchor", () => {
   const plan = { ...catalogue, primitives: [{ ...only("steam")[0], anchor: "teapot" } as Primitive] };
   assert.throws(() => createPrimitives({ plan, elements, palette }), /Primitive 0 \(steam\): no Placement teapot/);
@@ -308,7 +343,7 @@ test("the Primitives module bundles for a neutral platform and draws where no No
   const draws = sandbox.primitives.createPrimitives({ plan: catalogue, elements, palette });
   const out = new Uint8ClampedArray(W * SCENE_HEIGHT * 4);
   for (const d of draws) d.draw(out, 500);
-  assert.equal(draws.length, 8);
+  assert.equal(draws.length, 9);
 });
 
 test("a Variant draws the base Primitives plus its own, and the base alone under a Variant that adds none", () => {

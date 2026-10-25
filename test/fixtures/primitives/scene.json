@@ -29,7 +29,8 @@
     { "type": "blink", "emissive": true, "anchor": "window", "swaps": [[10, 14]], "rate": 2, "longShare": 0.4, "longFrames": [3, 6] },
     { "type": "dust", "emissive": false, "region": { "x": 40, "y": 140, "w": 80, "h": 60 }, "colours": [13, 12], "count": 12 },
     { "type": "sway", "emissive": false, "anchor": "stars", "region": { "x": 0, "y": 0, "w": 96, "h": 32 }, "colours": [7], "amplitude": 1, "rate": 0.5 },
-    { "type": "birds", "emissive": false, "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 140, "h": 60 }, "colours": [0], "count": 3, "every": [6, 8] }
+    { "type": "birds", "emissive": false, "anchor": "skyline", "region": { "x": 0, "y": 0, "w": 140, "h": 60 }, "colours": [0], "count": 3, "every": [6, 8] },
+    { "type": "pendulum", "emissive": false, "anchor": "window", "region": { "x": 230, "y": 60, "w": 16, "h": 28 }, "pivot": { "x": 238, "y": 61 }, "colours": [13, 9, 8], "length": 20, "bob": 3, "amplitude": 12, "period": 2 }
   ],
   "variants": [
     { "id": "night", "title": "Night", "ambient": { "level": 0, "layers": { "sky": 0, "stars": 0, "city": 0 } }, "lights": [], "emissiveOff": [] }

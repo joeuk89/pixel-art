@@ -242,6 +242,24 @@ export const primitiveSchema = z.discriminatedUnion("type", [
       .refine(([min, max]) => min <= max, "min must not exceed max")
       .default([12, 30]),
   }),
+  z.strictObject({
+    type: z.literal("pendulum"),
+    emissive: litByDefault,
+    anchor: slug,
+    region,
+    // The Scene point the rod hangs from.
+    pivot: point,
+    // Rod, then bob, then an optional bob highlight.
+    colours: colours.max(3),
+    // Pixels from the pivot to the bob's centre.
+    length: int.positive().default(16),
+    // The bob's radius in pixels.
+    bob: int.min(1).default(2),
+    // Degrees either side of straight down.
+    amplitude: z.number().positive().max(45).default(12),
+    // Seconds for a swing there and back.
+    period: z.number().positive().default(2),
+  }),
 ]);
 
 const soundSource = z.discriminatedUnion("kind", [

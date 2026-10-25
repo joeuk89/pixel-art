@@ -19,15 +19,15 @@ function errorsFor(root: string): any[] {
   return validate(root).report.errors.filter((e: any) => e.file === SCENE);
 }
 
-test("validate accepts all eight Primitives with every parameter set", () => {
+test("validate accepts all nine Primitives with every parameter set", () => {
   const root = treeWith();
   const { code, report } = validate(root);
   assert.deepEqual(report.errors, []);
   assert.equal(code, 0);
-  assert.deepEqual(catalogue().primitives.map((p: any) => p.type), ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds"]);
+  assert.deepEqual(catalogue().primitives.map((p: any) => p.type), ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum"]);
 });
 
-test("validate accepts all eight Primitives with only their required parameters", () => {
+test("validate accepts all nine Primitives with only their required parameters", () => {
   const required: Record<string, string[]> = {
     rain: ["type", "region", "colours"],
     snow: ["type", "region", "colours"],
@@ -37,6 +37,7 @@ test("validate accepts all eight Primitives with only their required parameters"
     dust: ["type", "region", "colours"],
     sway: ["type", "anchor", "region", "colours"],
     birds: ["type", "region", "colours"],
+    pendulum: ["type", "anchor", "region", "pivot", "colours"],
   };
   const root = treeWith((plan) => {
     plan.primitives = plan.primitives.map((p: any) => Object.fromEntries(required[p.type].map((k) => [k, p[k]])));
@@ -49,7 +50,7 @@ test("validate accepts all eight Primitives with only their required parameters"
 test("validate rejects an unknown Primitive type", () => {
   const root = treeWith((plan) => plan.primitives.push({ type: "fog", region: { x: 0, y: 0, w: 10, h: 10 }, colours: [1] }));
   assert.equal(validate(root).code, 1);
-  assert.ok(errorsFor(root).some((e) => e.path === "primitives[8].type"), JSON.stringify(errorsFor(root)));
+  assert.ok(errorsFor(root).some((e) => e.path === "primitives[9].type"), JSON.stringify(errorsFor(root)));
 });
 
 test("a Primitive anchored to a Placement the plan does not have keeps a draft pending and fails a resolved Scene", () => {
@@ -88,7 +89,7 @@ test("validate rejects blink longFrames whose minimum exceeds its maximum", () =
 
 test("each Primitive type defaults emissive as the spec sets it, and an explicit value overrides it", () => {
   const expected: Record<string, boolean> = {
-    rain: false, snow: false, steam: true, twinkle: true, blink: true, dust: false, sway: false, birds: false,
+    rain: false, snow: false, steam: true, twinkle: true, blink: true, dust: false, sway: false, birds: false, pendulum: false,
   };
   for (const primitive of catalogue().primitives) {
     const { emissive: _, ...bare } = primitive;
