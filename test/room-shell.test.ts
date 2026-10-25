@@ -89,6 +89,20 @@ test("an Opening is cut transparent, with its frame and mullion drawn in the fra
   assert.deepEqual(at(130, 80), opaque(2), "wall beside the Opening");
 });
 
+test("a round Opening is cut as the circle inside its box, with a ring frame and crossed mullions", async () => {
+  const window = { id: "oculus", surface: "back", shape: "round", along: 100, across: 40, w: 60, h: 60, frame: { width: 3, colour: 8, mullionsAcross: 1, mullionsDown: 1 } };
+  const { at } = await shell(sceneWithRoom({ openings: [window] }));
+  // The box spans x 136 to 195 and y 58 to 117, so the circle is centred on (166, 88) with radius 30.
+  assert.deepEqual(at(152, 74), CLEAR, "upper-left pane");
+  assert.deepEqual(at(180, 102), CLEAR, "lower-right pane");
+  assert.deepEqual(at(137, 88), opaque(8), "ring at the left");
+  assert.deepEqual(at(166, 59), opaque(8), "ring at the top");
+  assert.deepEqual(at(165, 74), opaque(8), "upright mullion");
+  assert.deepEqual(at(152, 88), opaque(8), "crossbar");
+  assert.deepEqual(at(138, 60), opaque(2), "wall in the box's corner, outside the circle");
+  assert.deepEqual(at(134, 88), opaque(2), "wall beside the Opening");
+});
+
 test("two runs on the same plan write byte-identical room.png files", async () => {
   const lined = { ...FLAT, floor: { colour: 11, lines: { pattern: "boards", spacing: 12 } }, ceiling: { colour: 1, lines: { pattern: "coffers", spacing: 40 } }, right: { colour: 14, lines: { pattern: "grid", spacing: 16 }, skirting: { height: 4, colour: 0 } } };
   const root = sceneWithRoom({ surfaces: lined, openings: [{ id: "window", surface: "back", along: 24, across: 0, w: 264, h: 148, frame: { width: 3, colour: 1, mullionsAcross: 2, mullionsDown: 0 } }] });

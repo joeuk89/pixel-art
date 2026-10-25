@@ -10,11 +10,21 @@ const STAGGER = (row: number) => ((row * 23 + 7) % 64) / 64;
 const PLAIN = 1, TRIM = 2;
 type Line = { from: [number, number]; to: [number, number] };
 
+// Squared distance from the centre of a round Opening, where 1 is its edge less `inset` px.
+function roundDistance(o: Opening, along: number, across: number, inset = 0): number {
+  const rx = o.w / 2 - inset, ry = o.h / 2 - inset;
+  const dx = (along - o.along - o.w / 2) / rx, dy = (across - o.across - o.h / 2) / ry;
+  return dx * dx + dy * dy;
+}
+
 function inFrame(o: Opening, along: number, across: number): boolean {
   if (!o.frame) return false;
   const { width, mullionsAcross, mullionsDown } = o.frame;
   const a = along - o.along, c = across - o.across;
-  if (a < width || a >= o.w - width || c < width || c >= o.h - width) return true;
+  const onEdge = o.shape === "round"
+    ? roundDistance(o, along, across, width) > 1
+    : a < width || a >= o.w - width || c < width || c >= o.h - width;
+  if (onEdge) return true;
   const onBar = (at: number, span: number, bars: number) => {
     const pane = (span - 2 * width - bars * width) / (bars + 1);
     for (let i = 0; i < bars; i++) {
@@ -27,7 +37,8 @@ function inFrame(o: Opening, along: number, across: number): boolean {
 }
 
 const inside = (o: Opening, along: number, across: number) =>
-  along >= o.along && along < o.along + o.w && across >= o.across && across < o.across + o.h;
+  along >= o.along && along < o.along + o.w && across >= o.across && across < o.across + o.h &&
+  (o.shape !== "round" || roundDistance(o, along, across) <= 1);
 
 function* bresenham([x0, y0]: [number, number], [x1, y1]: [number, number]): Generator<[number, number]> {
   x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);

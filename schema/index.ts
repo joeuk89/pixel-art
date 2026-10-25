@@ -150,6 +150,8 @@ const surfaceStyle = z.strictObject({
 const opening = z.strictObject({
   id: slug,
   surface: surfaceSchema,
+  // A round Opening is the ellipse inscribed in its w by h box; the Backdrop behind it still fills the whole box.
+  shape: z.enum(["rect", "round"]).optional(),
   along: int.min(0),
   across: int.min(0),
   w: int.positive(),
