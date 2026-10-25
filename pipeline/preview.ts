@@ -6,7 +6,7 @@ import { main } from "./lib/cli.ts";
 import { hardChecks } from "./lib/hard-checks.ts";
 import { readElements, readScene } from "./lib/library.ts";
 import { editPlan } from "./lib/plan-file.ts";
-import { DEV_URL } from "./lib/site.ts";
+import { DEV_URL, TUNER_URL } from "./lib/site.ts";
 import { allPlacements, type ScenePlan } from "../schema/index.ts";
 
 const root = process.cwd();
@@ -84,6 +84,7 @@ async function preview(file: string) {
     scene: plan.id,
     previewUrl: `${DEV_URL}scenes/${plan.id}/`,
     devServer: { url: DEV_URL, listening: await listening(DEV_URL) },
+    tuner: { url: TUNER_URL, command: `node pipeline/tune.ts ${relative(root, planPath)}` },
     staged,
     cost: plan.cost,
     ledger: ledger(plan),
