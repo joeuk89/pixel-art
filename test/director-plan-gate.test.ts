@@ -25,8 +25,8 @@ test("the penthouse dry run stops at the Plan gate with a valid v2 draft plan", 
   assert.equal(draft.cost.pixellabGenerations, 0, "no spend before the gate");
 });
 
-test("its Stage is derive-stage's at 1.25x, because the focal point is the back-wall window", () => {
-  const { code, out, stderr } = runScript(makeTree(), "derive-stage", ...SPACE, "--zoom", "1.25");
+test("its Stage is derive-stage's at 1.0x, because the focal point is the back-wall window", () => {
+  const { code, out, stderr } = runScript(makeTree(), "derive-stage", ...SPACE, "--zoom", "1");
   assert.equal(code, 0, stderr);
   assert.deepEqual(draft.stage, out.stage);
   assert.equal(draft.scale, out.scale);
@@ -76,7 +76,7 @@ test("derive-canvas gives the gate depth-derived canvases, the hero prop at 48 t
   assert.deepEqual(canvas.lamp, { width: 32, height: 104 });
   assert.deepEqual(canvas.armchair, { width: 68, height: 72 });
   assert.deepEqual(canvas["side-table"], { width: 40, height: 44 });
-  assert.deepEqual(canvas.city, { width: 256, height: 148 });
+  assert.deepEqual(canvas.city, { width: 204, height: 116 });
   assert.deepEqual(out.finishOffer.eligible.map((e: any) => [e.placement, e.service]), [["side-table", { generations: 5, usd: 0.024 }]]);
   assert.deepEqual(out.finishOffer.saving, { generations: 5, usd: 0.024, gbp: 0.0185 });
 });

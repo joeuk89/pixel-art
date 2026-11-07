@@ -223,7 +223,7 @@ test("Decompose reads staging.md and Lighting reads lighting.md", () => {
 });
 
 const RULES: [string, RegExp][] = [
-  ["the zoom rule", /zoom 1\.0, or 1\.25 when the focal point sits on the back wall/],
+  ["the zoom rule", /zoom 0\.8 so the side walls show, or 1\.0 when the focal point sits on the back wall/],
   ["the zoom ceiling", /never above 1\.5/],
   ["the Layer count", /three to six Layers/i],
   ["a room box or a doorway", /a `room` Layer or a doorway/],

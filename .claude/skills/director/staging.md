@@ -6,7 +6,7 @@ A v2 Scene is a space the viewer stands in. The Stage gives it depth: a back rec
 
 Run `node pipeline/derive-stage.ts --room <w>x<h>x<d> --eye <m> --zoom <z>` with the Concept's space and eye height; outdoors, add `--outdoors` and pass the ground width and depth with the horizon height as `h`. Copy its `stage` and `scale` into the plan unchanged.
 
-Use zoom 1.0, or 1.25 when the focal point sits on the back wall (an Opening or a back-wall Feature), so it leads; never above 1.5. At 1.0 the back wall fills the canvas width, so side walls show only below 1.0. When side walls show, keep each at least 12 px wide at the canvas edge. The owner can try other zooms later in the Tuner.
+Indoors, use zoom 0.8 so the side walls show, or 1.0 when the focal point sits on the back wall (an Opening or a back-wall Feature), so it leads. Outdoors, use 1.0. Indoors or out, never above 1.5. At 1.0 the back wall fills the canvas width, so side walls show only below 1.0. When side walls show, keep each at least 12 px wide at the canvas edge. The owner can try other zooms later in the Tuner.
 
 ## Layers across the Planes
 
