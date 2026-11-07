@@ -164,22 +164,96 @@
       "speed": 2
     },
     {
-      "type": "sway",
+      "type": "garland",
       "anchor": "plant",
       "region": {
         "x": 0,
-        "y": 86,
-        "w": 50,
-        "h": 120
+        "y": 100,
+        "w": 40,
+        "h": 84
       },
-      "colours": [
-        4,
-        5,
-        13,
-        14
+      "strands": [
+        [
+          {
+            "x": 10,
+            "y": 105
+          },
+          {
+            "x": 22,
+            "y": 109
+          },
+          {
+            "x": 4,
+            "y": 124
+          },
+          {
+            "x": 27,
+            "y": 128
+          },
+          {
+            "x": 3,
+            "y": 140
+          }
+        ],
+        [
+          {
+            "x": 33,
+            "y": 141
+          },
+          {
+            "x": 8,
+            "y": 150
+          },
+          {
+            "x": 33,
+            "y": 158
+          },
+          {
+            "x": 4,
+            "y": 172
+          },
+          {
+            "x": 28,
+            "y": 175
+          }
+        ]
       ],
-      "amplitude": 1,
-      "rate": 0.2
+      "spacing": 3,
+      "colours": [
+        8,
+        9,
+        7,
+        12
+      ],
+      "wire": 2,
+      "baubles": [
+        {
+          "x": 6,
+          "y": 112,
+          "colour": 10
+        },
+        {
+          "x": 13,
+          "y": 131,
+          "colour": 14
+        },
+        {
+          "x": 24,
+          "y": 136,
+          "colour": 10
+        },
+        {
+          "x": 18,
+          "y": 159,
+          "colour": 10
+        },
+        {
+          "x": 14,
+          "y": 179,
+          "colour": 10
+        }
+      ],
+      "highlight": 12
     }
   ],
   "variants": [
@@ -193,39 +267,9 @@
         }
       },
       "lights": [
-        {
-          "type": "point",
-          "id": "lamp-light",
-          "anchor": "lamp",
-          "offset": {
-            "x": 14,
-            "y": 20
-          },
-          "radius": 148,
-          "strength": 2.5,
-          "tint": "warm",
-          "flicker": {
-            "depth": 0.1,
-            "rate": 0.8
-          },
-          "halo": {
-            "colour": 8,
-            "radius": 30,
-            "strength": 0.4
-          }
-        },
-        {
-          "type": "point",
-          "id": "window-spill",
-          "at": {
-            "x": 192,
-            "y": 111
-          },
-          "radius": 384,
-          "strength": 0.75,
-          "tint": "cool"
-        }
-      ],
+        { "type": "point", "id": "lamp-light", "anchor": "lamp", "offset": { "x": 14, "y": 20 }, "radius": 148, "strength": 2.25, "tint": "warm", "halo": { "colour": 8, "radius": 30, "strength": 0.35 } },
+        { "type": "point", "id": "window-spill", "at": { "x": 192, "y": 111 }, "radius": 384, "strength": 0.75, "tint": "cool" },
+        { "type": "point", "id": "fairy-lights", "anchor": "plant", "offset": { "x": 36, "y": 54 }, "radius": 40, "strength": -0.25, "tint": "warm", "halo": { "colour": 8, "radius": 10, "strength": 0.15 } } ],
       "primitives": [
         {
           "type": "rain",
@@ -306,10 +350,13 @@
             },
             "file": "thunder.ogg",
             "distance": "far",
-            "every": [
-              70,
-              160
-            ]
+            "follows": {
+              "primitive": "flash",
+              "delay": [
+                1,
+                4
+              ]
+            }
           }
         ]
       },
@@ -356,6 +403,23 @@
           "radius": 384,
           "strength": 1,
           "tint": "cool"
+        },
+        {
+          "type": "point",
+          "id": "fairy-lights",
+          "anchor": "plant",
+          "offset": {
+            "x": 36,
+            "y": 54
+          },
+          "radius": 40,
+          "strength": 0.75,
+          "tint": "warm",
+          "halo": {
+            "colour": 8,
+            "radius": 10,
+            "strength": 0.15
+          }
         }
       ],
       "emissiveOff": []
