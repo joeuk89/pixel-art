@@ -1,0 +1,51 @@
+{
+  "id": "plant-fiddle-leaf-fig-01",
+  "subject": "plant",
+  "tags": [
+    "plant",
+    "fiddle leaf fig",
+    "pot",
+    "interior",
+    "modern"
+  ],
+  "brief": "tall fiddle leaf fig in a matte black pot, broad dark green leaves, upright, front view, warm light from the right",
+  "prompt": "tall fiddle leaf fig in a matte black pot, broad dark green leaves, upright, front view, warm light from the right",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true,
+    "style_options": {
+      "color_palette": true,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 1898541269,
+  "palette": "cosy-night-v2",
+  "styleAnchor": "armchair-leather-lounge-back-01",
+  "createdAt": "2026-11-07T18:19:09.382Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 6,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 64,
+  "height": 152,
+  "realSize": {
+    "w": 0.8,
+    "h": 1.9
+  },
+  "transparent": true
+}

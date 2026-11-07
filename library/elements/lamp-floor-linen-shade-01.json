@@ -1,0 +1,46 @@
+{
+  "id": "lamp-floor-linen-shade-01",
+  "subject": "lamp",
+  "tags": [
+    "lamp",
+    "floor lamp",
+    "linen",
+    "modern",
+    "interior",
+    "night"
+  ],
+  "brief": "tall floor lamp, slim black metal stand, cream linen drum shade, round base, front view, warm light from the shade above",
+  "prompt": "tall floor lamp, slim black metal stand, cream linen drum shade, round base, front view, warm light from the shade above",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1732398863,
+  "palette": "cosy-night-v2",
+  "styleAnchor": null,
+  "createdAt": "2026-11-07T18:18:12.648Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 28,
+  "height": 96,
+  "realSize": {
+    "w": 0.45,
+    "h": 1.6
+  },
+  "transparent": true
+}

@@ -1,0 +1,55 @@
+{
+  "id": "backdrop-city-river-night-01",
+  "subject": "backdrop",
+  "tags": [
+    "city",
+    "skyline",
+    "river",
+    "boats",
+    "night",
+    "backdrop",
+    "view"
+  ],
+  "brief": "night city seen from high above, many towers and blocks of varied heights and shapes, small yellow and pale blue windows, a wide dark river winding across the lower half with a few small boats on it, a bridge, dark cloudy sky across the top half, horizon at the middle, fills the whole canvas edge to edge",
+  "prompt": "night city seen from high above, many towers and blocks of varied heights and shapes, small yellow and pale blue windows, a wide dark river winding across the lower half with a few small boats on it, a bridge, dark cloudy sky across the top half, horizon at the middle, fills the whole canvas edge to edge",
+  "service": "pixellab",
+  "model": "generate-image-v2",
+  "params": {
+    "no_background": false,
+    "style_options": {
+      "color_palette": false,
+      "outline": true,
+      "detail": true,
+      "shading": true
+    }
+  },
+  "seed": 1084778249,
+  "palette": "cosy-night-v2",
+  "styleAnchor": "armchair-leather-lounge-back-01",
+  "createdAt": "2026-11-07T18:18:12.519Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 10,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 1,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "opaque"
+    ],
+    "warnings": []
+  },
+  "emissive": [
+    12,
+    13,
+    7
+  ],
+  "emissiveMask": true,
+  "kind": "backdrop",
+  "width": 384,
+  "height": 140,
+  "transparent": false
+}

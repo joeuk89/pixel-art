@@ -1,0 +1,46 @@
+{
+  "id": "table-side-round-whisky-01",
+  "subject": "table",
+  "tags": [
+    "table",
+    "side table",
+    "whisky",
+    "glass",
+    "modern",
+    "interior"
+  ],
+  "brief": "small round side table, black metal, with a crystal tumbler of whisky and a closed book on top, front view, warm light from the left",
+  "prompt": "small round side table, black metal, with a crystal tumbler of whisky and a closed book on top, front view, warm light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 1592437290,
+  "palette": "cosy-night-v2",
+  "styleAnchor": null,
+  "createdAt": "2026-11-07T18:18:12.774Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 2,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 32,
+  "height": 36,
+  "realSize": {
+    "w": 0.45,
+    "h": 0.55
+  },
+  "transparent": true
+}

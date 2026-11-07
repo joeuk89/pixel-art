@@ -1,0 +1,48 @@
+{
+  "id": "rug-wool-plum-bordered-01",
+  "subject": "rug",
+  "tags": [
+    "rug",
+    "wool",
+    "modern",
+    "floor",
+    "interior"
+  ],
+  "brief": "rectangular wool rug, deep plum with a thin cream border, plain modern weave",
+  "prompt": "rectangular wool rug, deep plum with a thin cream border, plain modern weave",
+  "service": "local",
+  "model": "kit/rect",
+  "params": {
+    "fill": 2,
+    "border": 12,
+    "borderWidth": 2
+  },
+  "seed": null,
+  "palette": "cosy-night-v2",
+  "styleAnchor": null,
+  "createdAt": "2026-11-07T18:41:02.112Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 0,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 5,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "generator": "rect",
+  "kind": "prop",
+  "width": 176,
+  "height": 84,
+  "realSize": {
+    "w": 2.4,
+    "h": 1.1
+  },
+  "transparent": true
+}

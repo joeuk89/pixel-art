@@ -1,0 +1,404 @@
+{
+  "schemaVersion": 2,
+  "id": "penthouse-rain-city-night-1x66",
+  "title": "Top of the Tower",
+  "prompt": "View from the inside of a luxury, penthouse apartment, looking out to the huge floor to ceiling windows at the night sky, and the incredible city scape - include a variety of buildings, and a river dotted with boats ect.\n\nThe inside of the apartment it is cosy and modern. It is dark in the apartment apart from a lamp that lets out a gentle warm glow. The vibe is moody, atmospheric - it's raining hard outside, and you can hear the wind this high up buffeting the tallest building in the city that you're at the top of.\n\n---\n\nFeel free to add/tweak to this - those are my ideas so far. I want something moody, a bit melancholy - kind of like a modern 'lonely king' at the top of the tower feel",
+  "description": "At the top of the city's tallest tower, a dark penthouse looks out through a wall of glass over a city of towers and a river where small boats drift past. Rain runs down the glass and lightning flickers behind the clouds as the wind buffets the tower. Inside, one floor lamp throws a gentle warm glow beside an empty leather armchair and a glass of whisky: a quiet, lonely seat at the top of the world.",
+  "createdAt": "2026-11-07T17:27:54Z",
+  "seed": 1289281836,
+  "status": "resolved",
+  "palette": "cosy-night-v2",
+  "scale": 42.67,
+  "dither": true,
+  "styleAnchor": "armchair-leather-lounge-back-01",
+  "stage": {
+    "back": {
+      "x": 0,
+      "y": 43,
+      "w": 384,
+      "h": 137
+    },
+    "vanishingPoint": {
+      "x": 192,
+      "y": 112
+    },
+    "f": 120
+  },
+  "layers": [
+    {
+      "name": "night-sky",
+      "kind": "fill",
+      "plane": "far",
+      "colour": 0
+    },
+    {
+      "name": "view",
+      "kind": "placements",
+      "plane": "far",
+      "placements": [
+        {
+          "id": "city-view",
+          "element": "backdrop-city-river-night-01",
+          "x": 0,
+          "y": 42
+        }
+      ]
+    },
+    {
+      "name": "room",
+      "kind": "room",
+      "plane": "mid",
+      "surfaces": {
+        "back": {
+          "colour": 1
+        },
+        "ceiling": {
+          "colour": 1
+        },
+        "floor": {
+          "colour": 14,
+          "lines": {
+            "pattern": "boards",
+            "spacing": 8
+          }
+        }
+      },
+      "openings": [
+        {
+          "id": "glass-wall",
+          "surface": "back",
+          "along": 0,
+          "across": 0,
+          "w": 384,
+          "h": 137,
+          "frame": {
+            "width": 3,
+            "mullionWidth": 2,
+            "colour": 0,
+            "mullionsAcross": 3,
+            "mullionsDown": 0
+          }
+        }
+      ],
+      "placements": [
+        {
+          "id": "rug",
+          "element": "rug-wool-plum-bordered-01",
+          "surface": "floor",
+          "along": 164,
+          "across": 3
+        }
+      ]
+    },
+    {
+      "name": "furniture",
+      "kind": "placements",
+      "plane": "mid",
+      "placements": [
+        {
+          "id": "lamp",
+          "element": "lamp-floor-linen-shade-01",
+          "foot": {
+            "x": 176,
+            "y": 206
+          }
+        },
+        {
+          "id": "armchair",
+          "element": "armchair-leather-lounge-back-01",
+          "foot": {
+            "x": 236,
+            "y": 214
+          }
+        },
+        {
+          "id": "side-table",
+          "element": "table-side-round-whisky-01",
+          "foot": {
+            "x": 288,
+            "y": 214
+          }
+        }
+      ]
+    },
+    {
+      "name": "foliage",
+      "kind": "placements",
+      "plane": "near",
+      "placements": [
+        {
+          "id": "plant",
+          "element": "plant-fiddle-leaf-fig-01",
+          "foot": {
+            "x": 14,
+            "y": 238
+          }
+        }
+      ]
+    }
+  ],
+  "primitives": [
+    {
+      "type": "twinkle",
+      "anchor": "city-view",
+      "colours": [
+        12,
+        13
+      ],
+      "count": 12
+    },
+    {
+      "type": "boats",
+      "anchor": "city-view",
+      "region": {
+        "x": 66,
+        "y": 160,
+        "w": 276,
+        "h": 16
+      },
+      "colours": [
+        0,
+        12
+      ],
+      "count": 3,
+      "speed": 2
+    },
+    {
+      "type": "sway",
+      "anchor": "plant",
+      "region": {
+        "x": 0,
+        "y": 86,
+        "w": 50,
+        "h": 120
+      },
+      "colours": [
+        4,
+        5,
+        13,
+        14
+      ],
+      "amplitude": 1,
+      "rate": 0.2
+    }
+  ],
+  "variants": [
+    {
+      "id": "rainy-night",
+      "title": "Rainy night",
+      "ambient": {
+        "level": -2.5,
+        "layers": {
+          "foliage": 1.25
+        }
+      },
+      "lights": [
+        {
+          "type": "point",
+          "id": "lamp-light",
+          "anchor": "lamp",
+          "offset": {
+            "x": 14,
+            "y": 20
+          },
+          "radius": 148,
+          "strength": 2.5,
+          "tint": "warm",
+          "flicker": {
+            "depth": 0.1,
+            "rate": 0.8
+          },
+          "halo": {
+            "colour": 8,
+            "radius": 30,
+            "strength": 0.4
+          }
+        },
+        {
+          "type": "point",
+          "id": "window-spill",
+          "at": {
+            "x": 192,
+            "y": 111
+          },
+          "radius": 384,
+          "strength": 0.75,
+          "tint": "cool"
+        }
+      ],
+      "primitives": [
+        {
+          "type": "rain",
+          "anchor": "city-view",
+          "region": {
+            "x": 0,
+            "y": 43,
+            "w": 384,
+            "h": 137
+          },
+          "colours": [
+            5,
+            6,
+            7
+          ],
+          "density": 64,
+          "drift": 0.5,
+          "gust": 1,
+          "gustPeriod": 5
+        },
+        {
+          "type": "trickle",
+          "anchor": "city-view",
+          "region": {
+            "x": 0,
+            "y": 43,
+            "w": 384,
+            "h": 137
+          },
+          "colours": [
+            6,
+            7
+          ],
+          "count": 24,
+          "wind": 0.15
+        },
+        {
+          "type": "flash",
+          "anchor": "city-view",
+          "region": {
+            "x": 0,
+            "y": 43,
+            "w": 384,
+            "h": 44
+          },
+          "steps": 2,
+          "every": [
+            40,
+            100
+          ]
+        }
+      ],
+      "soundtrack": {
+        "ambient": [
+          {
+            "source": {
+              "kind": "curated",
+              "id": "freesound-rain-window-242889"
+            },
+            "file": "rain-window.ogg",
+            "distance": "near"
+          },
+          {
+            "source": {
+              "kind": "curated",
+              "id": "elevenlabs-tower-wind-01"
+            },
+            "file": "tower-wind.ogg",
+            "distance": "far",
+            "gain": 2
+          }
+        ],
+        "oneshots": [
+          {
+            "source": {
+              "kind": "curated",
+              "id": "freesound-thunder-distant-195522"
+            },
+            "file": "thunder.ogg",
+            "distance": "far",
+            "every": [
+              70,
+              160
+            ]
+          }
+        ]
+      },
+      "emissiveOff": []
+    },
+    {
+      "id": "clear-night",
+      "title": "Clear night",
+      "ambient": {
+        "level": -2.25,
+        "layers": {
+          "foliage": 1.25
+        }
+      },
+      "lights": [
+        {
+          "type": "point",
+          "id": "lamp-light",
+          "anchor": "lamp",
+          "offset": {
+            "x": 14,
+            "y": 20
+          },
+          "radius": 148,
+          "strength": 2.5,
+          "tint": "warm",
+          "flicker": {
+            "depth": 0.1,
+            "rate": 0.8
+          },
+          "halo": {
+            "colour": 8,
+            "radius": 30,
+            "strength": 0.4
+          }
+        },
+        {
+          "type": "point",
+          "id": "window-spill",
+          "at": {
+            "x": 192,
+            "y": 111
+          },
+          "radius": 384,
+          "strength": 1,
+          "tint": "cool"
+        }
+      ],
+      "emissiveOff": []
+    }
+  ],
+  "soundtrack": {
+    "music": {
+      "brief": "slow solo piano with a soft low cello, sparse and melancholy, late at night, around 60 bpm",
+      "service": "stable-audio-3",
+      "file": "music.mp3",
+      "loopStart": 0,
+      "loopEnd": 112,
+      "seam": {
+        "seamJump": 0.0005,
+        "maxInnerJump": 0.085
+      },
+      "gain": 0.6
+    },
+    "ambient": [
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-night-interior-613147"
+        },
+        "file": "night-interior.ogg",
+        "distance": "mid"
+      },
+      {
+        "source": {
+          "kind": "curated",
+          "id": "freesound-traffic-distant-223093"
+        },
+        "file": "traffic-distant.ogg",
+        "distance": "far",
+        "gain": 0.4
+      }
+    ],
+    "oneshots": []
+  },
+  "cost": {
+    "pixellabGenerations": 65,
+    "meteredUsd": {},
+    "attemptsAbandoned": 4,
+    "approvedOverage": null
+  }
+}

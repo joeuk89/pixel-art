@@ -1,0 +1,46 @@
+{
+  "id": "armchair-leather-lounge-back-01",
+  "subject": "armchair",
+  "tags": [
+    "armchair",
+    "leather",
+    "lounge",
+    "modern",
+    "interior",
+    "night"
+  ],
+  "brief": "modern lounge armchair seen from behind, dark tan leather, wide rounded back, short black legs, a grey wool throw over one arm, warm light from the left",
+  "prompt": "modern lounge armchair seen from behind, dark tan leather, wide rounded back, short black legs, a grey wool throw over one arm, warm light from the left",
+  "service": "pixellab",
+  "model": "pro-flash",
+  "params": {
+    "no_background": true
+  },
+  "seed": 369379117,
+  "palette": "cosy-night-v2",
+  "styleAnchor": null,
+  "createdAt": "2026-11-07T18:16:26.317Z",
+  "firstScene": "penthouse-rain-city-night-1x66",
+  "cost": {
+    "pixellabGenerations": 5,
+    "meteredUsd": 0
+  },
+  "checks": {
+    "attempt": 3,
+    "passed": [
+      "dimensions",
+      "alpha",
+      "palette",
+      "trimmed box"
+    ],
+    "warnings": []
+  },
+  "kind": "prop",
+  "width": 64,
+  "height": 68,
+  "realSize": {
+    "w": 0.95,
+    "h": 1
+  },
+  "transparent": true
+}
