@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { allPlacements, placementsOf, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema, type Primitive, type ScenePlan } from "../schema/index.ts";
@@ -13,7 +14,7 @@ const palette = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixtu
 const paletteRgb = new Set<number>(palette.colours.map((hex: string) => parseInt(hex.slice(1), 16)));
 const catalogue: ScenePlan = scenePlanSchema.parse(JSON.parse(readFileSync(join(fixtures, "primitives/scene.json"), "utf8")));
 const elements = await loadElementPixels(fixtures, catalogue);
-const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum"] as const;
+const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum", "boats", "trickle", "flash"] as const;
 const TIMES = Array.from({ length: 60 }, (_, k) => k * 137);
 
 function only(type: string): Primitive[] {
@@ -120,7 +121,7 @@ for (const type of ["steam", "dust"]) {
   });
 }
 
-for (const [type, fps, idles] of [["sway", PROP_FPS, false], ["birds", WEATHER_FPS, true]] as const) {
+for (const [type, fps, idles] of [["sway", PROP_FPS, false], ["birds", WEATHER_FPS, true], ["boats", WEATHER_FPS, true], ["trickle", WEATHER_FPS, true]] as const) {
   test(`${type} wakes at ${fps} fps and never skips a step that changes pixels${idles ? ", but skips steps between flights" : ""}`, () => {
     const c = stillScene(only(type));
     const at = (k: number) => (k * 1000) / fps;
@@ -208,6 +209,65 @@ test("rain stays inside its region and, anchored to the skyline, draws under the
   }
   const onTop = changedPixels([{ ...rain, anchor: undefined } as Primitive]);
   assert.ok([...onTop].some((pixel) => frameAt(pixel % W, Math.floor(pixel / W))), "unanchored rain draws over every Layer");
+});
+
+test("rain with gust 0 draws exactly what rain drew before gusts existed", () => {
+  const [rain] = only("rain");
+  const c = scene([{ ...rain, gust: 0 } as Primitive]);
+  const hash = createHash("sha256");
+  for (const t of TIMES) hash.update(c.render(t));
+  assert.equal(hash.digest("hex"), "8adef830aad17159bed97bbfac4254822dae05323bef968bac5028c01f7d8b5b");
+});
+
+const gusty = { type: "rain", emissive: false, region: { x: 0, y: 0, w: W, h: SCENE_HEIGHT }, colours: [7], density: 1, drift: 0.5, gust: 1, gustPeriod: 6 } as Primitive;
+
+function dropTrack(rain: Primitive, steps: number): ({ x: number; y: number } | undefined)[] {
+  const layers = [{ name: "sky", kind: "fill", plane: "far", colour: 1 }] as ScenePlan["layers"];
+  const plan = { ...catalogue, layers, primitives: [rain] };
+  const c = createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
+  const plain = createCompositor({ plan: { ...plan, primitives: [] }, elements, palette }).render(0);
+  return Array.from({ length: steps }, (_, s) => {
+    const out = c.render((s * 1000) / WEATHER_FPS);
+    let sumX = 0, n = 0, top = Infinity;
+    for (let i = 0; i < out.length; i += 4) {
+      if (out[i] === plain[i] && out[i + 1] === plain[i + 1] && out[i + 2] === plain[i + 2]) continue;
+      sumX += (i / 4) % W;
+      top = Math.min(top, Math.floor(i / 4 / W));
+      n++;
+    }
+    return n ? { x: sumX / n, y: top } : undefined;
+  });
+}
+
+function sidewaysSteps(track: ({ x: number; y: number } | undefined)[]): { step: number; dx: number }[] {
+  const moves: { step: number; dx: number }[] = [];
+  for (let s = 1; s < track.length; s++) {
+    const a = track[s - 1], b = track[s];
+    if (a && b && b.y > a.y) moves.push({ step: s, dx: b.x - a.x });
+  }
+  return moves;
+}
+
+test("rain with a gust leans harder at a gust's peak than in a lull, and its drops never jump sideways", () => {
+  const moves = sidewaysSteps(dropTrack(gusty, 60 * WEATHER_FPS));
+  assert.ok(moves.length > 1000);
+  for (const { step, dx } of moves) assert.ok(dx >= 0 && dx <= 0.5 + 1 + 1, `drop moved ${dx} px sideways at step ${step}`);
+  const perSecond = new Map<number, number[]>();
+  for (const { step, dx } of moves) perSecond.set(Math.floor(step / WEATHER_FPS), [...(perSecond.get(Math.floor(step / WEATHER_FPS)) ?? []), dx]);
+  const means = [...perSecond.values()].filter((d) => d.length >= 12).map((d) => d.reduce((a, b) => a + b, 0) / d.length);
+  assert.ok(Math.max(...means) - Math.min(...means) > 0.5, `lean only ranges ${Math.min(...means)} to ${Math.max(...means)} px per step`);
+  const calm = sidewaysSteps(dropTrack({ ...gusty, gust: 0 } as Primitive, 20 * WEATHER_FPS));
+  const calmMean = calm.reduce((a, m) => a + m.dx, 0) / calm.length;
+  assert.ok(Math.abs(calmMean - 0.5) < 0.05, `calm rain drifts ${calmMean} px per step`);
+});
+
+test("rain with a gust draws byte-identical frames in any render order", () => {
+  const rain = { ...gusty, density: 64 } as Primitive;
+  const times = Array.from({ length: 80 }, (_, k) => k * 911);
+  const forward = times.map((t) => Buffer.from(scene([rain]).render(t)));
+  const c = scene([rain]);
+  const backward = [...times].reverse().map((t) => Buffer.from(c.render(t))).reverse();
+  forward.forEach((frame, k) => assert.ok(frame.equals(backward[k]), `frames differ at ${times[k]} ms`));
 });
 
 test("blink swaps only the anchored Placement's from colour, and twinkle only the anchor's light colours", () => {
@@ -324,6 +384,175 @@ test("pendulum swings a straight rod and its bob about the pivot, inside its reg
   assert.ok(leans.every((lean) => Math.abs(lean) <= reach + 1), "bob swung past its amplitude");
 });
 
+test("boats draw nothing at time 0, drift inside their region as a hull with one light at an end, and enter from its edge", () => {
+  const boats = only("boats")[0] as Extract<Primitive, { type: "boats" }>;
+  const { region } = boats;
+  const [hull, light] = boats.colours.map((i) => palette.colours[i]);
+  assert.equal(changedPixels([boats], [0]).size, 0, "boats are in the Poster");
+  const c = stillScene([boats]);
+  const times = Array.from({ length: 480 }, (_, k) => k * 250);
+  let previous = new Map<number, { min: number; max: number }>();
+  let seen = 0;
+  for (const t of times) {
+    const out = c.render(t);
+    const rows = new Map<number, number[]>();
+    for (const pixel of changedPixels([boats], [t])) {
+      const x = pixel % W, y = Math.floor(pixel / W);
+      assert.ok(inRegion(pixel, region), `a boat at ${x},${y} is outside its region`);
+      const hex = hexAt(out, pixel);
+      assert.ok(hex === hull || hex === light, `a boat painted ${hex}, not its hull or light`);
+      rows.set(y, [...(rows.get(y) ?? []), x]);
+    }
+    const now = new Map<number, { min: number; max: number }>();
+    for (const [y, xs] of rows) {
+      const min = Math.min(...xs), max = Math.max(...xs);
+      assert.equal(xs.length, max - min + 1, `the boat on row ${y} at ${t} ms is broken up`);
+      assert.ok(xs.length <= 6, `the boat on row ${y} at ${t} ms is ${xs.length} px long`);
+      const lights = xs.filter((x) => hexAt(out, y * W + x) === light);
+      assert.ok(lights.length <= 1, `the boat on row ${y} at ${t} ms has ${lights.length} lights`);
+      if (lights.length === 1) assert.ok(lights[0] === min || lights[0] === max, `the light on row ${y} at ${t} ms is not at an end`);
+      const before = previous.get(y);
+      if (before) assert.ok(Math.abs(before.min - min) <= 1 && Math.abs(before.max - max) <= 1, `the boat on row ${y} jumped at ${t} ms`);
+      else assert.ok(min === region.x || max === region.x + region.w - 1, `a boat appeared mid-river on row ${y} at ${t} ms`);
+      now.set(y, { min, max });
+      seen++;
+    }
+    previous = now;
+  }
+  assert.ok(seen > 0, "no boat ever sailed");
+});
+
+test("trickle draws nothing at time 0, and its beads sit mostly still inside the region, slide only downward, leave through the bottom and leave trails that dry", () => {
+  const trickle = only("trickle")[0] as Extract<Primitive, { type: "trickle" }>;
+  const { region } = trickle;
+  const hexes = trickle.colours.map((i) => palette.colours[i]);
+  const bead = hexes[hexes.length - 1];
+  assert.equal(changedPixels([trickle], [0]).size, 0, "beads are in the Poster");
+  const c = stillScene([trickle]);
+  const plain = stillScene([]).render(0);
+  const steps = 24 * 90;
+  const at = (k: number) => (k * 1000) / WEATHER_FPS;
+  let previous = new Map<number, string>();
+  const wetSince = new Map<number, number>();
+  let stayed = 0, beads = 0, bottom = 0;
+  for (let k = 0; k <= steps; k++) {
+    const out = c.render(at(k));
+    const now = new Map<number, string>();
+    for (let i = 0; i < out.length; i += 4) {
+      if (out[i] === plain[i] && out[i + 1] === plain[i + 1] && out[i + 2] === plain[i + 2]) continue;
+      const pixel = i / 4, hex = hexAt(out, pixel);
+      const x = pixel % W, y = Math.floor(pixel / W);
+      assert.ok(inRegion(pixel, region), `trickle at ${x},${y} is outside its region`);
+      assert.ok(hexes.includes(hex), `trickle painted ${hex}, not one of its colours`);
+      now.set(pixel, hex);
+    }
+    for (const [pixel, hex] of now) {
+      const x = pixel % W, y = Math.floor(pixel / W);
+      if (hex === bead) {
+        beads++;
+        if (previous.get(pixel) === bead) stayed++;
+        else if (!previous.has(pixel)) {
+          const above = [-1, 0, 1].some((dx) => previous.has(pixel - W + dx));
+          assert.ok(above, `a bead appeared at ${x},${y} at step ${k} without forming or sliding down from above`);
+        }
+        if (y === region.y + region.h - 1) bottom++;
+        wetSince.delete(pixel);
+      } else {
+        if (!wetSince.has(pixel)) wetSince.set(pixel, k);
+        assert.ok(k - wetSince.get(pixel)! <= WEATHER_FPS * 2, `${x},${y} stayed a trail or forming bead for over 2 s at step ${k}`);
+      }
+    }
+    for (const pixel of wetSince.keys()) if (!now.has(pixel) || now.get(pixel) === bead) wetSince.delete(pixel);
+    previous = now;
+  }
+  assert.ok(beads > 0, "no bead ever formed");
+  assert.ok(stayed / beads > 0.8, `only ${Math.round((100 * stayed) / beads)}% of bead pixels held still from one step to the next`);
+  assert.ok(bottom > 0, "no bead ever reached the bottom edge");
+});
+
+test("flash is calm until its shortest wait, then lifts only the anchor's pixels in its region up their cool Ramp, all alike, in flickers of more than one pulse that open at full steps", () => {
+  const flash = only("flash")[0] as Extract<Primitive, { type: "flash" }>;
+  const { region, steps } = flash;
+  const [min, max] = flash.every;
+  const at = (k: number) => (k * 1000) / WEATHER_FPS;
+  const plain = stillScene([]).render(0);
+  const skyline = allPlacements(catalogue).find((p) => p.id === "skyline")!;
+  const sky = elements.get(skyline.element)!.still;
+  const lifted = (hex: string, lift = 1) => {
+    let i = palette.colours.indexOf(hex);
+    for (let s = 0; s < lift; s++) i = palette.ramps[i].cool;
+    return palette.colours[i];
+  };
+  const expected = new Set<number>();
+  for (let y = region.y; y < region.y + region.h; y++) {
+    for (let x = region.x; x < region.x + region.w; x++) {
+      const sx = x - skyline.x!, sy = y - skyline.y!;
+      if (sx < 0 || sy < 0 || sx >= sky.width || sy >= sky.height || sky.data[(sy * sky.width + sx) * 4 + 3] < 128) continue;
+      const pixel = y * W + x;
+      const own = hexAt(sky.data, sy * sky.width + sx);
+      if (hexAt(plain, pixel) === own && lifted(own) !== own) expected.add(pixel);
+    }
+  }
+  assert.ok(expected.size > 0);
+  const c = stillScene([flash]);
+  const lifts: number[] = [];
+  for (let k = 0; k <= 30 * WEATHER_FPS; k++) {
+    const out = c.render(at(k));
+    let changed = 0, lift = 0;
+    for (let pixel = 0; pixel < W * SCENE_HEIGHT; pixel++) {
+      const i = pixel * 4;
+      if (out[i] === plain[i] && out[i + 1] === plain[i + 1] && out[i + 2] === plain[i + 2]) continue;
+      assert.ok(expected.has(pixel), `flash changed ${pixel % W},${Math.floor(pixel / W)}, which is not the anchor's inside its region`);
+      if (!lift) for (let n = 1; n <= steps && !lift; n++) if (hexAt(out, pixel) === lifted(hexAt(plain, pixel), n)) lift = n;
+      assert.ok(lift > 0, `flash did not lift ${pixel % W},${Math.floor(pixel / W)} 1 to ${steps} steps up its Ramp`);
+      assert.equal(hexAt(out, pixel), lifted(hexAt(plain, pixel), lift), `flash lifted ${pixel % W},${Math.floor(pixel / W)} unlike the rest of step ${k}`);
+      changed++;
+    }
+    assert.ok(changed === 0 || changed === expected.size, `step ${k} lit ${changed} of ${expected.size} pixels`);
+    if (k < min * WEATHER_FPS) assert.equal(changed, 0, `flash lit at step ${k}, before its shortest wait`);
+    lifts.push(lift);
+  }
+  const flashes: { start: number; end: number; pulses: number }[] = [];
+  lifts.forEach((on, k) => {
+    if (!on) return;
+    const last = flashes[flashes.length - 1];
+    if (last && k - last.end <= 4) {
+      if (k - last.end > 1) last.pulses++;
+      last.end = k;
+    } else flashes.push({ start: k, end: k, pulses: 1 });
+  });
+  assert.ok(flashes.length >= 3, `only ${flashes.length} flashes in 30 s`);
+  for (const [n, f] of flashes.entries()) {
+    assert.ok(f.pulses >= 2, `flash ${n} at step ${f.start} is a single pulse, not a flicker`);
+    assert.equal(lifts[f.start], steps, `flash ${n} opened ${lifts[f.start]} steps up, not ${steps}`);
+    assert.ok(f.end - f.start < WEATHER_FPS, `flash ${n} lasted ${f.end - f.start + 1} steps`);
+    if (n === 0) continue;
+    const gap = f.start - flashes[n - 1].start;
+    assert.ok(gap >= min * WEATHER_FPS - 1 && gap <= max * WEATHER_FPS + 1, `flash ${n} came ${gap} steps after the one before`);
+  }
+});
+
+test("flash makes a redraw due at a 1/24 s step exactly when its pixels change, and never when its region misses the anchor", () => {
+  const flash = only("flash")[0] as Extract<Primitive, { type: "flash" }>;
+  for (const [primitive, moves] of [[flash, true], [{ ...flash, region: { x: 0, y: 200, w: 40, h: 40 } }, false]] as const) {
+    const c = stillScene([primitive]);
+    const at = (k: number) => (k * 1000) / WEATHER_FPS;
+    let due = 0, idle = 0;
+    c.render(0);
+    for (let k = 1; k <= 600; k++) {
+      assert.equal(c.nextTick(at(k - 1)), at(k));
+      const before = Buffer.from(c.render(at(k - 1)));
+      const tick = c.tick(at(k));
+      const changed = !before.equals(Buffer.from(c.render(at(k))));
+      assert.equal(tick, changed, `step ${k}: tick ${tick}, pixels changed ${changed}`);
+      if (tick) due++;
+      else idle++;
+    }
+    if (moves) assert.ok(due > 0 && idle > 0, `due ${due}, idle ${idle}`);
+    else assert.equal(due, 0);
+  }
+});
+
 test("a Primitive anchored to a missing Placement fails with its index and anchor", () => {
   const plan = { ...catalogue, primitives: [{ ...only("steam")[0], anchor: "teapot" } as Primitive] };
   assert.throws(() => createPrimitives({ plan, elements, palette }), /Primitive 0 \(steam\): no Placement teapot/);
@@ -343,7 +572,7 @@ test("the Primitives module bundles for a neutral platform and draws where no No
   const draws = sandbox.primitives.createPrimitives({ plan: catalogue, elements, palette });
   const out = new Uint8ClampedArray(W * SCENE_HEIGHT * 4);
   for (const d of draws) d.draw(out, 500);
-  assert.equal(draws.length, 9);
+  assert.equal(draws.length, 12);
 });
 
 test("a Variant draws the base Primitives plus its own, and the base alone under a Variant that adds none", () => {

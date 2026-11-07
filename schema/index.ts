@@ -195,6 +195,10 @@ export const primitiveSchema = z.discriminatedUnion("type", [
     colours,
     density: int.positive().default(34),
     drift: z.number().default(0.25),
+    // px per frame added to drift at a gust's peak
+    gust: z.number().min(0).default(0),
+    // seconds, mean time between gust peaks
+    gustPeriod: z.number().positive().default(6),
   }),
   z.strictObject({
     type: z.literal("snow"),
@@ -261,6 +265,42 @@ export const primitiveSchema = z.discriminatedUnion("type", [
     amplitude: z.number().positive().max(45).default(12),
     // Seconds for a swing there and back.
     period: z.number().positive().default(2),
+  }),
+  z.strictObject({
+    type: z.literal("boats"),
+    emissive: emissiveByDefault,
+    anchor: slug.optional(),
+    region,
+    // Hull, then light.
+    colours: colours.min(2).max(2),
+    count: int.positive().max(8).default(3),
+    // Pixels per second.
+    speed: z.number().positive().max(24).default(2),
+  }),
+  z.strictObject({
+    type: z.literal("trickle"),
+    emissive: litByDefault,
+    anchor: slug.optional(),
+    region,
+    // Dim to bright: a bead is the last colour, and its trail dries down through the others.
+    colours,
+    count: int.positive().default(24),
+    // Share of slides that jog 1 px sideways with the wind; negative blows left.
+    wind: z.number().min(-1).max(1).default(0.1),
+  }),
+  z.strictObject({
+    type: z.literal("flash"),
+    emissive: litByDefault,
+    anchor: slug,
+    // In Scene coordinates, like every Primitive region; only the anchor's pixels inside it light up.
+    region,
+    // How far up its cool Ramp each pixel moves at a flash's brightest.
+    steps: int.min(1).max(3).default(2),
+    // Seconds between flashes, shortest then longest.
+    every: z
+      .tuple([z.number().positive(), z.number().positive()])
+      .refine(([min, max]) => min <= max, "min must not exceed max")
+      .default([25, 70]),
   }),
 ]);
 

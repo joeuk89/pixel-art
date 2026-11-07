@@ -106,6 +106,8 @@ function primitiveColours(plan: ScenePlan): { path: string; index: number }[] {
     switch (p.type) {
       case "blink":
         return p.swaps.flatMap((pair, k) => pair.map((index, j) => ({ path: `${at}.swaps[${k}][${j}]`, index })));
+      case "flash":
+        return [];
       default:
         return p.colours.map((index, k) => ({ path: `${at}.colours[${k}]`, index }));
     }
