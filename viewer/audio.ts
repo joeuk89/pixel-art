@@ -1,7 +1,18 @@
 import type { ScenePlan, Variant } from "../schema/index.ts";
 import { fetchOk } from "./http.ts";
 import type { Channel } from "./settings.ts";
-import { CROSSFADE_SEC, crossfade, DISTANCE_BUSES, loopOffset, oneshotFires, variantSlots, type VariantSounds } from "./sound-schedule.ts";
+import {
+  CROSSFADE_SEC,
+  crossfade,
+  DISTANCE_BUSES,
+  followedFlash,
+  followFires,
+  loopOffset,
+  oneshotFires,
+  variantSlots,
+  type FollowedFlash,
+  type VariantSounds,
+} from "./sound-schedule.ts";
 
 type Distance = keyof typeof DISTANCE_BUSES;
 
@@ -40,9 +51,14 @@ export function createAudio(levels: Levels, context: AudioContext = new AudioCon
   };
 }
 
-export type Soundtrack = { setVariant(variant: Variant): void };
+// Moves following One-shots back onto the Scene clock after it jumped against the sound, as when a hidden tab shows again.
+export type Soundtrack = { setVariant(variant: Variant): void; resync(): void };
 
-type Playing = { fade: GainNode; stop(at: number): void };
+// The Scene's time in seconds now, or undefined while the Scene is not advancing.
+export type SceneClock = () => number | undefined;
+
+type Playing = { fade: GainNode; stop(at: number): void; follow?(flash: FollowedFlash | undefined): void };
+type OneshotSlot = VariantSounds["oneshots"][number];
 
 export async function playSoundtrack(
   { context, buses: channels }: Audio,
@@ -50,6 +66,7 @@ export async function playSoundtrack(
   base: URL,
   signal: AbortSignal,
   variant: Variant = plan.variants[0],
+  clock: SceneClock = () => undefined,
 ): Promise<Soundtrack> {
   const { music } = plan.soundtrack;
   const files = new Set(plan.variants.flatMap((v) => variantSlots(plan, v).map((slot) => slot.entry.file)));
@@ -58,7 +75,7 @@ export async function playSoundtrack(
     music.file ? decode(music.file) : undefined,
     Promise.all([...files].map(async (file) => [file, await decode(file)] as const)).then((pairs) => new Map(pairs)),
   ]);
-  if (signal.aborted) return { setVariant() {} };
+  if (signal.aborted) return { setVariant() {}, resync() {} };
 
   const nodes = new Set<AudioNode>();
   const sources = new Set<AudioBufferSourceNode>();
@@ -89,6 +106,14 @@ export async function playSoundtrack(
   };
   const buses = { near: busInput("near"), mid: busInput("mid"), far: busInput("far") };
   const startAt = context.currentTime;
+  // Without a Scene clock, Scene time 0 is when the Soundtrack starts; while the clock is paused, the last known pace holds.
+  let sceneStart = startAt;
+  const sceneNow = () => {
+    const now = context.currentTime;
+    const scene = clock();
+    if (scene !== undefined) sceneStart = now - scene;
+    return now - sceneStart;
+  };
 
   if (musicBuffer) {
     const node = source(musicBuffer, gain(music.gain, channels.music));
@@ -106,8 +131,8 @@ export async function playSoundtrack(
     return (when: number) => node.stop(when);
   };
 
-  const playOneshot = ({ entry, index }: VariantSounds["oneshots"][number], to: AudioNode, at: number) => {
-    const fires = oneshotFires(plan.seed, index, entry.every);
+  const playOneshot = ({ entry, index }: OneshotSlot, to: AudioNode, at: number) => {
+    const fires = oneshotFires(plan.seed, index, entry.every!);
     let stopped = false;
     let pending: AudioBufferSourceNode | undefined;
     // Chained on each fire's ended event rather than a timer, so firing continues in a hidden tab.
@@ -133,6 +158,59 @@ export async function playSoundtrack(
     };
   };
 
+  // Each fire waits on the one before, like an every One-shot, but is placed on the Scene clock when it is scheduled.
+  const playFollowing = ({ entry, index }: OneshotSlot, to: AudioNode, flash: FollowedFlash | undefined) => {
+    let stopped = false;
+    let lastAt = -Infinity;
+    let pending: { node: AudioBufferSourceNode; level: GainNode; at: number } | undefined;
+    const release = (node: AudioBufferSourceNode, level: GainNode) => {
+      sources.delete(node);
+      nodes.delete(level);
+      node.disconnect();
+      level.disconnect();
+    };
+    const scheduleNext = () => {
+      pending = undefined;
+      if (!flash || signal.aborted || stopped) return;
+      const scene = sceneNow();
+      const fires = followFires(plan.seed, index, flash, entry.follows!.delay);
+      let fire = fires.next().value;
+      while (fire.at <= Math.max(lastAt, scene)) fire = fires.next().value;
+      lastAt = fire.at;
+      const level = gain((entry.gain ?? 1) * fire.gain, to);
+      const node = source(buffers.get(entry.file)!, level);
+      node.playbackRate.value = fire.rate;
+      node.onended = () => {
+        release(node, level);
+        scheduleNext();
+      };
+      const at = context.currentTime + fire.at - scene;
+      pending = { node, level, at };
+      node.start(at);
+    };
+    const resync = () => {
+      if (pending && pending.at > context.currentTime) {
+        pending.node.onended = null;
+        pending.node.stop(context.currentTime);
+        release(pending.node, pending.level);
+        pending = undefined;
+      }
+      lastAt = -Infinity;
+      if (!pending) scheduleNext();
+    };
+    scheduleNext();
+    return {
+      stop(when: number) {
+        stopped = true;
+        pending?.node.stop(when);
+      },
+      follow(next: FollowedFlash | undefined) {
+        flash = next;
+        resync();
+      },
+    };
+  };
+
   const playing = new Map<string, Playing>();
   const play = (variant: Variant, fadeIn: boolean) => {
     const now = context.currentTime;
@@ -145,15 +223,22 @@ export async function playSoundtrack(
         fade.gain.setValueAtTime(0, now);
         fade.gain.linearRampToValueAtTime(1, now + CROSSFADE_SEC);
       }
-      const stop = "every" in slot.entry
-        ? playOneshot(slot as VariantSounds["oneshots"][number], fade, at)
-        : playLoop(slot as VariantSounds["ambient"][number], fade, at);
+      if ("follows" in slot.entry) {
+        playing.set(slot.key, { fade, ...playFollowing(slot as OneshotSlot, fade, followedFlash(plan, variant)) });
+        continue;
+      }
+      const stop = "every" in slot.entry ? playOneshot(slot as OneshotSlot, fade, at) : playLoop(slot as VariantSounds["ambient"][number], fade, at);
       playing.set(slot.key, { fade, stop });
     }
   };
 
   let current = variant;
   play(current, false);
+
+  const resync = () => {
+    for (const sound of playing.values()) sound.follow?.(followedFlash(plan, current));
+  };
+  context.addEventListener("statechange", () => context.state === "running" && resync(), { signal });
 
   signal.addEventListener("abort", () => {
     for (const node of sources) {
@@ -179,7 +264,9 @@ export async function playSoundtrack(
         sound.stop(now + CROSSFADE_SEC);
       }
       current = next;
+      resync();
       play(current, true);
     },
+    resync,
   };
 }

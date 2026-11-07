@@ -302,6 +302,32 @@ export const primitiveSchema = z.discriminatedUnion("type", [
       .refine(([min, max]) => min <= max, "min must not exceed max")
       .default([25, 70]),
   }),
+  z
+    .strictObject({
+      type: z.literal("garland"),
+      emissive: emissiveByDefault,
+      anchor: slug,
+      region,
+      // Each strand is a run of Scene points the wire drapes between.
+      strands: z.array(z.array(point).min(2)).default([]),
+      // Pixels each span droops below the straight line at its middle.
+      sag: z.number().min(0).default(3),
+      // Pixels along the wire between bulbs.
+      spacing: int.min(2).default(4),
+      // Bulbs cycle through these along each strand; a dimmed bulb drops one step down its colour's Ramp.
+      colours: colours.optional(),
+      wire: colourIndex.optional(),
+      // Times a second each bulb dims, on average.
+      rate: z.number().positive().default(0.08),
+      // x and y are the Scene point of each bauble's top-left corner.
+      baubles: z.array(z.strictObject({ x: int, y: int, colour: colourIndex })).default([]),
+      baubleSize: int.min(2).max(3).default(3),
+      highlight: colourIndex.optional(),
+    })
+    .superRefine((g, ctx) => {
+      if (g.strands.length === 0 && g.baubles.length === 0) ctx.addIssue({ code: "custom", path: ["strands"], message: "a garland needs strands or baubles" });
+      if (g.strands.length > 0 && !g.colours) ctx.addIssue({ code: "custom", path: ["colours"], message: "strands need bulb colours" });
+    }),
 ]);
 
 const soundSource = z.discriminatedUnion("kind", [
@@ -313,13 +339,29 @@ const fileName = z.string().regex(/^[^/\\]+$/, "must be a file name beside the p
 const gain = z.number().min(0);
 
 const ambientEntry = z.strictObject({ source: soundSource, file: fileName, distance: distanceSchema, gain: gain.optional() });
-const oneshotEntry = z.strictObject({
-  source: soundSource,
-  file: fileName,
-  distance: distanceSchema,
-  gain: gain.optional(),
-  every: z.tuple([z.number().positive(), z.number().positive()]).refine(([min, max]) => min <= max, "min must not exceed max"),
-});
+export const DEFAULT_FOLLOW_DELAY: [number, number] = [1, 4];
+
+const oneshotEntry = z
+  .strictObject({
+    source: soundSource,
+    file: fileName,
+    distance: distanceSchema,
+    gain: gain.optional(),
+    every: z.tuple([z.number().positive(), z.number().positive()]).refine(([min, max]) => min <= max, "min must not exceed max").optional(),
+    // Plays after each flash of the one flash Primitive active in the Variant; delay is seconds after the flash starts.
+    follows: z
+      .strictObject({
+        primitive: z.literal("flash"),
+        delay: z
+          .tuple([z.number().min(0), z.number().min(0)])
+          .refine(([min, max]) => min <= max, "min must not exceed max")
+          .default(DEFAULT_FOLLOW_DELAY),
+      })
+      .optional(),
+  })
+  .superRefine((shot, ctx) => {
+    if ((shot.every === undefined) === (shot.follows === undefined)) ctx.addIssue({ code: "custom", message: "a One-shot takes exactly one of every or follows" });
+  });
 
 const music = z.strictObject({
   brief: z.string().min(1),
@@ -521,6 +563,22 @@ export const scenePlanSchema = z
       if (oneshots.length > 0 && oneshotCount > MAX_ONESHOTS_PER_SCENE) {
         issue([...at, "oneshots"], `at most ${MAX_ONESHOTS_PER_SCENE} One-shots per Scene: base plus Variant ${v.id} has ${oneshotCount}`);
       }
+      const flashes = activePrimitives(plan, v).filter((p): p is Extract<Primitive, { type: "flash" }> => p.type === "flash");
+      const following = [
+        ...plan.soundtrack.oneshots.map((shot, i) => ({ shot, path: ["soundtrack", "oneshots", i, "follows"] })),
+        ...oneshots.map((shot, i) => ({ shot, path: [...at, "oneshots", i, "follows"] })),
+      ];
+      for (const { shot, path } of following) {
+        if (!shot.follows) continue;
+        if (flashes.length !== 1) {
+          issue(path, `follows a flash, but Variant ${v.id} has ${flashes.length === 0 ? "no flash Primitive" : `${flashes.length} flash Primitives`}; it needs exactly one`);
+          continue;
+        }
+        const longest = flashes[0].every[0] / 2;
+        if (shot.follows.delay[1] > longest) {
+          issue([...path, "delay"], `delay must be at most ${longest} s, half the shortest gap between flashes in Variant ${v.id}, so each sound lands before the next flash`);
+        }
+      }
       for (const distance of distanceSchema.options) {
         let count = plan.soundtrack.ambient.filter((a) => a.distance === distance).length;
         ambient.forEach((a, ai) => {
@@ -680,6 +738,11 @@ export const isProjected = (p: Placement): p is Feature => isFeature(p) && p.sur
 
 export function roomLayerOf(plan: Pick<ScenePlan, "layers">): RoomLayer | undefined {
   return plan.layers.find((l): l is RoomLayer => l.kind === "room");
+}
+
+// A Primitive's place in this list is its salt, so the Viewer's draw and anything timed to it agree.
+export function activePrimitives<P>(plan: { primitives: readonly P[] }, variant: { primitives?: readonly P[] }): P[] {
+  return [...plan.primitives, ...(variant.primitives ?? [])];
 }
 
 export function allPlacements(plan: Pick<ScenePlan, "layers">): Placement[] {

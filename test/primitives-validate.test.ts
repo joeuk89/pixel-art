@@ -19,15 +19,15 @@ function errorsFor(root: string): any[] {
   return validate(root).report.errors.filter((e: any) => e.file === SCENE);
 }
 
-test("validate accepts all twelve Primitives with every parameter set", () => {
+test("validate accepts all thirteen Primitives with every parameter set", () => {
   const root = treeWith();
   const { code, report } = validate(root);
   assert.deepEqual(report.errors, []);
   assert.equal(code, 0);
-  assert.deepEqual(catalogue().primitives.map((p: any) => p.type), ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum", "boats", "trickle", "flash"]);
+  assert.deepEqual(catalogue().primitives.map((p: any) => p.type), ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum", "boats", "trickle", "flash", "garland"]);
 });
 
-test("validate accepts all twelve Primitives with only their required parameters", () => {
+test("validate accepts all thirteen Primitives with only their required parameters", () => {
   const required: Record<string, string[]> = {
     rain: ["type", "region", "colours"],
     snow: ["type", "region", "colours"],
@@ -41,6 +41,7 @@ test("validate accepts all twelve Primitives with only their required parameters
     boats: ["type", "region", "colours"],
     trickle: ["type", "region", "colours"],
     flash: ["type", "anchor", "region"],
+    garland: ["type", "anchor", "region", "strands", "colours"],
   };
   const root = treeWith((plan) => {
     plan.primitives = plan.primitives.map((p: any) => Object.fromEntries(required[p.type].map((k) => [k, p[k]])));
@@ -53,7 +54,7 @@ test("validate accepts all twelve Primitives with only their required parameters
 test("validate rejects an unknown Primitive type", () => {
   const root = treeWith((plan) => plan.primitives.push({ type: "fog", region: { x: 0, y: 0, w: 10, h: 10 }, colours: [1] }));
   assert.equal(validate(root).code, 1);
-  assert.ok(errorsFor(root).some((e) => e.path === "primitives[12].type"), JSON.stringify(errorsFor(root)));
+  assert.ok(errorsFor(root).some((e) => e.path === "primitives[13].type"), JSON.stringify(errorsFor(root)));
 });
 
 test("a Primitive anchored to a Placement the plan does not have keeps a draft pending and fails a resolved Scene", () => {
@@ -98,7 +99,7 @@ test("validate rejects blink longFrames whose minimum exceeds its maximum", () =
 
 test("each Primitive type defaults emissive as the spec sets it, and an explicit value overrides it", () => {
   const expected: Record<string, boolean> = {
-    rain: false, snow: false, steam: true, twinkle: true, blink: true, dust: false, sway: false, birds: false, pendulum: false, boats: true, trickle: false, flash: false,
+    rain: false, snow: false, steam: true, twinkle: true, blink: true, dust: false, sway: false, birds: false, pendulum: false, boats: true, trickle: false, flash: false, garland: true,
   };
   for (const primitive of catalogue().primitives) {
     const { emissive: _, ...bare } = primitive;
@@ -106,4 +107,35 @@ test("each Primitive type defaults emissive as the spec sets it, and an explicit
     assert.equal(primitiveSchema.parse(bare).emissive, want, `${primitive.type} default`);
     assert.equal(primitiveSchema.parse({ ...bare, emissive: !want }).emissive, !want, `${primitive.type} override`);
   }
+});
+
+test("validate rejects a garland wire, bauble or highlight colour beyond the Scene's Palette", () => {
+  const root = treeWith((plan) => {
+    plan.primitives[12].wire = 16;
+    plan.primitives[12].baubles[1].colour = 18;
+    plan.primitives[12].highlight = 20;
+  });
+  assert.equal(validate(root).code, 1);
+  const paths = errorsFor(root).filter((e) => /not in Palette fixture-night-v2/.test(e.message)).map((e) => e.path);
+  assert.deepEqual(paths, ["primitives[12].wire", "primitives[12].baubles[1].colour", "primitives[12].highlight"]);
+});
+
+test("validate accepts a garland of only baubles, and rejects one with nothing to draw or strands without colours", () => {
+  const baublesOnly = treeWith((plan) => {
+    const { colours: _, ...rest } = plan.primitives[12];
+    plan.primitives[12] = { ...rest, strands: [], emissive: false };
+  });
+  assert.deepEqual(validate(baublesOnly).report.errors, []);
+  const empty = treeWith((plan) => { plan.primitives[12].strands = []; plan.primitives[12].baubles = []; });
+  assert.equal(validate(empty).code, 1);
+  assert.ok(errorsFor(empty).some((e) => e.path.startsWith("primitives[12]")), JSON.stringify(errorsFor(empty)));
+  const dark = treeWith((plan) => { delete plan.primitives[12].colours; });
+  assert.equal(validate(dark).code, 1);
+  assert.ok(errorsFor(dark).some((e) => e.path === "primitives[12].colours"), JSON.stringify(errorsFor(dark)));
+});
+
+test("validate rejects a garland strand of a single point", () => {
+  const root = treeWith((plan) => { plan.primitives[12].strands[1] = [{ x: 172, y: 52 }]; });
+  assert.equal(validate(root).code, 1);
+  assert.ok(errorsFor(root).some((e) => e.path.startsWith("primitives[12].strands[1]")), JSON.stringify(errorsFor(root)));
 });

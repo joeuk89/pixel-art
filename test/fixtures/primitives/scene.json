@@ -33,7 +33,8 @@
     { "type": "pendulum", "emissive": false, "anchor": "window", "region": { "x": 230, "y": 60, "w": 16, "h": 28 }, "pivot": { "x": 238, "y": 61 }, "colours": [13, 9, 8], "length": 20, "bob": 3, "amplitude": 12, "period": 2 },
     { "type": "boats", "emissive": true, "anchor": "skyline", "region": { "x": 64, "y": 172, "w": 60, "h": 8 }, "colours": [0, 8], "count": 4, "speed": 3 },
     { "type": "trickle", "emissive": false, "anchor": "window", "region": { "x": 171, "y": 31, "w": 42, "h": 42 }, "colours": [5, 6, 7], "count": 10, "wind": 0.2 },
-    { "type": "flash", "emissive": true, "anchor": "skyline", "region": { "x": 64, "y": 40, "w": 256, "h": 48 }, "steps": 2, "every": [2, 4] }
+    { "type": "flash", "emissive": true, "anchor": "skyline", "region": { "x": 64, "y": 40, "w": 256, "h": 48 }, "steps": 2, "every": [2, 4] },
+    { "type": "garland", "emissive": true, "anchor": "window", "region": { "x": 168, "y": 28, "w": 48, "h": 48 }, "strands": [[{ "x": 170, "y": 34 }, { "x": 190, "y": 40 }, { "x": 212, "y": 33 }], [{ "x": 172, "y": 52 }, { "x": 211, "y": 58 }]], "sag": 4, "spacing": 4, "colours": [8, 9, 7, 12], "wire": 2, "rate": 0.3, "baubles": [{ "x": 180, "y": 62, "colour": 10 }, { "x": 198, "y": 64, "colour": 3 }], "baubleSize": 3, "highlight": 15 }
   ],
   "variants": [
     { "id": "night", "title": "Night", "ambient": { "level": 0, "layers": { "sky": 0, "stars": 0, "city": 0 } }, "lights": [], "emissiveOff": [] }

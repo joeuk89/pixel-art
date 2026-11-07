@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createAudio, hasAmbientSound, playSoundtrack } from "../viewer/audio.ts";
+import { followFires } from "../viewer/sound-schedule.ts";
 
 class FakeNode {
   readonly outputs: FakeNode[] = [];
@@ -51,7 +52,9 @@ class FakeSource extends FakeNode {
     this.context = context;
   }
   stoppedAt: number | undefined;
-  start() {
+  startedAt: number | undefined;
+  start(when = 0) {
+    this.startedAt = when;
     this.context.started.push(this);
   }
   stop(when = 0) {
@@ -76,11 +79,17 @@ class FakeContext {
   async decodeAudioData(bytes: ArrayBuffer) {
     return { duration: 2, file: new TextDecoder().decode(bytes) };
   }
+  readonly listeners: (() => void)[] = [];
+  addEventListener(type: string, listener: () => void) {
+    if (type === "statechange") this.listeners.push(listener);
+  }
   async resume() {
     this.state = "running";
+    for (const listener of this.listeners) listener();
   }
   async suspend() {
     this.state = "suspended";
+    for (const listener of this.listeners) listener();
   }
 }
 
@@ -127,10 +136,10 @@ before(async () => {
 
 after(() => server.close());
 
-async function play(levels: { music: number; ambient: number }, scene = plan({}), variant = scene.variants[0]) {
+async function play(levels: { music: number; ambient: number }, scene = plan({}), variant = scene.variants[0], clock?: () => number | undefined) {
   const context = new FakeContext();
   const audio = createAudio(levels, context as unknown as AudioContext);
-  const soundtrack = await playSoundtrack(audio, scene, base, new AbortController().signal, variant);
+  const soundtrack = await playSoundtrack(audio, scene, base, new AbortController().signal, variant, clock);
   const byFile = () => Object.fromEntries(context.started.map((s) => [s.buffer!.file, round(loudness(context, s))]));
   return { context, audio, byFile, soundtrack };
 }
@@ -252,4 +261,93 @@ test("switching back fades the added loop out over the crossfade and stops it, l
   assert.deepEqual(fadeGain(loop).ramps, [[0, 22]]);
   assert.equal(loop.stoppedAt, 22);
   assert.ok(context.started.slice(0, baseCount).every((s) => s.stoppedAt === undefined), "a base source stopped");
+});
+
+const flashEvery = (every: [number, number]) => ({ type: "flash", anchor: "sky", region: { x: 0, y: 0, w: 8, h: 8 }, steps: 2, every });
+const rainPrimitive = { type: "rain" };
+const thunder = { source: { kind: "curated", id: "c" }, file: "thunder.ogg", distance: "far", follows: { primitive: "flash", delay: [1, 4] } };
+
+function stormPlan(variants: object[] = [{ id: "storm" }], primitives: object[] = [flashEvery([20, 60])]) {
+  return { ...plan({ ambient: [], oneshots: [thunder] }, variants), primitives };
+}
+
+function nextFollow(flash: { salt: number; every: [number, number] }, afterSec: number) {
+  const fires = followFires(1337, 0, flash, [1, 4]);
+  for (;;) {
+    const fire = fires.next().value;
+    if (fire.at > afterSec) return fire;
+  }
+}
+
+const thunders = (context: FakeContext) => context.started.filter((s) => s.buffer!.file === "thunder.ogg");
+
+test("a following One-shot starts its delay after the next flash on the Scene clock", async () => {
+  let sceneSec = 100;
+  const scene = stormPlan();
+  const context = new FakeContext();
+  context.currentTime = 5;
+  const audio = createAudio({ music: 1, ambient: 1 }, context as unknown as AudioContext);
+  await playSoundtrack(audio, scene, base, new AbortController().signal, scene.variants[0], () => sceneSec);
+  const [first] = thunders(context);
+  const fire = nextFollow({ salt: 0, every: [20, 60] }, 100);
+  assert.equal(round(first.startedAt!), round(5 + fire.at - 100));
+  assert.equal(first.playbackRate.value, fire.rate);
+  context.currentTime = first.startedAt! + 3;
+  sceneSec = fire.at + 3;
+  first.onended!();
+  const [, second] = thunders(context);
+  const after = nextFollow({ salt: 0, every: [20, 60] }, fire.at);
+  assert.equal(round(second.startedAt!), round(context.currentTime + after.at - sceneSec));
+});
+
+test("with no Scene clock a following One-shot keeps the Soundtrack's own time, as the Scene starts with it", async () => {
+  const scene = stormPlan();
+  const { context } = await play({ music: 1, ambient: 1 }, scene);
+  assert.equal(round(thunders(context)[0].startedAt!), round(nextFollow({ salt: 0, every: [20, 60] }, 0).at));
+});
+
+test("while the Scene clock is paused a following One-shot keeps the last known pace, and resync moves it to the clock", async () => {
+  let sceneSec: number | undefined = 40;
+  const scene = stormPlan();
+  const { context, soundtrack } = await play({ music: 1, ambient: 1 }, scene, scene.variants[0], () => sceneSec);
+  const flash = { salt: 0, every: [20, 60] as [number, number] };
+  const [first] = thunders(context);
+  const fire = nextFollow(flash, 40);
+  sceneSec = undefined;
+  context.currentTime = first.startedAt! + 3;
+  first.onended!();
+  const [, second] = thunders(context);
+  assert.equal(round(second.startedAt!), round(nextFollow(flash, fire.at).at - 40));
+  sceneSec = fire.at + 1;
+  soundtrack.resync();
+  assert.equal(second.onended, null, "the stale sound would chain another");
+  assert.equal(second.stoppedAt, context.currentTime);
+  const third = thunders(context)[2];
+  assert.equal(round(third.startedAt!), round(context.currentTime + nextFollow(flash, sceneSec).at - sceneSec));
+});
+
+test("a following One-shot reschedules when the sound resumes from mute, since the Scene ran on meanwhile", async () => {
+  let sceneSec = 0;
+  const scene = stormPlan();
+  const { context, audio } = await play({ music: 1, ambient: 1 }, scene, scene.variants[0], () => sceneSec);
+  const before = thunders(context).length;
+  sceneSec = 500;
+  audio.setRunning(true);
+  await Promise.resolve();
+  const latest = thunders(context).at(-1)!;
+  assert.equal(thunders(context).length, before + 1);
+  assert.equal(round(latest.startedAt!), round(nextFollow({ salt: 0, every: [20, 60] }, 500).at - 500));
+});
+
+test("a base following One-shot moves to the new Variant's flash on a switch", async () => {
+  const sceneSec = 200;
+  const scene = stormPlan([{ id: "near", primitives: [flashEvery([20, 60])] }, { id: "far", primitives: [rainPrimitive, flashEvery([30, 40])] }], []);
+  const { context, soundtrack } = await play({ music: 1, ambient: 1 }, scene, scene.variants[0], () => sceneSec);
+  const [first] = thunders(context);
+  assert.equal(round(first.startedAt!), round(nextFollow({ salt: 0, every: [20, 60] }, 200).at - 200));
+  soundtrack.setVariant(scene.variants[1]);
+  assert.equal(first.stoppedAt, 0);
+  const moved = thunders(context).at(-1)!;
+  assert.equal(round(moved.startedAt!), round(nextFollow({ salt: 1, every: [30, 40] }, 200).at - 200));
+  assert.equal(thunders(context).length, 2, "the kept base sound started a second chain");
 });

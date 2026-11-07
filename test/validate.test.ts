@@ -559,6 +559,92 @@ test("base plus Variant over the One-shot cap fails", () => {
   failsWith(validate(root), fixtureScene, "variants[1].soundtrack.oneshots", /at most 2 One-shots per Scene: base plus Variant clear-night has 3/);
 });
 
+const lightning = { type: "flash", anchor: "skyline", region: { x: 0, y: 0, w: 384, h: 100 }, every: [20, 60] };
+const followingThunder = (plan: any, follows: unknown = { primitive: "flash", delay: [1, 4] }) => {
+  const { every, ...shot } = plan.soundtrack.oneshots[0];
+  return { ...shot, follows };
+};
+
+test("a base One-shot that follows the Scene's one flash validates", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.primitives.push(lightning);
+    plan.soundtrack.oneshots = [followingThunder(plan)];
+  });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("a follows without a delay takes the default delay", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.primitives.push(lightning);
+    plan.soundtrack.oneshots = [followingThunder(plan, { primitive: "flash" })];
+  });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("a One-shot with both every and follows, or with neither, fails", () => {
+  const both = makeTree();
+  editJson(both, fixtureScene, (plan) => {
+    plan.primitives.push(lightning);
+    plan.soundtrack.oneshots = [{ ...followingThunder(plan), every: [90, 240] }];
+  });
+  failsWith(validate(both), fixtureScene, "soundtrack.oneshots[0]", /exactly one of every or follows/);
+  const neither = makeTree();
+  editJson(neither, fixtureScene, (plan) => { delete plan.soundtrack.oneshots[0].every; });
+  failsWith(validate(neither), fixtureScene, "soundtrack.oneshots[0]", /exactly one of every or follows/);
+});
+
+test("a follows delay whose min exceeds its max fails", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.primitives.push(lightning);
+    plan.soundtrack.oneshots = [followingThunder(plan, { primitive: "flash", delay: [4, 1] })];
+  });
+  failsWith(validate(root), fixtureScene, "soundtrack.oneshots[0].follows.delay", /min must not exceed max/);
+});
+
+test("a base One-shot that follows a flash fails in every Variant with no flash", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[0].primitives = [lightning];
+    plan.soundtrack.oneshots = [followingThunder(plan)];
+  });
+  failsWith(validate(root), fixtureScene, "soundtrack.oneshots[0].follows", /Variant clear-night has no flash Primitive/);
+});
+
+test("a One-shot that follows a flash fails when its Variant has two flashes", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.primitives.push(lightning);
+    plan.variants[1].primitives = [lightning];
+    plan.variants[1].soundtrack = { oneshots: [followingThunder(plan)] };
+    plan.soundtrack.oneshots = [];
+  });
+  failsWith(validate(root), fixtureScene, "variants[1].soundtrack.oneshots[0].follows", /Variant clear-night has 2 flash Primitives/);
+});
+
+test("a Variant's One-shot may follow a flash only that Variant has", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.variants[1].primitives = [lightning];
+    plan.variants[1].soundtrack = { oneshots: [followingThunder(plan)] };
+  });
+  const { code, stderr } = validate(root);
+  assert.equal(code, 0, stderr);
+});
+
+test("a follows delay longer than half the flash's shortest gap fails, so each sound lands before the next flash", () => {
+  const root = makeTree();
+  editJson(root, fixtureScene, (plan) => {
+    plan.primitives.push(lightning);
+    plan.soundtrack.oneshots = [followingThunder(plan, { primitive: "flash", delay: [1, 11] })];
+  });
+  failsWith(validate(root), fixtureScene, "soundtrack.oneshots[0].follows.delay", /at most 10 s, half the shortest gap between flashes in Variant night-rain/);
+});
+
 test("a resolved Scene whose Variant sound file is missing beside the plan fails, and a draft one is pending", () => {
   const root = makeTree();
   addToVariant(root, { ambient: [{ ...ambientAt("near"), file: "wind.ogg" }] });

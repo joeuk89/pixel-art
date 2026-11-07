@@ -1,4 +1,5 @@
-import type { ScenePlan, Variant } from "../schema/index.ts";
+import { activePrimitives, type ScenePlan, type Variant } from "../schema/index.ts";
+import { flashTimes } from "./primitives.ts";
 import { random } from "./random.ts";
 
 export const DISTANCE_BUSES = {
@@ -16,13 +17,35 @@ const RATE_JITTER = 0.03;
 
 export type Fire = { at: number; gain: number; rate: number };
 
+function jitter(seed: number, index: number, k: number): Omit<Fire, "at"> {
+  const db = (random(seed, ONESHOT_SALT, index, k, 1) * 2 - 1) * GAIN_JITTER_DB;
+  const rate = 1 + (random(seed, ONESHOT_SALT, index, k, 2) * 2 - 1) * RATE_JITTER;
+  return { gain: 10 ** (db / 20), rate };
+}
+
 export function* oneshotFires(seed: number, index: number, [min, max]: readonly [number, number]): Generator<Fire, never> {
   let at = 0;
   for (let k = 0; ; k++) {
     at += min + random(seed, ONESHOT_SALT, index, k, 0) * (max - min);
-    const db = (random(seed, ONESHOT_SALT, index, k, 1) * 2 - 1) * GAIN_JITTER_DB;
-    const rate = 1 + (random(seed, ONESHOT_SALT, index, k, 2) * 2 - 1) * RATE_JITTER;
-    yield { at, gain: 10 ** (db / 20), rate };
+    yield { at, ...jitter(seed, index, k) };
+  }
+}
+
+export type FollowedFlash = { salt: number; every: readonly [number, number] };
+
+export function followedFlash(plan: Pick<ScenePlan, "primitives">, variant: Pick<Variant, "primitives">): FollowedFlash | undefined {
+  const active = activePrimitives(plan, variant);
+  const salt = active.findIndex((p) => p.type === "flash");
+  const flash = active[salt];
+  return flash?.type === "flash" ? { salt, every: flash.every } : undefined;
+}
+
+// Fire k plays a seeded delay after flash k starts, in Scene seconds.
+export function* followFires(seed: number, index: number, flash: FollowedFlash, [min, max]: readonly [number, number]): Generator<Fire, never> {
+  const starts = flashTimes(seed, flash.salt, flash.every);
+  for (let k = 0; ; k++) {
+    const start = starts.next().value;
+    yield { at: start + min + random(seed, ONESHOT_SALT, index, k, 0) * (max - min), ...jitter(seed, index, k) };
   }
 }
 

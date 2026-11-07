@@ -108,6 +108,13 @@ function primitiveColours(plan: ScenePlan): { path: string; index: number }[] {
         return p.swaps.flatMap((pair, k) => pair.map((index, j) => ({ path: `${at}.swaps[${k}][${j}]`, index })));
       case "flash":
         return [];
+      case "garland":
+        return [
+          ...(p.colours ?? []).map((index, k) => ({ path: `${at}.colours[${k}]`, index })),
+          ...(p.wire === undefined ? [] : [{ path: `${at}.wire`, index: p.wire }]),
+          ...p.baubles.map((b, k) => ({ path: `${at}.baubles[${k}].colour`, index: b.colour })),
+          ...(p.highlight === undefined ? [] : [{ path: `${at}.highlight`, index: p.highlight }]),
+        ];
       default:
         return p.colours.map((index, k) => ({ path: `${at}.colours[${k}]`, index }));
     }

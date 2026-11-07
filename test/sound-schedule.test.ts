@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CROSSFADE_SEC, crossfade, loopOffset, oneshotFires, variantSounds, type Fire } from "../viewer/sound-schedule.ts";
+import { CROSSFADE_SEC, crossfade, followedFlash, followFires, loopOffset, oneshotFires, variantSounds } from "../viewer/sound-schedule.ts";
+import { flashTimes } from "../viewer/primitives.ts";
 
-function take(fires: Iterator<Fire>, n: number): Fire[] {
-  return Array.from({ length: n }, () => fires.next().value as Fire);
+function take<T>(values: Iterator<T>, n: number): T[] {
+  return Array.from({ length: n }, () => values.next().value as T);
 }
 
 const every: [number, number] = [90, 240];
@@ -91,4 +92,45 @@ test("switching to the same Variant changes nothing", () => {
   const fade = crossfade(variantPlan, clear, clear);
   assert.deepEqual([fade.fadeIn, fade.fadeOut], [[], []]);
   assert.equal(fade.keep.length, 4);
+});
+
+const storm = { salt: 3, every: [20, 60] as [number, number] };
+
+test("a following One-shot fires a delay within its range after each flash start, in order", () => {
+  for (const seed of [1, 2, 1337, 99999]) {
+    const starts = take(flashTimes(seed, storm.salt, storm.every), 200);
+    const fires = take(followFires(seed, 0, storm, [1, 4]), 200);
+    let previous = -Infinity;
+    fires.forEach(({ at }, k) => {
+      const delay = at - starts[k];
+      assert.ok(delay >= 1 && delay <= 4, `fire ${k} came ${delay} s after its flash`);
+      assert.ok(at > previous, `fire ${k} at ${at} is not after ${previous}`);
+      previous = at;
+    });
+  }
+});
+
+test("a following One-shot's delay varies per flash and is seeded", () => {
+  const delays = (seed: number) => {
+    const starts = take(flashTimes(seed, storm.salt, storm.every), 100);
+    return take(followFires(seed, 0, storm, [1, 4]), 100).map((f, k) => f.at - starts[k]);
+  };
+  assert.deepEqual(delays(7), delays(7));
+  assert.notDeepEqual(delays(7), delays(8));
+  assert.ok(Math.min(...delays(7)) < 1.3 && Math.max(...delays(7)) > 3.7, "delays do not spread across the range");
+});
+
+test("a following One-shot jitters gain and rate exactly as an every One-shot does", () => {
+  const follow = take(followFires(42, 1, storm, [1, 4]), 50);
+  const every = take(oneshotFires(42, 1, [90, 240]), 50);
+  assert.deepEqual(follow.map((f) => [f.gain, f.rate]), every.map((f) => [f.gain, f.rate]));
+});
+
+test("the followed flash is the one flash active in the Variant, with the salt the Viewer draws it with", () => {
+  const flash = { type: "flash", anchor: "sky", region: { x: 0, y: 0, w: 8, h: 8 }, steps: 2, every: [20, 60] };
+  const rain = { type: "rain" };
+  const plan = { primitives: [rain, rain], variants: [] } as any;
+  assert.deepEqual(followedFlash({ ...plan, primitives: [rain, flash] }, { id: "a" } as any), { salt: 1, every: [20, 60] });
+  assert.deepEqual(followedFlash(plan, { id: "b", primitives: [rain, { ...flash, every: [30, 40] }] } as any), { salt: 3, every: [30, 40] });
+  assert.equal(followedFlash(plan, { id: "c" } as any), undefined);
 });

@@ -13,7 +13,7 @@ import {
   type ScenePlan,
   type Variant,
 } from "../schema/index.ts";
-import { playSoundtrack, type Audio, type Soundtrack } from "./audio.ts";
+import { playSoundtrack, type Audio, type SceneClock, type Soundtrack } from "./audio.ts";
 import { mountControls } from "./controls.ts";
 import { loadCredits } from "./credits.ts";
 import { createCompositor, elementPixelsOf, type ElementPixels, type Pixels } from "./compositor.ts";
@@ -123,8 +123,8 @@ export async function renderScene(
   if (signal.aborted) return;
   document.body.style.background = palette.colours[0];
   let soundtrack: Promise<Soundtrack | undefined> | undefined;
-  const startSound = () => {
-    soundtrack = playSoundtrack(audio, plan, base, signal, variants.current).catch((e) => {
+  const startSound = (clock?: SceneClock) => {
+    soundtrack = playSoundtrack(audio, plan, base, signal, variants.current, clock).catch((e) => {
       if (!signal.aborted) console.error(e);
       return undefined;
     });
@@ -174,5 +174,7 @@ export async function renderScene(
       (e) => console.error(e),
     );
   };
-  startSound();
+  startSound(() => loop.now());
+  // After the Loop's own listener, so the Scene clock has resumed when the sound reads it.
+  document.addEventListener("visibilitychange", () => document.hidden || void soundtrack?.then((s) => s?.resync()), { signal });
 }

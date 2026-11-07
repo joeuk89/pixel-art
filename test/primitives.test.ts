@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { allPlacements, placementsOf, SCENE_HEIGHT, SCENE_WIDTH, scenePlanSchema, type Primitive, type ScenePlan } from "../schema/index.ts";
 import { createCompositor, type Compositor } from "../viewer/compositor.ts";
-import { createPrimitives, PROP_FPS, WEATHER_FPS } from "../viewer/primitives.ts";
+import { createPrimitives, flashTimes, PROP_FPS, WEATHER_FPS } from "../viewer/primitives.ts";
 import { loadElementPixels } from "../pipeline/lib/element-pixels.ts";
 import { fixturePalette, fixtures } from "./helpers.ts";
 
@@ -14,7 +14,7 @@ const palette = JSON.parse(readFileSync(join(fixtures, `library/palettes/${fixtu
 const paletteRgb = new Set<number>(palette.colours.map((hex: string) => parseInt(hex.slice(1), 16)));
 const catalogue: ScenePlan = scenePlanSchema.parse(JSON.parse(readFileSync(join(fixtures, "primitives/scene.json"), "utf8")));
 const elements = await loadElementPixels(fixtures, catalogue);
-const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum", "boats", "trickle", "flash"] as const;
+const TYPES = ["rain", "snow", "steam", "twinkle", "blink", "dust", "sway", "birds", "pendulum", "boats", "trickle", "flash", "garland"] as const;
 const TIMES = Array.from({ length: 60 }, (_, k) => k * 137);
 
 function only(type: string): Primitive[] {
@@ -140,9 +140,11 @@ for (const [type, fps, idles] of [["sway", PROP_FPS, false], ["birds", WEATHER_F
 }
 
 const windowAt = allPlacements(catalogue).find((p) => p.id === "window")!;
-const [twinkleOf, blinkOf, pendulumOf] = [only("twinkle")[0], only("blink")[0], only("pendulum")[0]];
+const [twinkleOf, blinkOf, pendulumOf, garlandOf] = [only("twinkle")[0], only("blink")[0], only("pendulum")[0], only("garland")[0]];
 const exactCases: [string, Primitive, boolean][] = [
   ["pendulum", pendulumOf, true],
+  ["garland", garlandOf, true],
+  ["garland with only baubles", { ...garlandOf, strands: [] } as Primitive, false],
   ["blink", blinkOf, true],
   ["twinkle", twinkleOf, true],
   ["twinkle with one light at a time", { ...twinkleOf, count: 1 } as Primitive, true],
@@ -532,6 +534,19 @@ test("flash is calm until its shortest wait, then lifts only the anchor's pixels
   }
 });
 
+test("flashTimes gives the start of every flash the flash Primitive draws, under the salt of its place in the plan", () => {
+  const flash = only("flash")[0] as Extract<Primitive, { type: "flash" }>;
+  const dark = { ...flash, region: { x: 0, y: 200, w: 40, h: 40 } };
+  const c = stillScene([dark, flash]);
+  const plain = Buffer.from(stillScene([]).render(0));
+  const starts = flashTimes(catalogue.seed, 1, flash.every);
+  for (let n = 0; n < 8; n++) {
+    const start = starts.next().value;
+    assert.ok(!plain.equals(Buffer.from(c.render(start * 1000))), `flash ${n} is not lit at its start, ${start} s`);
+    assert.ok(plain.equals(Buffer.from(c.render(start * 1000 - 1000 / WEATHER_FPS))), `flash ${n} is lit a step before its start, ${start} s`);
+  }
+});
+
 test("flash makes a redraw due at a 1/24 s step exactly when its pixels change, and never when its region misses the anchor", () => {
   const flash = only("flash")[0] as Extract<Primitive, { type: "flash" }>;
   for (const [primitive, moves] of [[flash, true], [{ ...flash, region: { x: 0, y: 200, w: 40, h: 40 } }, false]] as const) {
@@ -553,6 +568,86 @@ test("flash makes a redraw due at a 1/24 s step exactly when its pixels change, 
   }
 });
 
+type Garland = Extract<Primitive, { type: "garland" }>;
+
+function garlandScene(garland: Garland): { at: (t: number) => Map<number, string> } {
+  const room = catalogue.layers[3] as Extract<ScenePlan["layers"][number], { kind: "placements" }>;
+  const layers = [catalogue.layers[0], { ...room, placements: room.placements.filter((p) => p.id === "window") }] as ScenePlan["layers"];
+  const plan = { ...catalogue, layers, primitives: [garland as Primitive] };
+  const c = createCompositor({ plan, elements, palette, primitives: createPrimitives({ plan, elements, palette }) });
+  const plain = createCompositor({ plan: { ...plan, primitives: [] }, elements, palette }).render(0);
+  return {
+    at(t) {
+      const out = c.render(t);
+      const changed = new Map<number, string>();
+      for (let i = 0; i < out.length; i += 4) if (out[i] !== plain[i] || out[i + 1] !== plain[i + 1] || out[i + 2] !== plain[i + 2]) changed.set(i / 4, hexAt(out, i / 4));
+      return changed;
+    },
+  };
+}
+
+const openSky = { ...garlandOf, region: { x: 0, y: 100, w: 110, h: 60 }, wire: undefined, baubles: [] } as Garland;
+
+test("garland hangs bulbs every spacing px along a strand, cycling its colours, and dims only a few at a time, each one step down its own Ramp, never all at once", () => {
+  const darkOf = (i: number) => palette.ramps[i].dark;
+  const garland = { ...openSky, strands: [[{ x: 10, y: 110 }, { x: 90, y: 110 }]], sag: 0, spacing: 5, rate: 0.1 } as Garland;
+  const c = garlandScene(garland);
+  const lit = c.at(0);
+  const xs = [...lit.keys()].map((p) => p % W).sort((a, b) => a - b);
+  assert.deepEqual(xs, Array.from({ length: 17 }, (_, k) => 10 + 5 * k), "bulbs are not every 5 px from the first point to the last");
+  assert.ok([...lit.keys()].every((p) => Math.floor(p / W) === 110));
+  const on = new Map(xs.map((x, k) => [x, garland.colours![k % garland.colours!.length]]));
+  let dims = 0, most = 0;
+  for (let k = 0; k < 600; k++) {
+    const now = c.at(k * 100);
+    assert.equal(now.size, xs.length, `bulbs went missing at step ${k}`);
+    let dimmed = 0;
+    for (const [pixel, hex] of now) {
+      const own = on.get(pixel % W)!;
+      if (hex === palette.colours[own]) continue;
+      assert.equal(hex, palette.colours[darkOf(own)], `bulb at x ${pixel % W} turned ${hex}, not one step down its Ramp`);
+      dimmed++;
+    }
+    dims += dimmed;
+    most = Math.max(most, dimmed);
+  }
+  assert.ok(dims > 0, "no bulb ever dimmed");
+  assert.ok(most <= xs.length / 2, `${most} of ${xs.length} bulbs dimmed at once`);
+  const restless = garlandScene({ ...garland, rate: 100 } as Garland);
+  for (const t of [0, 900, 4700]) {
+    const lit = [...restless.at(t)].filter(([pixel, hex]) => hex === palette.colours[on.get(pixel % W)!]);
+    assert.equal(lit.length, 1, `${lit.length} bulbs stayed lit when every bulb rolled a dim at ${t} ms`);
+  }
+});
+
+test("garland sags its wire below the chord between points, by sag px at the middle, inside its region", () => {
+  const garland = { ...openSky, strands: [[{ x: 20, y: 122 }, { x: 60, y: 122 }]], sag: 4, wire: 2 } as Garland;
+  const drawn = garlandScene(garland).at(0);
+  const rows = [...drawn.keys()].map((p) => Math.floor(p / W));
+  assert.equal(Math.min(...rows), 122);
+  assert.equal(Math.max(...rows), 126);
+  const lowest = [...drawn.keys()].filter((p) => Math.floor(p / W) === 126).map((p) => p % W);
+  assert.ok(lowest.every((x) => Math.abs(x - 40) <= 8), `the lowest wire pixels are at ${lowest}, not mid-span`);
+  const columns = new Set([...drawn.keys()].map((p) => p % W));
+  for (let x = 20; x <= 60; x++) assert.ok(columns.has(x), `the wire has a gap at x ${x}`);
+  const clipped = garlandScene({ ...garland, region: { x: 0, y: 100, w: 40, h: 60 } }).at(0);
+  assert.ok(clipped.size > 0 && [...clipped.keys()].every((p) => p % W < 40), "the garland drew outside its region");
+});
+
+test("garland baubles are static round dots, a 3 px one rounded by its Ramp's dark step at the corners with the highlight at its centre", () => {
+  const garland = { ...openSky, strands: [], baubles: [{ x: 30, y: 130, colour: 10 }, { x: 50, y: 130, colour: 3 }], baubleSize: 3, highlight: 15 } as Garland;
+  const c = garlandScene(garland);
+  const first = c.at(0);
+  const [colour, dark, highlight] = [10, palette.ramps[10].dark, 15].map((i) => palette.colours[i]);
+  const expected = new Map<number, string>();
+  for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) expected.set((130 + dy) * W + 30 + dx, dx === 1 && dy === 1 ? highlight : dx !== 1 && dy !== 1 ? dark : colour);
+  assert.deepEqual(new Map([...first].filter(([p]) => p % W < 40)), expected);
+  for (const t of [0, 1300, 5100, 20000]) assert.deepEqual([...c.at(t)], [...first], `baubles changed at ${t} ms`);
+  const small = garlandScene({ ...garland, baubleSize: 2, highlight: undefined }).at(0);
+  assert.equal(small.size, 8);
+  assert.ok([...small.values()].every((hex) => hex === palette.colours[10] || hex === palette.colours[3]));
+});
+
 test("a Primitive anchored to a missing Placement fails with its index and anchor", () => {
   const plan = { ...catalogue, primitives: [{ ...only("steam")[0], anchor: "teapot" } as Primitive] };
   assert.throws(() => createPrimitives({ plan, elements, palette }), /Primitive 0 \(steam\): no Placement teapot/);
@@ -572,7 +667,7 @@ test("the Primitives module bundles for a neutral platform and draws where no No
   const draws = sandbox.primitives.createPrimitives({ plan: catalogue, elements, palette });
   const out = new Uint8ClampedArray(W * SCENE_HEIGHT * 4);
   for (const d of draws) d.draw(out, 500);
-  assert.equal(draws.length, 12);
+  assert.equal(draws.length, 13);
 });
 
 test("a Variant draws the base Primitives plus its own, and the base alone under a Variant that adds none", () => {

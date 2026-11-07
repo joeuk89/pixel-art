@@ -14,6 +14,7 @@ A Soundtrack is one music loop, Ambient loops at three Distances and up to two O
 - **Mid**: every Scene has one bed (room tone, traffic, a cafe murmur), plus at most one feature sound.
 - **Far**: sounds of the setting beyond the frame: wind, distant traffic, the sea.
 - **One-shots are far**: thunder, an owl, a bell. Give each an `every: [minSec, maxSec]` long enough that it stays a surprise, a minute or more.
+- **Thunder follows the lightning**: when the Variant that plays it has a `flash` Primitive, give thunder `follows: { "primitive": "flash", "delay": [1, 4] }` instead of `every`. It then plays 1 to 4 s after each flash. Every Variant that plays the One-shot needs exactly one flash, so a base One-shot needs one in every Variant; put a thunder that only one Variant has in that Variant's `soundtrack.oneshots`. The delay's longest may be at most half the flash's shortest `every`.
 
 At most 2 Ambient loops per Distance, 5 per Scene, and 2 One-shots per Scene.
 

@@ -1,4 +1,4 @@
-import { placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan, type Variant } from "../schema/index.ts";
+import { activePrimitives, placementsOf, primitiveSchema, SCENE_HEIGHT, SCENE_WIDTH, type Palette, type Placement, type Primitive, type ScenePlan, type Variant } from "../schema/index.ts";
 import { mix, placedXs, step, type ElementPixels, type Pixels, type PrimitiveDraw } from "./compositor.ts";
 import { positioned, type Positioned } from "./placement.ts";
 import { random } from "./random.ts";
@@ -593,6 +593,17 @@ const FLASH_GAP_STEPS = [1, 3] as const;
 const FLASH_MOST_PULSES = 3;
 const FLASH_LONGEST_STEPS = FLASH_MOST_PULSES * FLASH_PULSE_STEPS[1] + (FLASH_MOST_PULSES - 1) * FLASH_GAP_STEPS[1];
 
+// Flash j starts in the jth slot of the mean gap, pushed later by less than a slot, so starts stay in order and an older flash never outlasts a newer one.
+function flashStartStep(seed: number, salt: number, [min, max]: readonly [number, number], j: number): number {
+  const slotSteps = ((min + max) / 2) * WEATHER_FPS;
+  const jitterSteps = ((max - min) / 2) * WEATHER_FPS;
+  return Math.floor(min * WEATHER_FPS + j * slotSteps + random(seed, salt, j, 0, 0) * jitterSteps);
+}
+
+export function* flashTimes(seed: number, salt: number, every: readonly [number, number]): Generator<number, never> {
+  for (let j = 0; ; j++) yield flashStartStep(seed, salt, every, j) / WEATHER_FPS;
+}
+
 function flash(p: Of<"flash">, ctx: Context): PrimitiveDraw {
   const { seed, salt, colours: c, ramps } = ctx;
   if (!ramps) throw new Error(`Primitive ${salt} (flash): the Palette has no Ramp table to lift pixels along`);
@@ -613,8 +624,6 @@ function flash(p: Of<"flash">, ctx: Context): PrimitiveDraw {
   const [min, max] = p.every;
   const firstSteps = min * WEATHER_FPS;
   const slotSteps = ((min + max) / 2) * WEATHER_FPS;
-  // At most a slot's length, so flashes start in slot order and an older one never outlasts a newer one.
-  const jitterSteps = ((max - min) / 2) * WEATHER_FPS;
   // The first pulse lifts the full steps; a later one may fall a step short, so the flicker dims as it dies.
   const flickerAt = (j: number, local: number) => {
     const pulses = random(seed, salt, j, 0, 1) < 0.4 ? FLASH_MOST_PULSES : FLASH_MOST_PULSES - 1;
@@ -632,7 +641,7 @@ function flash(p: Of<"flash">, ctx: Context): PrimitiveDraw {
     if (positions.length === 0) return 0;
     const s = step(timeMs, WEATHER_FPS);
     for (let j = Math.floor((s - firstSteps) / slotSteps); j >= 0; j--) {
-      const local = s - Math.floor(firstSteps + j * slotSteps + random(seed, salt, j, 0, 0) * jitterSteps);
+      const local = s - flashStartStep(seed, salt, p.every, j);
       if (local < 0) continue;
       if (local >= FLASH_LONGEST_STEPS) return 0;
       const lift = flickerAt(j, local);
@@ -652,11 +661,105 @@ function flash(p: Of<"flash">, ctx: Context): PrimitiveDraw {
   };
 }
 
+const GARLAND_DIM_STEPS = 8;
+const GARLAND_SAMPLES_PER_PX = 4;
+// Each pixel is [dx, dy, shade]: 0 takes the highlight, 1 the bauble's colour, 2 its Ramp's dark step for a rounded edge.
+const BAUBLE_SHAPES: Record<number, readonly (readonly [number, number, number])[]> = {
+  2: [[0, 0, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1]],
+  3: [[0, 0, 2], [1, 0, 1], [2, 0, 2], [0, 1, 1], [1, 1, 0], [2, 1, 1], [0, 2, 2], [1, 2, 1], [2, 2, 2]],
+};
+
+function garland(p: Of<"garland">, ctx: Context): PrimitiveDraw {
+  const { seed, salt, colours: c, ramps } = ctx;
+  const { layer } = ctx.anchor(p.anchor);
+  const { region, sag, spacing, rate } = p;
+  const bulbColours = p.colours ?? [];
+  const x0 = Math.max(region.x, 0), y0 = Math.max(region.y, 0);
+  const x1 = Math.min(region.x + region.w, SCENE_WIDTH), y1 = Math.min(region.y + region.h, SCENE_HEIGHT);
+  const pixelAt = (x: number, y: number) => (x < x0 || x >= x1 || y < y0 || y >= y1 ? -1 : y * SCENE_WIDTH + x);
+  const wire = new Set<number>();
+  const bulbAt = new Map<number, number>();
+  let n = 0;
+  for (const strand of p.strands) {
+    let walked = 0, next = 0, px = strand[0].x, py = strand[0].y;
+    for (let j = 1; j < strand.length; j++) {
+      const a = strand[j - 1], b = strand[j];
+      const samples = Math.max(1, Math.ceil((Math.hypot(b.x - a.x, b.y - a.y) + 2 * sag) * GARLAND_SAMPLES_PER_PX));
+      for (let i = j === 1 ? 0 : 1; i <= samples; i++) {
+        const t = i / samples;
+        const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t + sag * 4 * t * (1 - t);
+        walked += Math.hypot(x - px, y - py);
+        px = x;
+        py = y;
+        const pixel = pixelAt(Math.round(x), Math.round(y));
+        if (pixel >= 0) wire.add(pixel);
+        if (walked < next - 1e-9) continue;
+        if (pixel >= 0) bulbAt.set(pixel, bulbColours[n % bulbColours.length]);
+        n++;
+        next += spacing;
+      }
+    }
+  }
+  const bulbs = Int32Array.from(bulbAt.keys()), on = Uint8Array.from(bulbAt.values());
+  const dim = Int16Array.from(on, (colour) => (ramps ? ramps[colour].dark : -1));
+  const dimmable = Uint8Array.from(on, (colour, k) => Number(dim[k] !== colour));
+  const shape = BAUBLE_SHAPES[p.baubleSize];
+  const baubles: [number, number][] = [];
+  for (const b of p.baubles) {
+    for (const [dx, dy, shade] of shape) {
+      const pixel = pixelAt(b.x + dx, b.y + dy);
+      const colour = shade === 0 && p.highlight !== undefined ? p.highlight : shade === 2 ? (ramps ? ramps[b.colour].dark : -1) : b.colour;
+      if (pixel >= 0 && colour >= 0) baubles.push([pixel, colour]);
+    }
+  }
+  const count = bulbs.length;
+  const dimmers = dimmable.reduce((sum, d) => sum + d, 0);
+  const chance = Math.min(1, (rate * GARLAND_DIM_STEPS) / PROP_FPS);
+  const phase = new Uint32Array(count);
+  for (let k = 0; k < count; k++) phase[k] = Math.floor(random(seed, salt, k, 0, 0) * GARLAND_DIM_STEPS);
+  const dimmed = new Uint8Array(count);
+  const dimAll = (timeMs: number) => {
+    const s = step(timeMs, PROP_FPS);
+    let total = 0, first = -1;
+    for (let k = 0; k < count; k++) {
+      dimmed[k] = dimmable[k] && random(seed, salt, k, Math.floor((s + phase[k]) / GARLAND_DIM_STEPS), 1) < chance ? 1 : 0;
+      total += dimmed[k];
+      if (dimmed[k] && first < 0) first = k;
+    }
+    if (dimmers > 1 && total === dimmers) dimmed[first] = 0;
+  };
+  const drawsNothing = count === 0 && (p.wire === undefined || wire.size === 0) && baubles.length === 0;
+  return {
+    after: layer,
+    fps: PROP_FPS,
+    state(timeMs) {
+      if (drawsNothing) return 0;
+      dimAll(timeMs);
+      let h = 0x2545f491, l = 0x6a09e667;
+      for (let k = 0; k < count; k++) {
+        if (!dimmed[k]) continue;
+        h = mix(h ^ k);
+        l = mix(l ^ Math.imul(k, 0x9e3779b1));
+      }
+      return (h & 0xfffff) * 4294967296 + l + 1;
+    },
+    draw(out, timeMs) {
+      if (p.wire !== undefined) for (const pixel of wire) paint(out, c, pixel, p.wire);
+      for (const [pixel, colour] of baubles) paint(out, c, pixel, colour);
+      dimAll(timeMs);
+      for (let k = 0; k < count; k++) {
+        const colour = dimmed[k] ? dim[k] : on[k];
+        if (colour >= 0) paint(out, c, bulbs[k], colour);
+      }
+    },
+  };
+}
+
 export function createPrimitives({ plan, elements, palette, seed = plan.seed, variant = plan.variants[0], features = new Map() }: PrimitivesInput): PrimitiveDraw[] {
   const colours = coloursOf(palette);
   const placements = new Map<string, { placement: Placement; layer: number }>();
   plan.layers.forEach((layer, li) => placementsOf(layer).forEach((placement) => placements.set(placement.id, { placement, layer: li })));
-  return [...plan.primitives, ...(variant.primitives ?? [])].map((raw, salt) => {
+  return activePrimitives(plan, variant).map((raw, salt) => {
     const primitive = primitiveSchema.parse(raw);
     const ctx: Context = {
       seed,
@@ -691,5 +794,6 @@ function drawOf(primitive: Primitive, ctx: Context): PrimitiveDraw {
     case "boats": return boats(primitive, ctx);
     case "trickle": return trickle(primitive, ctx);
     case "flash": return flash(primitive, ctx);
+    case "garland": return garland(primitive, ctx);
   }
 }
